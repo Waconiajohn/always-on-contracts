@@ -181,7 +181,7 @@ function fallbackValidation(_input: ScoringInput, error?: Error): QualityScoreRe
 export function compareVersions(
   idealScore: QualityScoreResult,
   personalizedScore: QualityScoreResult,
-  vaultStrength: number
+  resumeStrength: number
 ): {
   recommendation: 'ideal' | 'personalized' | 'blend';
   reason: string;
@@ -189,11 +189,11 @@ export function compareVersions(
 } {
   const scoreDiff = personalizedScore.overallScore - idealScore.overallScore;
 
-  // If vault is too weak, recommend ideal
-  if (vaultStrength < 40) {
+  // If resume data is too weak, recommend ideal
+  if (resumeStrength < 40) {
     return {
       recommendation: 'ideal',
-      reason: 'Career Vault needs more data for strong personalization',
+      reason: 'Master Resume needs more data for strong personalization',
       scoreDifference: scoreDiff
     };
   }
@@ -202,7 +202,7 @@ export function compareVersions(
   if (scoreDiff > 10) {
     return {
       recommendation: 'personalized',
-      reason: 'Your vault data creates a stronger, more competitive section',
+      reason: 'Your resume data creates a stronger, more competitive section',
       scoreDifference: scoreDiff
     };
   }

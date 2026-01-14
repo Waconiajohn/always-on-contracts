@@ -131,7 +131,7 @@ export const JourneyStateCard = ({
     );
   }
 
-  if (state === 'vault-complete-first-time') {
+  if (state === 'resume-complete-first-time') {
     return (
       <Card className="p-6 bg-gradient-to-br from-primary/5 to-background">
         <div className="flex items-center gap-4 mb-4">
@@ -139,7 +139,7 @@ export const JourneyStateCard = ({
             <CheckCircle2 className="h-6 w-6 text-primary" />
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-semibold">Vault Complete - Ready to Deploy!</h3>
+            <h3 className="text-lg font-semibold">Resume Complete - Ready to Deploy!</h3>
             <p className="text-sm text-muted-foreground">Your career intelligence system is built. Time to start applying!</p>
           </div>
         </div>

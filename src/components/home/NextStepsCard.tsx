@@ -15,23 +15,23 @@ const stateConfig: Record<JourneyState, {
 }> = {
   'getting-started': {
     title: "Get Started",
-    description: "Build your Career Vault to unlock all features",
+    description: "Build your Master Resume to unlock all features",
     steps: [
-      { label: "Build Career Vault", icon: Target, path: "/career-vault", primary: true },
+      { label: "Build Master Resume", icon: Target, path: "/master-resume", primary: true },
       { label: "View Example Resume", icon: FileText, path: "/agents/resume-builder" },
     ],
   },
   'building-momentum': {
     title: "Keep Building",
-    description: "Complete your vault to unlock AI-powered tools",
+    description: "Complete your resume to unlock AI-powered tools",
     steps: [
-      { label: "Continue Interview", icon: Target, path: "/career-vault", primary: true },
+      { label: "Continue Building", icon: Target, path: "/master-resume", primary: true },
       { label: "Preview Features", icon: Search, path: "/ai-agents" },
     ],
   },
-  'vault-complete-first-time': {
+  'resume-complete-first-time': {
     title: "Next Steps",
-    description: "Your vault is ready. Choose your next action:",
+    description: "Your resume is ready. Choose your next action:",
     steps: [
       { label: "Search for Jobs", icon: Search, path: "/job-search", primary: true },
       { label: "Build Resume", icon: FileText, path: "/agents/resume-builder" },

@@ -4,13 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 export type JourneyState = 
   | 'getting-started' 
   | 'building-momentum' 
-  | 'vault-complete-first-time' 
+  | 'resume-complete-first-time' 
   | 'actively-deploying' 
   | 'interview-phase';
 
 interface JourneyStateData {
   state: JourneyState;
-  vaultCompletion: number;
+  resumeCompletion: number;
   activeApplications: number;
   recentApplications: number;
   upcomingInterviews: number;
@@ -21,7 +21,7 @@ interface JourneyStateData {
 export const useJourneyState = () => {
   const [data, setData] = useState<JourneyStateData>({
     state: 'getting-started',
-    vaultCompletion: 0,
+    resumeCompletion: 0,
     activeApplications: 0,
     recentApplications: 0,
     upcomingInterviews: 0,
@@ -39,7 +39,7 @@ export const useJourneyState = () => {
       if (!user) return;
 
       // Fetch all data in parallel
-      const [vaultData, profileData, applicationsData, interviewsData, recentAppsData] = await Promise.all([
+      const [resumeData, profileData, applicationsData, interviewsData, recentAppsData] = await Promise.all([
         supabase
           .from('career_vault')
           .select('review_completion_percentage')
@@ -68,7 +68,7 @@ export const useJourneyState = () => {
           .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
       ]);
 
-      const vaultCompletion = vaultData.data?.review_completion_percentage || 0;
+      const resumeCompletion = resumeData.data?.review_completion_percentage || 0;
       const celebrationSeen = profileData.data?.vault_completion_celebration_seen || false;
       const activeApplications = applicationsData.count || 0;
       const upcomingInterviews = interviewsData.count || 0;
@@ -77,21 +77,21 @@ export const useJourneyState = () => {
       // Determine journey state
       let state: JourneyState = 'getting-started';
       
-      if (upcomingInterviews > 0 && vaultCompletion === 100) {
+      if (upcomingInterviews > 0 && resumeCompletion === 100) {
         state = 'interview-phase';
       } else if (activeApplications > 0 || recentApplications > 0) {
         state = 'actively-deploying';
-      } else if (vaultCompletion === 100 && !celebrationSeen) {
-        state = 'vault-complete-first-time';
-      } else if (vaultCompletion === 100) {
+      } else if (resumeCompletion === 100 && !celebrationSeen) {
+        state = 'resume-complete-first-time';
+      } else if (resumeCompletion === 100) {
         state = 'actively-deploying';
-      } else if (vaultCompletion >= 30) {
+      } else if (resumeCompletion >= 30) {
         state = 'building-momentum';
       }
 
       setData({
         state,
-        vaultCompletion,
+        resumeCompletion,
         activeApplications,
         recentApplications,
         upcomingInterviews,
