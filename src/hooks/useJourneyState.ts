@@ -110,7 +110,7 @@ export const useJourneyState = () => {
 
     await supabase
       .from('profiles')
-      .update({ vault_completion_celebration_seen: true })
+      .update({ vault_completion_celebration_seen: true } as any)
       .eq('user_id', user.id);
 
     setData(prev => ({ ...prev, celebrationSeen: true, state: 'actively-deploying' }));

@@ -20,7 +20,7 @@ interface LaunchpadCardProps {
   isPlatinum?: boolean;
   order?: number;
   variant?: 'active' | 'preview' | 'unlocked';
-  vaultCompletion?: number;
+  resumeCompletion?: number;
 }
 
 export const LaunchpadCard = ({
@@ -35,7 +35,7 @@ export const LaunchpadCard = ({
   isPlatinum,
   order,
   variant = 'active',
-  vaultCompletion = 0,
+  resumeCompletion = 0,
 }: LaunchpadCardProps) => {
   const navigate = useNavigate();
   const iconColor = getSeasonalIconColor(order || 0);
@@ -44,8 +44,8 @@ export const LaunchpadCard = ({
   const isCompact = variant === 'preview' || variant === 'unlocked';
   const showLockOverlay = isLocked && variant === 'active';
   
-  // vaultCompletion used in JSX for preview badge
-  console.log('Vault completion:', vaultCompletion);
+  // resumeCompletion used in JSX for preview badge
+  console.log('Resume completion:', resumeCompletion);
 
   return (
     <Card

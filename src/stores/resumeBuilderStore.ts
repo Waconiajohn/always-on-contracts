@@ -222,7 +222,7 @@ export const useResumeBuilderStore = create<ResumeBuilderState>()(
       setAtsScoreData: (data) => set({ atsScoreData: data }),
       setAnalyzingATS: (analyzing) => set({ analyzingATS: analyzing }),
       
-      // Resume overlay actions (simplified - Career Vault functionality removed)
+      // Resume overlay actions (simplified - Master Resume direct editing)
       addGapSuggestion: (_payload: any, _meta?: any) =>
         set((state) => ({
           resumeOverlay: state.resumeOverlay,
@@ -243,7 +243,7 @@ export const useResumeBuilderStore = create<ResumeBuilderState>()(
           resumeOverlay: state.resumeOverlay,
         })),
 
-      // Commit queued promotions to Master Resume (simplified - no-op for now)
+      // Commit queued updates to Master Resume (simplified - no-op for now)
       commitPromotions: async () => {
         const state = get();
         const pending = state.resumeOverlay.pendingPromotions || [];

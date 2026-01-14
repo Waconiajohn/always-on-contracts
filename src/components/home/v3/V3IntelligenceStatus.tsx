@@ -9,22 +9,22 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
 interface V3IntelligenceStatusProps {
-  vaultCompletion: number;
+  resumeCompletion: number;
   activeApplications: number;
   upcomingInterviews: number;
 }
 
 export function V3IntelligenceStatus({
-  vaultCompletion,
+  resumeCompletion,
   activeApplications,
   upcomingInterviews
 }: V3IntelligenceStatusProps) {
   const navigate = useNavigate();
-  const strengthLevel = getStrengthLevel(vaultCompletion);
+  const strengthLevel = getStrengthLevel(resumeCompletion);
   
   // Determine journey phase
   const getJourneyPhase = () => {
-    if (vaultCompletion < 30) {
+    if (resumeCompletion < 30) {
       return {
         phase: "Building Foundation",
         description: "Focus on completing your Master Resume to unlock AI-powered features",
@@ -32,7 +32,7 @@ export function V3IntelligenceStatus({
         color: "text-orange-500",
         confidence: 92
       };
-    } else if (vaultCompletion < 60) {
+    } else if (resumeCompletion < 60) {
       return {
         phase: "Resume Strengthening",
         description: "Your resume is taking shape. Keep adding quality items to improve AI insights",
@@ -64,9 +64,9 @@ export function V3IntelligenceStatus({
 
   // Calculate quality breakdown (mock data for now - would come from useUserContext)
   const qualityBreakdown = {
-    gold: Math.round(vaultCompletion * 0.3),
-    silver: Math.round(vaultCompletion * 0.5),
-    bronze: Math.round(vaultCompletion * 0.2)
+    gold: Math.round(resumeCompletion * 0.3),
+    silver: Math.round(resumeCompletion * 0.5),
+    bronze: Math.round(resumeCompletion * 0.2)
   };
 
   return (
@@ -120,9 +120,9 @@ export function V3IntelligenceStatus({
                 What resume data we used
               </summary>
               <div className="mt-2 space-y-1 text-muted-foreground ml-4">
-                <div>• Work Experience ({Math.min(8, Math.round(vaultCompletion / 10))} positions)</div>
-                <div>• Skills ({Math.min(24, Math.round(vaultCompletion / 4))} items)</div>
-                <div>• Leadership ({Math.min(6, Math.round(vaultCompletion / 15))} insights)</div>
+                <div>• Work Experience ({Math.min(8, Math.round(resumeCompletion / 10))} positions)</div>
+                <div>• Skills ({Math.min(24, Math.round(resumeCompletion / 4))} items)</div>
+                <div>• Leadership ({Math.min(6, Math.round(resumeCompletion / 15))} insights)</div>
               </div>
             </details>
           </div>
@@ -137,7 +137,7 @@ export function V3IntelligenceStatus({
           <div className="space-y-3">
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-3xl font-bold">{Math.round(vaultCompletion)}%</span>
+                <span className="text-3xl font-bold">{Math.round(resumeCompletion)}%</span>
                 <Badge variant="outline" className={strengthLevel.textColor}>
                   {strengthLevel.level}
                 </Badge>
@@ -171,7 +171,7 @@ export function V3IntelligenceStatus({
               </div>
             </div>
 
-            {vaultCompletion < 80 && (
+            {resumeCompletion < 80 && (
               <div className="pt-3 border-t border-border">
                 <p className="text-sm text-muted-foreground mb-2">
                   AI Enhancement Suggestion
@@ -182,7 +182,7 @@ export function V3IntelligenceStatus({
                   className="w-full"
                   onClick={() => navigate('/master-resume')}
                 >
-                  Enhance {Math.max(1, Math.round((80 - vaultCompletion) / 5))} items to reach Exceptional tier
+                  Enhance {Math.max(1, Math.round((80 - resumeCompletion) / 5))} items to reach Exceptional tier
                 </Button>
               </div>
             )}
