@@ -71,7 +71,7 @@ serve(async (req) => {
       console.log('[GENERATE-INTERVIEW-QUESTION] Milestone context loaded:', milestone?.company_name, milestone?.job_title);
     }
 
-    console.log('[GENERATE-INTERVIEW-QUESTION] Fetching Career Vault intelligence for user:', user.id);
+    console.log('[GENERATE-INTERVIEW-QUESTION] Fetching Master Resume intelligence for user:', user.id);
 
     // PHASE 2 FIX: Get FULL resume data, not just analysis
     const { data: vaultData } = await supabase
@@ -106,7 +106,7 @@ serve(async (req) => {
       console.log('[GENERATE-INTERVIEW-QUESTION] Loaded', workPositions.length, 'positions,', milestonesData.length, 'milestones');
     }
 
-    // Get full Career Vault intelligence
+    // Get full Master Resume intelligence
     const { data: intelligenceData, error: intelligenceError } = await supabase.functions.invoke(
       'get-vault-intelligence',
       { headers: { Authorization: authHeader } }
@@ -120,10 +120,10 @@ serve(async (req) => {
     } : null;
 
     if (!vault) {
-      console.log('[GENERATE-INTERVIEW-QUESTION] No Career Vault found');
+      console.log('[GENERATE-INTERVIEW-QUESTION] No Master Resume found');
       return new Response(JSON.stringify({
-        question: 'Please complete the Career Vault interview first.',
-        error: 'No career vault found'
+        question: 'Please complete the Master Resume interview first.',
+        error: 'No master resume found'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400
@@ -236,8 +236,8 @@ serve(async (req) => {
       strategist: `You are THE STRATEGIST - analytical, precise, and forward-thinking. You ask probing questions about decision-making and long-term impact. Use phrases like "Walk me through your thinking," "What were the strategic implications?" and "How did this position you for future opportunities?" Your tone is intellectual and methodical.`
     };
 
-    // Build Career Vault context
-    let vaultContext = '';
+    // Build Master Resume context
+    let resumeContext = '';
     if (intelligence && intelligence.interviewResponses?.length > 0) {
       const askedTopics = intelligence.interviewResponses.map((r: any) => r.question_category).filter(Boolean);
       const recentResponses = intelligence.interviewResponses.slice(-3).map((r: any) => 
@@ -251,8 +251,8 @@ ${workPositions.slice(0, 5).map((wp: any) =>
 ).join('\n')}`
         : '';
 
-      vaultContext = `
-EXISTING CAREER VAULT INTELLIGENCE:
+      resumeContext = `
+EXISTING MASTER RESUME INTELLIGENCE:
 - Power Phrases: ${intelligence.counts.powerPhrases}
 - Business Impacts: ${intelligence.counts.businessImpacts}
 - Projects: ${intelligence.counts.projects}
@@ -300,7 +300,7 @@ PHASE DESCRIPTION: ${currentPhase.description}
 TARGET INTELLIGENCE CATEGORIES: ${currentPhase.targetCategories.join(', ')}
 OVERALL COMPLETION: ${completionPercentage}%
 
-${vaultContext}
+${resumeContext}
 
 🚫 **CRITICAL: AVOID DUPLICATE QUESTIONS**
 Already asked ${askedQuestions.size} questions. DO NOT ask:
@@ -393,7 +393,7 @@ The context field is NOT a second question or intro—it's a brief explanation o
 CRITICAL INSTRUCTIONS (PHASE 2 FIX - Use FULL resume context):
 1. FULL RESUME TEXT: ${vault?.resume_raw_text?.substring(0, 800) || 'N/A'}
 2. RECENT ROLES: ${vault?.milestones?.slice(0, 3).map((m: any) => `${m.company_name} (${m.job_title}): ${m.description?.substring(0, 100)}`).join(' | ') || 'N/A'}
-3. Reference existing Career Vault intelligence when building questions
+3. Reference existing Master Resume intelligence when building questions
 4. Ask follow-up questions that build on previous responses
 5. Use the phase context to focus on relevant intelligence categories
 6. Keep questions conversational and natural

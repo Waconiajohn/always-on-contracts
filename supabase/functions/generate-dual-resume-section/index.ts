@@ -130,7 +130,7 @@ Return ONLY the bullet points/content.`;
         );
     }
 
-    // SAFETY CHECK: Prevent hallucination when vault is empty
+    // SAFETY CHECK: Prevent hallucination when resume data is empty
     // Allow generation if existing_resume is provided (for V3 Must-Interview Builder)
     const isDataRequiredSection = ['experience', 'work_history', 'professional_experience', 'employment', 'education', 'academic_background'].includes(section_type);
     
@@ -139,7 +139,7 @@ Return ONLY the bullet points/content.`;
       return new Response(
         JSON.stringify({
           error: 'INSUFFICIENT_DATA',
-          message: 'Your career vault needs to be populated before generating resume sections. Please complete the vault setup first.',
+          message: 'Your Master Resume needs to be populated before generating resume sections. Please complete the setup first.',
           section_type
         }),
         {
@@ -159,7 +159,7 @@ Return ONLY the bullet points/content.`;
     let vaultMilestones: any[] = [];
     
     if (user_id) {
-      console.log(`🔍 Fetching complete vault data for user: ${user_id}`);
+      console.log(`🔍 Fetching complete Master Resume data for user: ${user_id}`);
       
       const { data: vaultRecord } = await supabase
         .from('career_vault')
@@ -193,10 +193,10 @@ Return ONLY the bullet points/content.`;
       }
     }
 
-    // Fetch user's vault skills if generating skills section
-    let vaultSkills: any[] = [];
+    // Fetch user's resume skills if generating skills section
+    let resumeSkills: any[] = [];
     if ((section_type === 'skills' || section_type === 'skills_list' || section_type === 'technical_skills') && user_id) {
-      console.log(`🔍 Fetching vault skills for user: ${user_id}`);
+      console.log(`🔍 Fetching Master Resume skills for user: ${user_id}`);
       
       const [confirmedSkills, transferableSkills, softSkills] = await Promise.all([
         supabase.from('vault_confirmed_skills').select('*').eq('user_id', user_id),
@@ -204,13 +204,13 @@ Return ONLY the bullet points/content.`;
         supabase.from('vault_soft_skills').select('*').eq('user_id', user_id)
       ]);
 
-      vaultSkills = [
+      resumeSkills = [
         ...(confirmedSkills.data || []).map((s: any) => ({ skill: s.skill_name, proficiency: s.proficiency_level, source: 'confirmed' })),
         ...(transferableSkills.data || []).map((s: any) => ({ skill: s.stated_skill, evidence: s.evidence, source: 'transferable' })),
         ...(softSkills.data || []).map((s: any) => ({ skill: s.skill_name, source: 'soft' }))
       ];
       
-      console.log(`✅ Loaded ${vaultSkills.length} skills from vault (${confirmedSkills.data?.length || 0} confirmed, ${transferableSkills.data?.length || 0} transferable, ${softSkills.data?.length || 0} soft)`);
+      console.log(`✅ Loaded ${resumeSkills.length} skills from Master Resume (${confirmedSkills.data?.length || 0} confirmed, ${transferableSkills.data?.length || 0} transferable, ${softSkills.data?.length || 0} soft)`);
     } else if ((section_type === 'skills' || section_type === 'skills_list' || section_type === 'technical_skills')) {
       console.log(`⚠️ Skills section requested but user_id is missing! Skills generation will use generic approach.`);
     }
@@ -229,7 +229,7 @@ ${education.map((ed: any) => `- ${ed.degree_type} in ${ed.field_of_study || 'N/A
 `
       : '';
 
-    const vaultMilestonesContext = vaultMilestones.length > 0
+    const resumeMilestonesContext = vaultMilestones.length > 0
       ? `VERIFIED ACHIEVEMENTS WITH METRICS:
 ${vaultMilestones.slice(0, 15).map((m: any) => `- ${m.milestone_title || m.description}: ${m.metric_value || ''} ${m.context || ''}`).join('\n')}
 `
@@ -243,7 +243,7 @@ ${vaultMilestones.slice(0, 15).map((m: any) => `- ${m.milestone_title || m.descr
     const projectSections = ['projects'];
     const skillsSections = ['skills', 'skills_list', 'technical_skills', 'additional_skills', 'core_competencies', 'key_skills'];
     const skillsGroupSections = ['skills_groups', 'core_capabilities'];
-    const hasSkillsData = vaultSkills.length > 0;
+    const hasSkillsData = resumeSkills.length > 0;
     const needsBothContexts = skillsGroupSections.includes(section_type);
 
     // Step 1: Generate IDEAL version (Pure AI, no vault)
@@ -314,8 +314,8 @@ Start directly with the content.`;
     // Step 2: Generate PERSONALIZED version (AI + Vault + Resume Milestones)
     console.log('Generating personalized version...');
     
-    // Prepare resume milestones context (prioritize for experience/education)
-    const resumeMilestonesContext = resume_milestones.length > 0
+    // Prepare milestone data context (prioritize for experience/education)
+    const milestoneDataContext = resume_milestones.length > 0
       ? resume_milestones.map((milestone: any, idx: number) => {
           if (milestone.milestone_type === 'job') {
             return `
@@ -337,9 +337,9 @@ Details: ${milestone.details || 'N/A'}`;
         }).filter(Boolean).join('\n')
       : '';
     
-    // Prepare skills context from vault
-    const skillsContext = vaultSkills.length > 0
-      ? vaultSkills.map((skill: any, idx: number) => {
+    // Prepare skills context from Master Resume
+    const skillsContext = resumeSkills.length > 0
+      ? resumeSkills.map((skill: any, idx: number) => {
           if (skill.source === 'confirmed') {
             return `${skill.skill} (${skill.proficiency || 'experienced'})`;
           } else if (skill.source === 'transferable') {
@@ -350,8 +350,8 @@ Details: ${milestone.details || 'N/A'}`;
         }).join(', ')
       : '';
     
-    // Prepare vault context
-    const vaultContext = vault_items.length > 0
+    // Prepare resume intelligence context
+    const resumeIntelligenceContext = vault_items.length > 0
       ? vault_items.map((item: any, idx: number) => `
 [Vault Item ${idx + 1}] ${item.vaultCategory}:
 ${JSON.stringify(item.content, null, 2)}
@@ -370,10 +370,10 @@ Keywords: ${item.atsKeywords.join(', ')}
       projectSections.includes(section_type)
     );
     
-    const primaryContext = hasResumeData ? resumeMilestonesContext 
+    const primaryContext = hasResumeData ? milestoneDataContext 
                          : hasSkillsData ? skillsContext
-                         : needsBothContexts ? `${skillsContext}\n\n${resumeMilestonesContext}`
-                         : vaultContext;
+                         : needsBothContexts ? `${skillsContext}\n\n${milestoneDataContext}`
+                         : resumeIntelligenceContext;
 
     const personalizedPrompt = `You are an expert resume writer. Create a PERSONALIZED ${section_type} section for THIS SPECIFIC CANDIDATE.
 
@@ -392,19 +392,19 @@ ${section_guidance}
 CANDIDATE'S ACTUAL WORK HISTORY (source of truth):
     ${workHistoryContext}
     ${educationContext}
-    ${vaultMilestonesContext}
+    ${resumeMilestonesContext}
 
 ${section_type === 'summary' || section_type === 'opening_paragraph' ? `
 CANDIDATE'S TOP ACHIEVEMENTS (Use these to lead your summary):
 ${vaultMilestones.slice(0, 5).map((m: any, i: number) => `${i + 1}. ${m.description || m.milestone_title} (${m.company_name})`).join('\n')}
 
-CANDIDATE'S KEY STRENGTHS FROM VAULT:
+CANDIDATE'S KEY STRENGTHS FROM MASTER RESUME:
 ${vault_items.slice(0, 15).map((v: any) => `• ${v.content.power_phrase || v.content.stated_skill || v.content.skill_name || JSON.stringify(v.content).substring(0, 100)}`).join('\n')}
-` : `CANDIDATE'S CAREER VAULT INTELLIGENCE:
+` : `CANDIDATE'S MASTER RESUME INTELLIGENCE:
 ${JSON.stringify(vault_items.slice(0, 30), null, 2)}`}
 
-${hasSkillsData ? `CANDIDATE'S VAULT SKILLS:
-${vaultSkills.map((s: any) => s.skill).join(', ')}
+${hasSkillsData ? `CANDIDATE'S MASTER RESUME SKILLS:
+${resumeSkills.map((s: any) => s.skill).join(', ')}
 ` : ''}
 
 CRITICAL ATS KEYWORDS (MUST include naturally):
@@ -598,7 +598,7 @@ Generate a single, cohesive result. Do NOT simply concatenate - intelligently we
     const resumeStrength = vault_items.length > 0
       ? Math.min(100, (vault_items.reduce((sum: number, item: any) => sum + (item.matchScore || 50), 0) / vault_items.length))
       : 0;
-    const skillsStrength = vaultSkills.length > 0 ? Math.min(100, vaultSkills.length * 10) : 0;
+    const skillsStrength = resumeSkills.length > 0 ? Math.min(100, resumeSkills.length * 10) : 0;
 
     let recommendation: 'ideal' | 'personalized' | 'blend';
     let recommendationReason: string;
@@ -608,7 +608,7 @@ Generate a single, cohesive result. Do NOT simply concatenate - intelligently we
       recommendationReason = 'Your uploaded resume provides authentic experience - enhanced for ATS';
     } else if (hasSkillsData) {
       recommendation = 'personalized';
-      recommendationReason = `Your Master Resume contains ${vaultSkills.length} verified skills - optimized with ATS keywords`;
+      recommendationReason = `Your Master Resume contains ${resumeSkills.length} verified skills - optimized with ATS keywords`;
     } else if (vault_items.length === 0 || resumeStrength < 40) {
       recommendation = 'ideal';
       recommendationReason = 'Limited resume data - Industry Standard recommended';
@@ -654,7 +654,7 @@ Generate a single, cohesive result. Do NOT simply concatenate - intelligently we
           resumeStrength: hasSkillsData ? skillsStrength : resumeStrength,
           hasResumeData,
           hasSkillsData,
-          skillsCount: vaultSkills.length
+          skillsCount: resumeSkills.length
         }
       }),
       {
