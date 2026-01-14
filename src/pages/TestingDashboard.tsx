@@ -19,7 +19,6 @@ import { TestExecutor } from '@/lib/testing/testExecutor';
 import { TestRunSummary } from '@/lib/testing/types';
 import { 
   authenticationSuite, 
-  careerVaultSuite,
   jobSearchSuite,
   resumeBuilderSuite,
   linkedInSuite,
@@ -27,7 +26,6 @@ import {
   performanceSuite,
   dataPersistenceSuite,
   edgeCasesSuite,
-  careerVault2Suite,
   smokeTestSuite,
 } from '@/lib/testing/suites';
 import { toast } from 'sonner';
@@ -45,15 +43,13 @@ export default function TestingDashboard() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [sessionLoaded, setSessionLoaded] = useState(false);
 
-  // Priority test suites for Career Vault 2.0
+  // Priority test suites
   const prioritySuites = [
     smokeTestSuite,
-    careerVault2Suite,
   ];
 
   // Other functional test suites (exclude auth as it interferes with active sessions)
   const allSuites = [
-    careerVaultSuite,
     jobSearchSuite,
     resumeBuilderSuite,
     linkedInSuite,
@@ -166,7 +162,7 @@ export default function TestingDashboard() {
           <div>
             <h2 className="text-2xl font-bold">Deployment & Testing Guide</h2>
             <p className="text-muted-foreground">
-              Step-by-step guide for deploying Career Vault 2.0 to production
+              Step-by-step guide for deploying to production
             </p>
           </div>
           <TestingGuide />
@@ -277,9 +273,9 @@ export default function TestingDashboard() {
 
       <Card className="border-primary">
         <CardHeader>
-          <CardTitle>🚀 Priority: Career Vault 2.0 Tests</CardTitle>
+          <CardTitle>🚀 Priority Tests</CardTitle>
           <CardDescription>
-            Run these first to verify migrations and critical paths (completes in ~2 minutes)
+            Run these first to verify critical paths (completes in ~2 minutes)
           </CardDescription>
         </CardHeader>
         <CardContent>

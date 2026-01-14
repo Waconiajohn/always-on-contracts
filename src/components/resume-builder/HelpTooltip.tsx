@@ -53,9 +53,9 @@ export const HelpTooltip = ({
 
 // Pre-built tooltips for common resume builder concepts
 export const TooltipHelp = {
-  VaultSelection: () => (
+  ResumeSelection: () => (
     <HelpTooltip
-      content="We've pre-selected your best Career Vault items for this job (≥50% match). Review and uncheck any that don't apply to this specific position. The AI will use checked items to personalize your resume."
+      content="We've pre-selected your best resume items for this job (≥50% match). Review and uncheck any that don't apply to this specific position. The AI will use checked items to personalize your resume."
       icon="help"
     />
   ),
@@ -69,14 +69,14 @@ export const TooltipHelp = {
 
   PersonalizedVersion: () => (
     <HelpTooltip
-      content="This version uses your actual Career Vault data to personalize the industry-standard structure with your unique accomplishments."
+      content="This version uses your Master Resume data to personalize the industry-standard structure with your unique accomplishments."
       icon="info"
     />
   ),
 
-  VaultStrength: () => (
+  ResumeStrength: () => (
     <HelpTooltip
-      content="Vault Strength shows how complete your Career Vault data is. Higher strength means better personalization. Complete your Career Vault for best results."
+      content="Resume Strength shows how complete your Master Resume data is. Higher strength means better personalization. Complete your Master Resume for best results."
       icon="help"
     />
   ),

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,10 +42,10 @@ function LinkedInBloggingAgentContent() {
   const { toast } = useToast();
   const { drafts, loading: draftsLoading, deleteDraft, updateDraft, fetchDrafts } = useLinkedInDrafts();
 
-  // Auto-load vault topic suggestions on mount - Phase 2
-  useEffect(() => {
-    handleLoadVaultTopics();
-  }, []);
+  // Topic suggestions will be generated from master resume in future
+  // useEffect(() => {
+  //   handleLoadVaultTopics();
+  // }, []);
 
   const postsThisWeek = [
     { day: 'Monday', status: 'published' as const, title: '5 Ways to Position Your Executive Experience' },
@@ -58,7 +58,7 @@ function LinkedInBloggingAgentContent() {
     setIsGenerating(true);
     toast({ 
       title: "Generating weekly posts...", 
-      description: "Creating 4 posts from your Career Vault insights" 
+      description: "Creating 4 posts from your profile insights" 
     });
 
     try {
@@ -225,25 +225,14 @@ function LinkedInBloggingAgentContent() {
   const handleLoadVaultTopics = async () => {
     setLoadingTopics(true);
     try {
-      const { data, error } = await supabase.functions.invoke('suggest-linkedin-topics-from-vault');
-
-      if (error) throw error;
-
-      if (data.topics && data.topics.length > 0) {
-        setVaultTopics(data.topics);
-        toast({
-          title: "Topics loaded!",
-          description: `Found ${data.topics.length} post ideas from your vault`
-        });
-      } else {
-        toast({
-          title: "No topics yet",
-          description: data.message || "Complete your Career Vault to get topic suggestions",
-          variant: "destructive"
-        });
-      }
+      // TODO: Implement topic suggestions from master resume
+      toast({
+        title: "Coming soon",
+        description: "Topic suggestions from your Master Resume will be available soon",
+      });
+      setVaultTopics([]);
     } catch (error: any) {
-      console.error('Error loading vault topics:', error);
+      console.error('Error loading topics:', error);
       toast({
         title: "Failed to load topics",
         description: error.message,
@@ -292,7 +281,7 @@ function LinkedInBloggingAgentContent() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-purple-500" />
-                💡 Topic Ideas from Your Career Vault
+                💡 Topic Ideas from Your Master Resume
               </CardTitle>
               <CardDescription>
                 AI analyzes your achievements and suggests engaging LinkedIn post topics
@@ -308,7 +297,7 @@ function LinkedInBloggingAgentContent() {
                   {loadingTopics ? (
                     <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading Topics...</>
                   ) : (
-                    <><Sparkles className="mr-2 h-4 w-4" /> Get Topic Suggestions from Vault</>
+                    <><Sparkles className="mr-2 h-4 w-4" /> Get Topic Suggestions</>
                   )}
                 </Button>
               ) : (
