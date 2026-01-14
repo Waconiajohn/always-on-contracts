@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { showContextualError, showContextualSuccess } from '@/lib/utils/contextualErrors';
 import { logger } from '@/lib/logger';
 
-// Inline type since vault types were removed
+// Resume milestone type for master resume integration
 export interface ResumeMilestone {
   id: string;
   vault_id: string;
@@ -15,18 +15,19 @@ export interface ResumeMilestone {
   created_at: string;
   updated_at: string;
 }
-// Vault overlay types removed - using simplified resume-only approach
-export interface VaultOverlayState {
+
+// Resume overlay types for tracking resume-only items
+export interface ResumeOverlayState {
   resumeOnlyItems: any[];
-  pendingVaultPromotions: any[];
+  pendingPromotions: any[];
 }
 
-const createEmptyVaultOverlay = (): VaultOverlayState => ({
+const createEmptyResumeOverlay = (): ResumeOverlayState => ({
   resumeOnlyItems: [],
-  pendingVaultPromotions: [],
+  pendingPromotions: [],
 });
 
-import { invokeEdgeFunction, AddVaultItemSchema, safeValidateInput } from '@/lib/edgeFunction';
+// Edge function imports removed - Career Vault functionality deprecated
 
 export interface ResumeSection {
   id: string;
@@ -78,12 +79,12 @@ interface ResumeBuilderState {
   jobAnalysis: any | null;
   displayJobText: string;
   
-  // Vault data
-  vaultMatches: any | null;
+  // Resume data from master resume
+  resumeMatches: any | null;
   resumeMilestones: ResumeMilestone[];
   
-  // Vault overlay (sandbox layer)
-  vaultOverlay: VaultOverlayState;
+  // Resume overlay (sandbox layer)
+  resumeOverlay: ResumeOverlayState;
   
   // ATS scoring
   atsScoreData?: any;
@@ -121,7 +122,7 @@ interface ResumeBuilderState {
   setGenerationMode: (mode: 'full' | 'section-by-section' | null) => void;
   setJobAnalysis: (analysis: any) => void;
   setDisplayJobText: (text: string) => void;
-  setVaultMatches: (matches: any) => void;
+  setResumeMatches: (matches: any) => void;
   setResumeMilestones: (milestones: ResumeMilestone[]) => void;
   setCategorizedRequirements: (reqs: CategorizedRequirements) => void;
   addRequirementResponse: (response: RequirementResponse) => void;
@@ -140,12 +141,12 @@ interface ResumeBuilderState {
   setAtsScoreData: (data: any) => void;
   setAnalyzingATS: (analyzing: boolean) => void;
   
-  // Vault overlay actions
+  // Resume overlay actions
   addGapSuggestion: (payload: any, meta?: any) => void;
   useSuggestionInResumeOnly: (itemId: string) => void;
-  promoteSuggestionToVault: (itemId: string) => void;
+  promoteToMasterResume: (itemId: string) => void;
   rejectSuggestion: (itemId: string) => void;
-  commitVaultPromotions: () => Promise<void>;
+  commitPromotions: () => Promise<void>;
   
   // Persistence
   saveResume: () => Promise<void>;
@@ -163,9 +164,9 @@ export const useResumeBuilderStore = create<ResumeBuilderState>()(
       generationMode: null,
       jobAnalysis: null,
       displayJobText: '',
-      vaultMatches: null,
+      resumeMatches: null,
       resumeMilestones: [],
-      vaultOverlay: createEmptyVaultOverlay(),
+      resumeOverlay: createEmptyResumeOverlay(),
       categorizedRequirements: {
         autoHandled: [],
         needsInput: [],
@@ -196,7 +197,7 @@ export const useResumeBuilderStore = create<ResumeBuilderState>()(
       setGenerationMode: (mode) => set({ generationMode: mode }),
       setJobAnalysis: (analysis) => set({ jobAnalysis: analysis }),
       setDisplayJobText: (text) => set({ displayJobText: text }),
-      setVaultMatches: (matches) => set({ vaultMatches: matches }),
+      setResumeMatches: (matches: any) => set({ resumeMatches: matches }),
       setResumeMilestones: (milestones) => set({ resumeMilestones: milestones }),
       setCategorizedRequirements: (reqs) => set({ categorizedRequirements: reqs }),
       addRequirementResponse: (response) => set((state) => ({
@@ -221,110 +222,39 @@ export const useResumeBuilderStore = create<ResumeBuilderState>()(
       setAtsScoreData: (data) => set({ atsScoreData: data }),
       setAnalyzingATS: (analyzing) => set({ analyzingATS: analyzing }),
       
-      // Vault overlay actions (simplified - functionality removed)
-      addGapSuggestion: (_payload, _meta) =>
+      // Resume overlay actions (simplified - Career Vault functionality removed)
+      addGapSuggestion: (_payload: any, _meta?: any) =>
         set((state) => ({
-          vaultOverlay: state.vaultOverlay,
+          resumeOverlay: state.resumeOverlay,
         })),
 
-      useSuggestionInResumeOnly: (_itemId) =>
+      useSuggestionInResumeOnly: (_itemId: string) =>
         set((state) => ({
-          vaultOverlay: state.vaultOverlay,
+          resumeOverlay: state.resumeOverlay,
         })),
 
-      promoteSuggestionToVault: (_itemId) =>
+      promoteToMasterResume: (_itemId: string) =>
         set((state) => ({
-          vaultOverlay: state.vaultOverlay,
+          resumeOverlay: state.resumeOverlay,
         })),
 
-      rejectSuggestion: (_itemId) =>
+      rejectSuggestion: (_itemId: string) =>
         set((state) => ({
-          vaultOverlay: state.vaultOverlay,
+          resumeOverlay: state.resumeOverlay,
         })),
 
-      // Commit queued promotions into Career Vault
-      commitVaultPromotions: async () => {
+      // Commit queued promotions to Master Resume (simplified - no-op for now)
+      commitPromotions: async () => {
         const state = get();
-        const pending = state.vaultOverlay.pendingVaultPromotions || [];
+        const pending = state.resumeOverlay.pendingPromotions || [];
 
         if (!pending.length) return;
 
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          logger.error("No user found when committing vault promotions");
-          throw new Error("Not signed in");
-        }
-
-        // Fetch or derive vault id
-        const { data: vault, error: vaultError } = await supabase
-          .from("career_vault")
-          .select("id")
-          .eq("user_id", user.id)
-          .single();
-
-        if (vaultError || !vault) {
-          logger.error("No career vault found for user", { error: vaultError });
-          throw new Error("No Career Vault found");
-        }
-
-        for (const item of pending) {
-          const payload: any = item.payload || {};
-          const type = payload.type || "impact_statement";
-          const text = payload.text || "";
-          const requirement = payload.requirementId || item.requirementId;
-
-          // Decide target category and payload shape
-          const category =
-            type === "transferable_skill"
-              ? "transferable_skills"
-              : type === "education"
-              ? "education"
-              : "power_phrases";
-
-          const itemData: any = {
-            quality_tier: payload.quality_tier || "bronze",
-            source: "gap_analysis",
-            satisfies_requirement: requirement,
-            confidence_score:
-              payload.quality_tier === "silver" ? 85 : 70,
-          };
-
-          if (category === "power_phrases") {
-            itemData.power_phrase = text;
-          } else if (category === "transferable_skills") {
-            itemData.stated_skill = text;
-          } else if (category === "education") {
-            itemData.content = text;
-          }
-
-          const edgePayload = {
-            vaultId: vault.id,
-            category,
-            itemData,
-          };
-
-          const validation = safeValidateInput(AddVaultItemSchema, edgePayload);
-          if (!validation.success) {
-            logger.warn("Invalid vault promotion payload", { error: validation.error });
-            continue;
-          }
-
-          const { error } = await invokeEdgeFunction(
-            "add-vault-item",
-            edgePayload
-          );
-
-          if (error) {
-            logger.error("Failed to commit vault item", { error });
-            // keep going; we don't want one failure to block everything
-          }
-        }
-
-        // Clear pending promotions once processed
+        // Clear pending promotions
         set((state) => ({
-          vaultOverlay: {
-            ...state.vaultOverlay,
-            pendingVaultPromotions: [],
+          resumeOverlay: {
+            ...state.resumeOverlay,
+            pendingPromotions: [],
           },
         }));
       },
@@ -354,7 +284,7 @@ export const useResumeBuilderStore = create<ResumeBuilderState>()(
           customizations: {
             job_analysis: state.jobAnalysis,
             selected_format: state.selectedFormat || 'executive',
-            vault_matches: state.vaultMatches,
+            resume_matches: state.resumeMatches,
             gap_analysis: state.categorizedRequirements,
             requirement_responses: state.requirementResponses
           } as any,
@@ -422,7 +352,7 @@ export const useResumeBuilderStore = create<ResumeBuilderState>()(
               location: ''
             },
             resumeSections: resumeData.sections || [],
-            vaultMatches: resumeData.vault_matches,
+            resumeMatches: resumeData.resume_matches,
             categorizedRequirements: resumeData.gap_analysis || {
               autoHandled: [],
               needsInput: [],
@@ -447,7 +377,7 @@ export const useResumeBuilderStore = create<ResumeBuilderState>()(
         generationMode: null,
         jobAnalysis: null,
         displayJobText: '',
-        vaultMatches: null,
+        resumeMatches: null,
         resumeMilestones: [],
         categorizedRequirements: {
           autoHandled: [],
@@ -487,12 +417,12 @@ export const useResumeBuilderStore = create<ResumeBuilderState>()(
           if (state.jobAnalysis && !state.jobAnalysis.atsKeywords) {
             state.jobAnalysis.atsKeywords = { critical: [], important: [], nice_to_have: [] };
           }
-          // Ensure vaultMatches has proper structure
-          if (state.vaultMatches && !Array.isArray(state.vaultMatches.matchedItems)) {
-            state.vaultMatches.matchedItems = [];
+          // Ensure resumeMatches has proper structure
+          if (state.resumeMatches && !Array.isArray(state.resumeMatches.matchedItems)) {
+            state.resumeMatches.matchedItems = [];
           }
-          if (state.vaultMatches && !Array.isArray(state.vaultMatches.unmatchedRequirements)) {
-            state.vaultMatches.unmatchedRequirements = [];
+          if (state.resumeMatches && !Array.isArray(state.resumeMatches.unmatchedRequirements)) {
+            state.resumeMatches.unmatchedRequirements = [];
           }
         }
       }

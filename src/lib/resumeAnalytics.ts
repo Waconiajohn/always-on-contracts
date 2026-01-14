@@ -99,8 +99,8 @@ class ResumeAnalytics {
     return this.track('job_analysis_complete', metadata);
   }
 
-  trackVaultMatch(metadata: Record<string, any>) {
-    return this.track('vault_match_complete', metadata);
+  trackResumeMatch(metadata: Record<string, any>) {
+    return this.track('resume_match_complete', metadata);
   }
 
   trackFormatSelection(format: string, metadata: Record<string, any> = {}) {
@@ -185,13 +185,13 @@ export const trackSectionComplete = (sectionType: string, metadata: Record<strin
   return analytics.track('section_complete', { section_type: sectionType, ...metadata });
 };
 
-export const calculateVaultStrength = (vaultMatches: any[]): number => {
-  if (!vaultMatches || vaultMatches.length === 0) {
-    console.log('[VAULT-STRENGTH] No vault matches provided, returning 0');
+export const calculateResumeStrength = (resumeMatches: any[]): number => {
+  if (!resumeMatches || resumeMatches.length === 0) {
+    console.log('[RESUME-STRENGTH] No resume matches provided, returning 0');
     return 0;
   }
 
-  console.log('[VAULT-STRENGTH] Calculating strength for', vaultMatches.length, 'matches');
+  console.log('[RESUME-STRENGTH] Calculating strength for', resumeMatches.length, 'matches');
 
   const tierWeights: Record<string, number> = {
     gold: 1.0,
@@ -200,7 +200,7 @@ export const calculateVaultStrength = (vaultMatches: any[]): number => {
     assumed: 0.4
   };
 
-  const totalScore = vaultMatches.reduce((sum, match) => {
+  const totalScore = resumeMatches.reduce((sum, match) => {
     const tierWeight = tierWeights[match.qualityTier] || 0.4;
     const freshnessMultiplier = (match.freshnessScore || 50) / 100;
     const matchMultiplier = (match.matchScore || 50) / 100;
@@ -208,8 +208,8 @@ export const calculateVaultStrength = (vaultMatches: any[]): number => {
     return sum + (tierWeight * freshnessMultiplier * matchMultiplier);
   }, 0);
 
-  const strength = Math.min(100, Math.round((totalScore / vaultMatches.length) * 100));
-  console.log('[VAULT-STRENGTH] Calculated strength:', strength);
+  const strength = Math.min(100, Math.round((totalScore / resumeMatches.length) * 100));
+  console.log('[RESUME-STRENGTH] Calculated strength:', strength);
   
   return strength;
 };
