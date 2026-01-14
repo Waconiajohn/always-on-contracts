@@ -192,7 +192,7 @@ function LinkedInProfileBuilderContent() {
                 <div className="flex items-start gap-4">
                   <Package className="h-6 w-6 text-primary mt-1" />
                   <div className="flex-1">
-                    <h3 className="font-semibold text-lg mb-2">Your Career Vault Intelligence</h3>
+                    <h3 className="font-semibold text-lg mb-2">Your Master Resume Intelligence</h3>
                     <div className="grid sm:grid-cols-3 gap-3 text-sm">
                       <div>
                         <p className="font-medium">{vaultData.vault_power_phrases?.length || 0} Power Phrases</p>

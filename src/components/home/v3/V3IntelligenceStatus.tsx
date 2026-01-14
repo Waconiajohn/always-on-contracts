@@ -2,7 +2,7 @@ import { Brain, Target, TrendingUp, Sparkles } from "lucide-react";
 import { CollapsibleSection } from "./CollapsibleSection";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { getStrengthLevel } from "@/lib/utils/vaultQualitativeHelpers";
+import { getStrengthLevel } from "@/lib/utils/resumeQualityHelpers";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
