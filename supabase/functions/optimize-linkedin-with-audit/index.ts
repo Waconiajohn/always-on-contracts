@@ -29,12 +29,12 @@ serve(async (req) => {
 
     console.log('[LINKEDIN-AUDIT] Optimizing with dual AI audit');
 
-    // Get Career Vault data
-    const vaultResponse = await supabase.functions.invoke('get-vault-intelligence', {
+    // Get Master Resume data
+    const resumeResponse = await supabase.functions.invoke('get-vault-intelligence', {
       body: { userId: user.id }
     });
 
-    const vaultData = vaultResponse.data?.intelligence || {};
+    const resumeData = resumeResponse.data?.intelligence || {};
 
     // Generate optimized profile
     const systemPrompt = `You are a LinkedIn optimization expert. Create optimized LinkedIn profiles with compelling headlines, story-driven about sections, and strategic skill positioning. Return valid JSON only.`;
@@ -48,8 +48,8 @@ Skills: ${currentProfile.featured_skills?.join(', ') || ''}
 
 TARGET INDUSTRY: ${targetIndustry}
 
-CAREER VAULT DATA:
-${JSON.stringify(vaultData)}
+MASTER RESUME DATA:
+${JSON.stringify(resumeData)}
 
 Create an optimized profile with:
 1. Compelling headline (220 chars max)
@@ -118,7 +118,7 @@ Return JSON:
         contentType: 'linkedin_profile',
         context: {
           industryContext: targetIndustry,
-          careerVaultData: vaultData
+          masterResumeData: resumeData
         }
       })
     });

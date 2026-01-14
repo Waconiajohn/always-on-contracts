@@ -30,12 +30,12 @@ serve(async (req) => {
 
     console.log('[INTERVIEW-AUDIT] Validating response with dual AI audit');
 
-    // Get Career Vault data
-    const vaultResponse = await supabase.functions.invoke('get-vault-intelligence', {
+    // Get Master Resume data
+    const resumeResponse = await supabase.functions.invoke('get-vault-intelligence', {
       body: { userId: user.id }
     });
 
-    const vaultData = vaultResponse.data?.intelligence || {};
+    const resumeData = resumeResponse.data?.intelligence || {};
 
     // Dual AI Audit
     const auditResponse = await fetch(`${supabaseUrl}/functions/v1/dual-ai-audit`, {
@@ -48,7 +48,7 @@ serve(async (req) => {
         content: answer,
         contentType: 'interview_answer',
         context: {
-          careerVaultData: vaultData
+          masterResumeData: resumeData
         }
       })
     });

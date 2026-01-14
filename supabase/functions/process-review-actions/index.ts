@@ -1,5 +1,5 @@
 // =====================================================
-// PROCESS REVIEW ACTIONS - Career Vault 2.0
+// PROCESS REVIEW ACTIONS - Master Resume 2.0
 // =====================================================
 // INTELLIGENT REVIEW WORKFLOW
 //
@@ -30,7 +30,7 @@ interface ReviewAction {
 }
 
 interface ProcessReviewRequest {
-  vaultId: string;
+  resumeId: string;
   actions: ReviewAction[];
 }
 
@@ -83,14 +83,17 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { vaultId, actions }: ProcessReviewRequest = await req.json();
+    const body = await req.json();
+    // Support both old and new parameter names for backwards compatibility
+    const resumeId = body.resumeId || body.vaultId;
+    const actions: ReviewAction[] = body.actions;
 
-    if (!vaultId || !actions || actions.length === 0) {
-      throw new Error('Missing required fields: vaultId and actions');
+    if (!resumeId || !actions || actions.length === 0) {
+      throw new Error('Missing required fields: resumeId and actions');
     }
 
     console.log('📝 PROCESSING REVIEW ACTIONS:', {
-      vaultId,
+      resumeId,
       actionCount: actions.length,
       userId: user.id,
     });
@@ -184,38 +187,38 @@ serve(async (req) => {
       }
     }
 
-    // Recalculate vault strength after review
-    const vaultStats = await supabaseClient
-      .rpc('get_vault_statistics', { p_vault_id: vaultId });
+    // Recalculate resume strength after review
+    const resumeStats = await supabaseClient
+      .rpc('get_vault_statistics', { p_vault_id: resumeId });
 
-    let newVaultStrength = 75; // Default
-    if (vaultStats.data) {
-      const stats = vaultStats.data;
+    let newResumeStrength = 75; // Default
+    if (resumeStats.data) {
+      const stats = resumeStats.data;
       const totalItems = stats.totalItems || 0;
       const goldCount = stats.qualityBreakdown?.gold || 0;
       const silverCount = stats.qualityBreakdown?.silver || 0;
 
-      // Vault strength formula: base + quality bonuses
-      newVaultStrength = Math.min(100, Math.round(
+      // Resume strength formula: base + quality bonuses
+      newResumeStrength = Math.min(100, Math.round(
         (totalItems / 2.5) + // Base score from item count
         (goldCount * 0.5) + // Gold items add more value
         (silverCount * 0.3) // Silver items add moderate value
       ));
     }
 
-    // Update vault with new strength
+    // Update Master Resume with new strength
     await supabaseClient
       .from('career_vault')
       .update({
-        vault_strength_after_qa: newVaultStrength,
+        vault_strength_after_qa: newResumeStrength,
         onboarding_step: 'review_complete',
       })
-      .eq('id', vaultId)
+      .eq('id', resumeId)
       .eq('user_id', user.id);
 
     // Log activity
     await supabaseClient.from('vault_activity_log').insert({
-      vault_id: vaultId,
+      vault_id: resumeId,
       user_id: user.id,
       activity_type: 'intelligence_extracted',
       description: `Reviewed ${actions.length} items: ${results.confirmed} confirmed, ${results.edited} edited, ${results.rejected} rejected`,
@@ -223,7 +226,7 @@ serve(async (req) => {
         confirmed: results.confirmed,
         edited: results.edited,
         rejected: results.rejected,
-        newVaultStrength,
+        newResumeStrength,
       },
     });
 
@@ -234,18 +237,18 @@ serve(async (req) => {
         success: true,
         data: {
           ...results,
-          newVaultStrength,
+          newResumeStrength,
           totalProcessed: actions.length,
         },
         meta: {
           message: `✅ Review Complete! Processed ${actions.length} items in seconds.`,
-          uniqueValue: `Our smart batch processing saved you 20+ minutes compared to traditional item-by-item approval. Your vault is now ${newVaultStrength}% complete.`,
+          uniqueValue: `Our smart batch processing saved you 20+ minutes compared to traditional item-by-item approval. Your Master Resume is now ${newResumeStrength}% complete.`,
           qualityUpdate: results.edited > 0
             ? `${results.edited} items upgraded to gold tier (highest quality) based on your edits.`
             : `${results.confirmed} items confirmed and validated.`,
-          nextStep: newVaultStrength >= 85
-            ? `Your vault is at ${newVaultStrength}%—ready for professional use! You can now generate AI-optimized resumes.`
-            : `You're at ${newVaultStrength}%. Answer a few gap-filling questions to reach 85%+ and unlock maximum effectiveness.`,
+          nextStep: newResumeStrength >= 85
+            ? `Your Master Resume is at ${newResumeStrength}%—ready for professional use! You can now generate AI-optimized resumes.`
+            : `You're at ${newResumeStrength}%. Answer a few gap-filling questions to reach 85%+ and unlock maximum effectiveness.`,
         },
       }),
       {
