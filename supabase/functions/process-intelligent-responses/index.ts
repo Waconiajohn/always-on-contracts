@@ -52,6 +52,7 @@ Generate resume items as JSON:
   ]
 }`;
 
+    const { response, metrics } = await callLovableAI({
       messages: [
         { role: 'system', content: 'You are an expert at extracting career intelligence. Return valid JSON only.' },
         { role: 'user', content: prompt }
