@@ -42,7 +42,7 @@ const commandItems: CommandItem[] = [
   { title: "Agencies", path: "/agencies", icon: Building2, keywords: ["recruiters", "staffing"] },
   { title: "Coaching", path: "/coaching", icon: MessageSquare, keywords: ["mentor", "advice"] },
   { title: "Career Dashboard", path: "/career-dashboard", icon: Target, keywords: ["career", "tools"] },
-  { title: "Career Vault", path: "/career-vault", icon: Briefcase, keywords: ["skills", "achievements"] },
+  { title: "Master Resume", path: "/master-resume", icon: Briefcase, keywords: ["skills", "achievements"] },
   { title: "AI Agents", path: "/ai-agents", icon: Brain, keywords: ["artificial intelligence", "automation"] },
   { title: "Rate Calculator", path: "/rate-calculator", icon: Calculator, keywords: ["salary", "money", "pay"] },
   { title: "Profile", path: "/profile", icon: Users, keywords: ["account", "settings"] },

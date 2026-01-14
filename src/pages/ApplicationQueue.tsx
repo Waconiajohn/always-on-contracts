@@ -121,7 +121,7 @@ export default function ApplicationQueue() {
   }
 
   return (
-    <FeaturePageWrapper showVaultReminder={true} vaultReminderContext="general">
+    <FeaturePageWrapper>
       <ContentLayout
         leftSidebar={<ApplicationQueueSidebar />}
         maxWidth="full"

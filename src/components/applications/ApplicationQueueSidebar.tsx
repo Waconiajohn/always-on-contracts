@@ -66,10 +66,10 @@ export const ApplicationQueueSidebar = () => {
             </CardHeader>
           </Card>
 
-          {/* Career Vault Card */}
+          {/* Master Resume Card */}
           <Card 
             className="cursor-pointer hover:shadow-lg transition-all border-2 hover:border-primary/50 bg-card"
-            onClick={() => navigate('/career-vault-dashboard')}
+            onClick={() => navigate('/master-resume')}
           >
             <CardHeader className="p-4">
               <div className="flex items-start gap-3">
@@ -77,7 +77,7 @@ export const ApplicationQueueSidebar = () => {
                   <Database className="h-5 w-5 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <CardTitle className="text-base">Career Vault</CardTitle>
+                  <CardTitle className="text-base">Master Resume</CardTitle>
                   <CardDescription className="text-xs mt-1">
                     Update your profile for better AI matches
                   </CardDescription>
