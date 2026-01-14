@@ -16,18 +16,21 @@ serve(async (req) => {
   }
 
   try {
-    const { vaultId, responses, industryStandards } = await req.json();
-    console.log('[PROCESS RESPONSES] Processing', responses.length, 'responses for vault:', vaultId);
+    const body = await req.json();
+    // Support both old and new parameter names for backwards compatibility
+    const resumeId = body.resumeId || body.vaultId;
+    const { responses, industryStandards } = body;
+    console.log('[PROCESS RESPONSES] Processing', responses.length, 'responses for Master Resume:', resumeId);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get vault to find user_id
-    const { data: vault } = await supabase
+    // Get Master Resume to find user_id
+    const { data: resume } = await supabase
       .from('career_vault')
       .select('user_id')
-      .eq('id', vaultId)
+      .eq('id', resumeId)
       .single();
 
     // Use AI to parse responses into structured resume items
@@ -60,7 +63,7 @@ Generate resume items as JSON:
       model: LOVABLE_AI_MODELS.DEFAULT,
       temperature: 0.3,
       response_format: { type: 'json_object' }
-    }, 'process-intelligent-responses', vault?.user_id);
+    }, 'process-intelligent-responses', resume?.user_id);
 
     await logAIUsage(metrics);
 
@@ -84,7 +87,7 @@ Generate resume items as JSON:
     if (parsedItems.powerPhrases?.length > 0) {
       const { error } = await supabase.from('vault_power_phrases').insert(
         parsedItems.powerPhrases.map((p: any) => ({
-          vault_id: vaultId,
+          vault_id: resumeId,
           category: p.category || 'Achievement',
           power_phrase: p.phrase,
           impact_metrics: p.metrics,
@@ -100,7 +103,7 @@ Generate resume items as JSON:
     if (parsedItems.skills?.length > 0) {
       const { error } = await supabase.from('vault_transferable_skills').insert(
         parsedItems.skills.map((s: any) => ({
-          vault_id: vaultId,
+          vault_id: resumeId,
           stated_skill: s.skill,
           evidence: s.evidence,
           confidence_score: s.confidence || 0.8,
@@ -115,7 +118,7 @@ Generate resume items as JSON:
     if (parsedItems.softSkills?.length > 0) {
       const { error } = await supabase.from('vault_soft_skills').insert(
         parsedItems.softSkills.map((s: any) => ({
-          vault_id: vaultId,
+          vault_id: resumeId,
           skill_name: s.skill,
           examples: s.example,
           impact: s.impact,
@@ -131,7 +134,7 @@ Generate resume items as JSON:
     if (parsedItems.competencies?.length > 0) {
       const { error } = await supabase.from('vault_hidden_competencies').insert(
         parsedItems.competencies.map((c: any) => ({
-          vault_id: vaultId,
+          vault_id: resumeId,
           competency_area: c.area,
           inferred_capability: c.capability,
           supporting_evidence: c.evidence,
@@ -145,7 +148,7 @@ Generate resume items as JSON:
 
     // Store raw responses
     await supabase.from('career_vault_intelligent_responses').insert({
-      vault_id: vaultId,
+      vault_id: resumeId,
       responses: responses,
       processed_items: parsedItems,
       items_created: newItemsCreated

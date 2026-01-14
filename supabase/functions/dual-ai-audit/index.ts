@@ -194,7 +194,7 @@ Evaluate clarity, engagement potential, professionalism, and factual claims.`,
 ANSWER:
 ${content}
 
-${context?.careerVaultData ? `CANDIDATE BACKGROUND: ${JSON.stringify(context.careerVaultData)}` : ''}
+${context?.masterResumeData ? `CANDIDATE BACKGROUND: ${JSON.stringify(context.masterResumeData)}` : ''}
 
 Rate the STAR structure, specificity, impact, and authenticity.`
   };
