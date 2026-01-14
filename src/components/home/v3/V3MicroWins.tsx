@@ -35,14 +35,14 @@ export function V3MicroWins({ resumeCompletion }: V3MicroWinsProps) {
       });
     }
 
-    if (vaultCompletion < 70) {
+    if (resumeCompletion < 70) {
       wins.push({
         id: 'enhance-achievement',
         action: 'Enhance 1 achievement with AI',
-        impact: '+2% vault score',
+        impact: '+2% resume score',
         timeEstimate: '5 min',
         aiModel: 'Gemini 3.0 Pro',
-        path: '/career-vault',
+        path: '/master-resume',
         icon: Sparkles
       });
     }
@@ -57,7 +57,7 @@ export function V3MicroWins({ resumeCompletion }: V3MicroWinsProps) {
       icon: Zap
     });
 
-    if (vaultCompletion >= 60) {
+    if (resumeCompletion >= 60) {
       wins.push({
         id: 'generate-resume',
         action: 'Generate your first AI-powered resume',
