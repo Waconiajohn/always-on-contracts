@@ -1,9 +1,20 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '@/integrations/supabase/client';
-import type { ResumeMilestone } from '@/types/vault';
 import { showContextualError, showContextualSuccess } from '@/lib/utils/contextualErrors';
 import { logger } from '@/lib/logger';
+
+// Inline type since vault types were removed
+export interface ResumeMilestone {
+  id: string;
+  vault_id: string;
+  milestone_text: string;
+  milestone_type: string;
+  work_position_id?: string | null;
+  confidence_score?: number;
+  created_at: string;
+  updated_at: string;
+}
 import {
   createEmptyVaultOverlay,
   addSuggestedOverlayItem,

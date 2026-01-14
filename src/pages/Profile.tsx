@@ -11,8 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Badge } from "@/components/ui/badge";
-import { AIMatchingPreferences } from "@/components/AIMatchingPreferences";
-import { VaultNuclearReset } from "@/components/career-vault/VaultNuclearReset";
+
 
 interface Profile {
   full_name: string | null;
@@ -27,7 +26,7 @@ const ProfileContent = () => {
   const { subscription, loading: subLoading, manageSubscription } = useSubscription();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [vaultId, setVaultId] = useState<string | undefined>(undefined);
+  
   const [profile, setProfile] = useState<Profile>({
     full_name: "",
     email: "",
@@ -44,16 +43,6 @@ const ProfileContent = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch vault data including resume text
-      const { data: vaultData } = await supabase
-        .from("career_vault")
-        .select("id, resume_raw_text")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (vaultData) {
-        setVaultId(vaultData.id);
-      }
 
       const { data, error } = await supabase
         .from("profiles")
@@ -323,21 +312,6 @@ const ProfileContent = () => {
             </CardContent>
           </Card>
 
-          <AIMatchingPreferences />
-
-          {vaultId && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl">Vault Management</CardTitle>
-                <CardDescription>
-                  Advanced vault operations and data management
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <VaultNuclearReset vaultId={vaultId} />
-              </CardContent>
-            </Card>
-          )}
         </div>
       </main>
     </div>
