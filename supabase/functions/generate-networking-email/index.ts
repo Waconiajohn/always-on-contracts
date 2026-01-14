@@ -12,7 +12,7 @@ const logger = createLogger('generate-networking-email');
 const NetworkingEmailSchema = z.object({
   subject: z.string(),
   body: z.string(),
-  vaultItemsUsed: z.array(z.string()),
+  resumeItemsUsed: z.array(z.string()),
   personalizationTips: z.array(z.string()),
   followUpSuggestions: z.array(z.string())
 });
@@ -54,7 +54,7 @@ serve(async (req) => {
       hasTargetPerson: !!targetPerson 
     });
 
-    // Fetch Career Vault data
+    // Fetch Master Resume data
     const { data: vault } = await supabase
       .from('career_vault')
       .select(`
@@ -96,7 +96,7 @@ CRITICAL OUTPUT FORMAT - Return ONLY this JSON structure:
 {
   "subject": "Email subject line",
   "body": "Email body (use \\n for line breaks)",
-  "vaultItemsUsed": ["vault item 1", "vault item 2"],
+  "resumeItemsUsed": ["resume item 1", "resume item 2"],
   "personalizationTips": ["tip 1", "tip 2"],
   "followUpSuggestions": ["suggestion 1", "suggestion 2"]
 }`;
@@ -113,7 +113,7 @@ PURPOSE: ${purpose}
 
 CONTEXT: ${context || 'No specific context provided'}
 
-CANDIDATE'S CAREER VAULT DATA:
+CANDIDATE'S MASTER RESUME DATA:
 Top Achievements:
 ${topAchievements.map((a: any) => `- ${a.power_phrase}`).join('\n') || 'No achievements available'}
 
@@ -175,7 +175,7 @@ Return your networking email in the required JSON format.`;
       parsedEmail = {
         subject: 'Networking Connection Request',
         body: generatedContent,
-        vaultItemsUsed: [],
+        resumeItemsUsed: [],
         personalizationTips: [],
         followUpSuggestions: []
       };

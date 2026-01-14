@@ -12,7 +12,7 @@ interface AuditRequest {
   contentType: 'resume' | 'linkedin_profile' | 'linkedin_post' | 'interview_answer';
   context?: {
     jobDescription?: string;
-    careerVaultData?: any;
+    masterResumeData?: any;
     industryContext?: string;
   };
 }

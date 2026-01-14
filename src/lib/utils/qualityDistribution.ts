@@ -1,9 +1,9 @@
 /**
- * Utility for calculating quality distribution across all vault items
- * Consolidates duplicate calculation logic from CareerVaultDashboard
+ * Utility for calculating quality distribution across all Master Resume items
+ * Consolidates duplicate calculation logic from resume management components
  */
 
-interface VaultItem {
+interface ResumeItem {
   quality_tier?: string | null;
   source?: string | null;
   confidence_score?: number | null;
@@ -31,7 +31,7 @@ export interface QualityDistribution {
  * items were counted, even those that don't actually need review.
  */
 export const calculateQualityDistribution = (
-  ...itemArrays: VaultItem[][]
+  ...itemArrays: ResumeItem[][]
 ): QualityDistribution => {
   const allItems = itemArrays.flat();
 

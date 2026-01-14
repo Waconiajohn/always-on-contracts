@@ -9,7 +9,7 @@ interface SeriesStats {
   totalPosts: number;
   avgEngagement: number;
   topPerformingPost: any;
-  vaultItemsUsed: number;
+  resumeItemsUsed: number;
   nextTopicSuggestion: string;
 }
 
@@ -69,7 +69,7 @@ export function SeriesPerformanceTracker({ seriesId }: SeriesPerformanceTrackerP
         totalPosts: posts.length,
         avgEngagement,
         topPerformingPost: topPost,
-        vaultItemsUsed: vaultUsage?.length || 0,
+        resumeItemsUsed: vaultUsage?.length || 0,
         nextTopicSuggestion: "Based on engagement, consider diving deeper into [topic]"
       });
     } catch (error) {
@@ -138,9 +138,9 @@ export function SeriesPerformanceTracker({ seriesId }: SeriesPerformanceTrackerP
           <div className="flex gap-2">
             <Target className="h-4 w-4 text-blue-500 mt-0.5" />
             <div>
-              <p className="text-sm font-medium">Career Vault Integration</p>
+              <p className="text-sm font-medium">Master Resume Integration</p>
               <p className="text-xs text-muted-foreground mt-1">
-                {stats.vaultItemsUsed} vault items used across series
+                {stats.resumeItemsUsed} resume items used across series
               </p>
             </div>
           </div>
