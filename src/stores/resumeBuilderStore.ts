@@ -40,7 +40,7 @@ export interface ResumeSection {
 export interface GeneratedOption {
   id: string;
   content: string;
-  vaultItemsUsed: string[];
+  resumeItemsUsed: string[];
   atsScore: number;
 }
 

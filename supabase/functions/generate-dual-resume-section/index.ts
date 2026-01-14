@@ -595,7 +595,7 @@ Generate a single, cohesive result. Do NOT simply concatenate - intelligently we
     }
 
     // Determine recommendation
-    const vaultStrength = vault_items.length > 0
+    const resumeStrength = vault_items.length > 0
       ? Math.min(100, (vault_items.reduce((sum: number, item: any) => sum + (item.matchScore || 50), 0) / vault_items.length))
       : 0;
     const skillsStrength = vaultSkills.length > 0 ? Math.min(100, vaultSkills.length * 10) : 0;
@@ -608,17 +608,17 @@ Generate a single, cohesive result. Do NOT simply concatenate - intelligently we
       recommendationReason = 'Your uploaded resume provides authentic experience - enhanced for ATS';
     } else if (hasSkillsData) {
       recommendation = 'personalized';
-      recommendationReason = `Your Career Vault contains ${vaultSkills.length} verified skills - optimized with ATS keywords`;
-    } else if (vault_items.length === 0 || vaultStrength < 40) {
+      recommendationReason = `Your Master Resume contains ${vaultSkills.length} verified skills - optimized with ATS keywords`;
+    } else if (vault_items.length === 0 || resumeStrength < 40) {
       recommendation = 'ideal';
-      recommendationReason = 'Limited vault data - Industry Standard recommended';
+      recommendationReason = 'Limited resume data - Industry Standard recommended';
     } else if (blendQuality.overallScore >= idealQuality.overallScore && 
                blendQuality.overallScore >= personalizedQuality.overallScore) {
       recommendation = 'blend';
       recommendationReason = 'AI Combined version optimally blends your achievements with industry best practices';
     } else if (personalizedQuality.overallScore > idealQuality.overallScore + 5) {
       recommendation = 'personalized';
-      recommendationReason = 'Your vault creates a stronger, more competitive section';
+      recommendationReason = 'Your resume creates a stronger, more competitive section';
     } else {
       recommendation = 'ideal';
       recommendationReason = 'Industry standard has better ATS optimization';
@@ -636,9 +636,9 @@ Generate a single, cohesive result. Do NOT simply concatenate - intelligently we
         personalizedVersion: {
           content: personalizedContent,
           quality: personalizedQuality,
-          vaultItemsUsed: vault_items.map((item: any) => ({
+          resumeItemsUsed: vault_items.map((item: any) => ({
             id: item.id || item.item_id,
-            type: item.type || item.item_type || 'vault_item',
+            type: item.type || item.item_type || 'resume_item',
             content: item.content || item.stated_skill || item.power_phrase || item.inferred_capability || '',
             qualityTier: item.quality_tier || item.qualityTier,
             matchScore: item.matchScore || item.match_score || 0
@@ -651,7 +651,7 @@ Generate a single, cohesive result. Do NOT simply concatenate - intelligently we
         comparison: {
           recommendation,
           recommendationReason,
-          vaultStrength: hasSkillsData ? skillsStrength : vaultStrength,
+          resumeStrength: hasSkillsData ? skillsStrength : resumeStrength,
           hasResumeData,
           hasSkillsData,
           skillsCount: vaultSkills.length
