@@ -47,21 +47,21 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .single();
 
-    // Step 2: Get career vault ID
-    const { data: vaultRecord } = await supabase
+    // Step 2: Get Master Resume ID
+    const { data: resumeRecord } = await supabase
       .from('career_vault')
       .select('id')
       .eq('user_id', user.id)
       .maybeSingle();
 
-    if (!vaultRecord) {
-      throw new Error('Career Vault not found. Please complete vault setup first.');
+    if (!resumeRecord) {
+      throw new Error('Master Resume not found. Please complete setup first.');
     }
 
     // Fetch work positions, education, and milestones
     const [workPositionsData, educationData, milestonesData] = await Promise.all([
-      supabase.from('vault_work_positions').select('*').eq('vault_id', vaultRecord.id),
-      supabase.from('vault_education').select('*').eq('vault_id', vaultRecord.id),
+      supabase.from('vault_work_positions').select('*').eq('vault_id', resumeRecord.id),
+      supabase.from('vault_education').select('*').eq('vault_id', resumeRecord.id),
       supabase.from('vault_resume_milestones').select(`
         *,
         work_position:vault_work_positions!work_position_id (
@@ -73,7 +73,7 @@ serve(async (req) => {
           is_current,
           description
         )
-      `).eq('vault_id', vaultRecord.id)
+      `).eq('vault_id', resumeRecord.id)
     ]);
 
     const workPositions = workPositionsData.data || [];
@@ -82,17 +82,17 @@ serve(async (req) => {
 
     console.log(`[GENERATE-EXECUTIVE] Found ${workPositions.length} positions, ${education.length} education, ${resumeMilestones.length} milestones`);
 
-    // Step 3: Get ALL vault intelligence (get-vault-data fetches all 10 tables)
-    const { data: vaultData, error: vaultError } = await supabase.functions.invoke('get-vault-data', {
+    // Step 3: Get ALL Master Resume intelligence (get-vault-data fetches all 10 tables)
+    const { data: resumeData, error: resumeError } = await supabase.functions.invoke('get-vault-data', {
       body: { userId: user.id },
       headers: { Authorization: authHeader }
     });
 
-    if (vaultError || !vaultData?.data?.intelligence) {
-      throw new Error('Failed to fetch Career Vault data');
+    if (resumeError || !resumeData?.data?.intelligence) {
+      throw new Error('Failed to fetch Master Resume data');
     }
 
-    const intelligence = vaultData.data.intelligence;
+    const intelligence = resumeData.data.intelligence;
 
     // Step 4: Analyze job description
     const { data: jobAnalysis, error: analysisError } = await supabase.functions.invoke('analyze-job-qualifications', {

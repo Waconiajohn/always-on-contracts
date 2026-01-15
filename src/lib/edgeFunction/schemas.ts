@@ -14,7 +14,7 @@ export const ProcessResumeSchema = z.object({
 
 export const AnalyzeResumeInitialSchema = z.object({
   resumeText: z.string().min(100, 'Resume text too short').max(50000, 'Resume text too long'),
-  vaultId: z.string().uuid('Invalid vault ID')
+  resumeId: z.string().uuid('Invalid resume ID')
 });
 
 export const OptimizeResumeSchema = z.object({
@@ -122,18 +122,18 @@ export const AnalyzeResumeSchema = z.object({
 });
 
 export const GeneratePowerPhrasesSchema = z.object({
-  vaultId: z.string().uuid('Invalid vault ID')
+  resumeId: z.string().uuid('Invalid resume ID')
 });
 
 export const GenerateTransferableSkillsSchema = z.object({
-  vaultId: z.string().uuid('Invalid vault ID')
+  resumeId: z.string().uuid('Invalid resume ID')
 });
 
 export const AnalyzeJobRequirementsSchema = z.object({
   jobDescription: z.string().min(50).max(20000)
 });
 
-export const MatchVaultToRequirementsSchema = z.object({
+export const MatchResumeToRequirementsSchema = z.object({
   userId: z.string().uuid(),
   jobRequirements: z.any(),
   industryStandards: z.any().optional(),
@@ -141,10 +141,10 @@ export const MatchVaultToRequirementsSchema = z.object({
   atsKeywords: z.any().optional()
 });
 
-// ============= Career Vault =============
+// ============= Master Resume =============
 
-export const ExtractVaultIntangiblesSchema = z.object({
-  vaultId: z.string().uuid('Invalid vault ID'),
+export const ExtractResumeIntangiblesSchema = z.object({
+  resumeId: z.string().uuid('Invalid resume ID'),
   responseText: z.string()
     .min(10, 'Response text must be at least 10 characters')
     .max(10000, 'Response text must be less than 10,000 characters'),
@@ -153,8 +153,8 @@ export const ExtractVaultIntangiblesSchema = z.object({
     .max(1000, 'Question text must be less than 1,000 characters')
 });
 
-export const AutoPopulateVaultSchema = z.object({
-  vaultId: z.string().uuid('Invalid vault ID'),
+export const AutoPopulateResumeSchema = z.object({
+  resumeId: z.string().uuid('Invalid resume ID'),
   resumeText: z.string()
     .min(100, 'Resume text must be at least 100 characters')
     .max(50000, 'Resume text must be less than 50,000 characters'),
@@ -163,11 +163,11 @@ export const AutoPopulateVaultSchema = z.object({
 });
 
 export const DiscoverHiddenCompetenciesSchema = z.object({
-  vaultId: z.string().uuid('Invalid vault ID')
+  resumeId: z.string().uuid('Invalid resume ID')
 });
 
 export const ProcessReviewActionsSchema = z.object({
-  vaultId: z.string().uuid('Invalid vault ID'),
+  resumeId: z.string().uuid('Invalid resume ID'),
   actions: z.array(
     z.object({
       itemId: z.string().uuid('Invalid item ID'),
@@ -195,7 +195,7 @@ export const DetectRoleAndIndustrySchema = z.object({
 );
 
 export const GenerateCompletionBenchmarkSchema = z.object({
-  vaultId: z.string().uuid('Invalid vault ID'),
+  resumeId: z.string().uuid('Invalid resume ID'),
   targetRoles: z.array(z.string().trim().min(1))
     .min(1, 'At least one target role is required'),
   targetIndustries: z.array(z.string().trim().min(1))
@@ -231,7 +231,7 @@ export const PerplexityResearchSchema = z.object({
 export const ResearchIndustryStandardsSchema = z.object({
   targetRole: z.string().trim().min(2).max(200),
   targetIndustry: z.string().trim().min(2).max(200),
-  vaultId: z.string().uuid('Invalid vault ID'),
+  resumeId: z.string().uuid('Invalid resume ID'),
   careerDirection: z.string().optional()
 });
 
@@ -294,20 +294,20 @@ export const GenerateCompanyResearchSchema = z.object({
 });
 
 export const GenerateElevatorPitchSchema = z.object({
-  vaultId: z.string().uuid().optional(),
+  resumeId: z.string().uuid().optional(),
   targetRole: z.string().min(1, 'Target role required'),
   companyName: z.string().optional(),
   jobDescription: z.string().optional()
 });
 
-export const Generate3060Plan = z.object({
+export const Generate3060PlanSchema = z.object({
   jobDescription: z.string().min(50, 'Job description too short'),
-  vaultId: z.string().uuid().optional()
+  resumeId: z.string().uuid().optional()
 });
 
 export const Generate321FrameworkSchema = z.object({
   jobDescription: z.string().min(50, 'Job description too short'),
-  vaultId: z.string().uuid().optional()
+  resumeId: z.string().uuid().optional()
 });
 
 export const GenerateBooleanSearchSchema = z.object({
@@ -372,13 +372,13 @@ export const GenerateDualResumeSectionSchema = z.object({
 
 export const GenerateInterviewPrepSchema = z.object({
   jobDescription: z.string().min(50, 'Job description too short'),
-  vaultId: z.string().uuid().optional(),
+  resumeId: z.string().uuid().optional(),
   company: z.string().optional()
 });
 
 export const GenerateWhyMeQuestionsSchema = z.object({
   jobDescription: z.string().min(50, 'Job description too short'),
-  vaultId: z.string().uuid().optional()
+  resumeId: z.string().uuid().optional()
 });
 
 export const SuggestMetricsSchema = z.object({
@@ -387,7 +387,7 @@ export const SuggestMetricsSchema = z.object({
 });
 
 export const InferTargetRolesSchema = z.object({
-  vaultId: z.string().uuid('Invalid vault ID'),
+  resumeId: z.string().uuid('Invalid resume ID'),
   currentRole: z.string().optional(),
   yearsExperience: z.number().min(0).optional()
 });
@@ -401,7 +401,7 @@ export const AnalyzeJobQualificationsSchema = z.object({
 
 export const GenerateExecutiveResumeSchema = z.object({
   jobDescription: z.string().min(50, 'Job description too short'),
-  vaultId: z.string().uuid('Invalid vault ID'),
+  resumeId: z.string().uuid('Invalid resume ID'),
   templateId: z.string().optional()
 });
 
@@ -412,7 +412,7 @@ export const BatchProcessResumesSchema = z.object({
     fileName: z.string(),
     fileType: z.string()
   })).min(1, 'At least one resume required'),
-  vaultId: z.string().uuid().optional()
+  resumeId: z.string().uuid().optional()
 });
 
 // Coaching & Analysis
@@ -427,48 +427,48 @@ export const ExecutiveCoachingSchema = z.object({
 
 export const AnalyzeResumeAndResearchSchema = z.object({
   resumeText: z.string().min(100, 'Resume text too short'),
-  vaultId: z.string().uuid('Invalid vault ID'),
+  resumeId: z.string().uuid('Invalid resume ID'),
   targetRole: z.string().optional(),
   targetIndustry: z.string().optional()
 });
 
-// Vault Operations
-export const BulkVaultOperationsSchema = z.object({
-  vaultId: z.string().uuid('Invalid vault ID'),
+// Master Resume Operations
+export const BulkResumeOperationsSchema = z.object({
+  resumeId: z.string().uuid('Invalid resume ID'),
   operation: z.enum(['delete', 'export', 'quality_upgrade']),
   itemIds: z.array(z.string().uuid()).min(1, 'At least one item required'),
   category: z.string().optional()
 });
 
-export const SearchVaultAdvancedSchema = z.object({
-  vaultId: z.string().uuid('Invalid vault ID'),
+export const SearchResumeAdvancedSchema = z.object({
+  resumeId: z.string().uuid('Invalid resume ID'),
   query: z.string().min(1, 'Search query required'),
   category: z.string().optional(),
   qualityTier: z.enum(['gold', 'silver', 'bronze', 'assumed']).optional(),
   limit: z.number().min(1).max(100).optional().default(50)
 });
 
-export const ExportVaultSchema = z.object({
-  vaultId: z.string().uuid('Invalid vault ID'),
+export const ExportResumeSchema = z.object({
+  resumeId: z.string().uuid('Invalid resume ID'),
   format: z.enum(['json', 'csv', 'pdf']).default('json'),
   includeCategories: z.array(z.string()).optional()
 });
 
 // Career Focus & Roles
 export const SuggestAdjacentRolesSchema = z.object({
-  vaultId: z.string().uuid('Invalid vault ID'),
+  resumeId: z.string().uuid('Invalid resume ID'),
   currentRole: z.string().optional(),
   targetIndustry: z.string().optional()
 });
 
 export const CompetencyQuizSchema = z.object({
-  vaultId: z.string().uuid('Invalid vault ID'),
+  resumeId: z.string().uuid('Invalid resume ID'),
   skillArea: z.string().min(1, 'Skill area required'),
   difficultyLevel: z.enum(['beginner', 'intermediate', 'advanced']).optional().default('intermediate')
 });
 
-export const GenerateVaultRecommendationsSchema = z.object({
-  vaultId: z.string().uuid('Invalid vault ID'),
+export const GenerateResumeRecommendationsSchema = z.object({
+  resumeId: z.string().uuid('Invalid resume ID'),
   limit: z.number().min(1).max(20).optional().default(5)
 });
 
@@ -492,7 +492,7 @@ export const GenerateGapFillingQuestionsSchema = z.object({
   resumeId: z.string().uuid('Invalid resume ID').optional(),
   resumeText: z.string().min(100).max(50000),
   resumeData: z.object({
-    resume_id: z.string().uuid().optional(),
+    resumeId: z.string().uuid().optional(),
     powerPhrases: z.array(z.any()).optional(),
     transferableSkills: z.array(z.any()).optional(),
     hiddenCompetencies: z.array(z.any()).optional(),
@@ -680,6 +680,17 @@ export const RedeemRetirementCodeSchema = z.object({
     .max(50, 'Code must be less than 50 characters'),
   deviceFingerprint: z.string().min(1, 'Device fingerprint is required')
 });
+
+// ============= Backward Compatibility Aliases =============
+// These aliases maintain backward compatibility during migration
+export const Generate3060Plan = Generate3060PlanSchema;
+export const ExtractVaultIntangiblesSchema = ExtractResumeIntangiblesSchema;
+export const AutoPopulateVaultSchema = AutoPopulateResumeSchema;
+export const MatchVaultToRequirementsSchema = MatchResumeToRequirementsSchema;
+export const BulkVaultOperationsSchema = BulkResumeOperationsSchema;
+export const SearchVaultAdvancedSchema = SearchResumeAdvancedSchema;
+export const ExportVaultSchema = ExportResumeSchema;
+export const GenerateVaultRecommendationsSchema = GenerateResumeRecommendationsSchema;
 
 // ============= Helper Functions =============
 

@@ -44,17 +44,17 @@ export const ExplorationModal = ({
         <div className="space-y-4 py-4">
           <div className="bg-muted/50 p-4 rounded-lg space-y-3">
             <div className="flex items-center justify-between text-sm">
-              <span className="font-medium">Career Vault Progress</span>
+              <span className="font-medium">Master Resume Progress</span>
               <span className="text-muted-foreground">{resumeCompletion}%</span>
             </div>
             <Progress value={resumeCompletion} className="h-2" />
             <p className="text-sm text-muted-foreground">
-              Complete your Career Vault to unlock all features
+              Complete your Master Resume to unlock all features
             </p>
           </div>
 
           <div className="space-y-2">
-            <h4 className="font-semibold text-sm">Why complete your Career Vault?</h4>
+            <h4 className="font-semibold text-sm">Why complete your Master Resume?</h4>
             <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
               <li>Unlock AI-powered job matching</li>
               <li>Get personalized resume optimization</li>
@@ -64,7 +64,7 @@ export const ExplorationModal = ({
           </div>
 
           <Button onClick={handleContinueSetup} className="w-full">
-            Continue Career Vault Setup
+            Continue Master Resume Setup
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
           <Button variant="outline" onClick={onClose} className="w-full">

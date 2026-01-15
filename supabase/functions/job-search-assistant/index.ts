@@ -34,8 +34,8 @@ serve(async (req) => {
       }
     }
 
-    // Build system prompt with Career Vault context
-    const systemPrompt = `You are an AI Job Search Assistant powered by the user's Career Vault.
+    // Build system prompt with Master Resume context
+    const systemPrompt = `You are an AI Job Search Assistant powered by the user's Master Resume.
 
 User's Profile:
 - Skills: ${context?.skills?.join(', ') || 'Not provided'}

@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2, CheckCircle2, TrendingUp, AlertCircle } from 'lucide-react';
 import { 
   ValidateInterviewResponseSchema,
-  ExtractVaultIntangiblesSchema,
+  ExtractResumeIntangiblesSchema,
   safeValidateInput,
   invokeEdgeFunction 
 } from '@/lib/edgeFunction';
@@ -107,8 +107,8 @@ export function ResponseReviewModal({
 
         if (updateError) throw updateError;
 
-        // Re-extract intelligence
-        const extractValidation = safeValidateInput(ExtractVaultIntangiblesSchema, {
+        // Re-extract intelligence from Master Resume
+        const extractValidation = safeValidateInput(ExtractResumeIntangiblesSchema, {
           resumeId,
           questionText: question,
           responseText: answer
