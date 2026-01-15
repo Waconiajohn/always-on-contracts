@@ -2,7 +2,6 @@ export type TestStatus = 'passed' | 'failed' | 'skipped' | 'running';
 
 export type TestCategory = 
   | 'authentication' 
-  | 'career-vault'
   | 'master-resume'
   | 'job-search' 
   | 'resume-builder' 

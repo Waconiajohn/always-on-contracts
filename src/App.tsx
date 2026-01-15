@@ -126,12 +126,7 @@ const AppContent = () => {
             <Route path="/admin/user-roles" element={<ProtectedRoute><AdminRoute><UserRoleManagement /></AdminRoute></ProtectedRoute>} />
             <Route path="/admin-setup" element={<ProtectedRoute><AdminSetup /></ProtectedRoute>} />
             <Route path="/master-resume" element={<ProtectedRoute><MasterResume /></ProtectedRoute>} />
-            {/* Legacy vault redirects */}
-            <Route path="/career-vault" element={<Navigate to="/master-resume" replace />} />
-            <Route path="/career-intelligence" element={<Navigate to="/master-resume" replace />} />
-            <Route path="/vault-admin" element={<Navigate to="/master-resume" replace />} />
-            <Route path="/career-vault-onboarding" element={<Navigate to="/master-resume" replace />} />
-            <Route path="/resume-data-audit" element={<Navigate to="/master-resume" replace />} />
+            {/* Note: Legacy /career-vault routes removed - will 404 */}
             {/* Legacy redirects */}
             <Route path="/career-tools" element={<Navigate to="/home" replace />} />
             <Route path="/command-center" element={<Navigate to="/home" replace />} />
