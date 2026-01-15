@@ -126,7 +126,7 @@ export const getErrorMessage = (context: ErrorContext): {
   if (operation === 'personalized_generation') {
     return {
       title: "Personalization failed",
-      description: "We couldn't personalize the content with your Career Vault. Try using the industry standard version instead.",
+      description: "We couldn't personalize the content with your Master Resume. Try using the industry standard version instead.",
       actionText: "Use industry standard",
     };
   }
@@ -165,9 +165,9 @@ export const getRecoverySuggestion = (context: ErrorContext): string[] => {
 
   // Personalization errors
   if (operation === 'personalized_generation') {
-    suggestions.push("Try selecting different Career Vault items");
+    suggestions.push("Try selecting different Master Resume items");
     suggestions.push("Use the industry standard version for now");
-    suggestions.push("Complete your Career Vault with more details");
+    suggestions.push("Complete your Master Resume with more details");
   }
 
   // Network errors

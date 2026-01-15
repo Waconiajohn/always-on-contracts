@@ -1,37 +1,38 @@
-# Career Vault Naming Conventions & Developer Guide
+# Master Resume Naming Conventions & Developer Guide
 
 ## 🚨 Critical Rules
 
 ### Database Column Naming
 - **Always use `snake_case`** for database columns
 - Examples: `vault_id`, `user_id`, `created_at`, `quality_tier`
+- Note: Database tables still use `career_vault` and `vault_*` prefixes for backward compatibility
 
 ### TypeScript/JavaScript Naming
 - **Always use `camelCase`** for variables and interface properties
-- Examples: `vaultId`, `userId`, `createdAt`, `qualityTier`
+- Examples: `resumeId`, `userId`, `createdAt`, `qualityTier`
 
 ### The Most Common Bug: `vault_id` vs `vault.id`
 
-**CRITICAL:** When querying related vault tables, understand this distinction:
+**CRITICAL:** When querying related Master Resume tables, understand this distinction:
 
 ```typescript
-// ✅ CORRECT: Query career_vault to get the vault record
-const { data: vaultData } = await supabase
+// ✅ CORRECT: Query career_vault to get the resume record
+const { data: resumeData } = await supabase
   .from('career_vault')
   .select('*')
   .eq('user_id', userId)
   .single();
 
-// ✅ CORRECT: Use vaultData.id when querying other vault_* tables
+// ✅ CORRECT: Use resumeData.id when querying other vault_* tables
 const { data: powerPhrases } = await supabase
   .from('vault_power_phrases')
-  .eq('vault_id', vaultData.id)  // ← Use .id, NOT .vault_id!
+  .eq('vault_id', resumeData.id)  // ← Use .id, NOT .vault_id!
   .select('*');
 
 // ❌ WRONG: This will fail because career_vault doesn't have vault_id column
 const { data: powerPhrases } = await supabase
   .from('vault_power_phrases')
-  .eq('vault_id', vaultData.vault_id)  // ← ERROR!
+  .eq('vault_id', resumeData.vault_id)  // ← ERROR!
   .select('*');
 ```
 
@@ -45,7 +46,7 @@ const { data: powerPhrases } = await supabase
 
 ## 📋 Table Reference Guide
 
-### Primary Vault Table
+### Primary Master Resume Table
 **Table:** `career_vault`
 - **Primary Key:** `id` (UUID)
 - **User Reference:** `user_id` (UUID)
@@ -73,7 +74,7 @@ const { data: powerPhrases } = await supabase
 
 ### Standard Response Structure
 
-All vault edge functions **MUST** return this structure:
+All Master Resume edge functions **MUST** return this structure:
 
 ```typescript
 // Success response
@@ -116,7 +117,7 @@ return new Response(
       transferableSkillsCount: 5,
       // ... rest of data
     },
-    vaultId: vault.id,
+    resumeId: resume.id,
     processingTime: 1234
   })),
   { headers: { 'Content-Type': 'application/json' } }
@@ -127,38 +128,38 @@ return new Response(
 
 ## 🎯 Common Patterns & Examples
 
-### Pattern 1: Fetching User's Vault
+### Pattern 1: Fetching User's Master Resume
 
 ```typescript
 /**
- * Get the user's vault record
- * @returns CareerVaultRecord with id, user_id, etc.
+ * Get the user's Master Resume record
+ * @returns MasterResumeRecord with id, user_id, etc.
  */
-const { data: vault, error } = await supabase
+const { data: resume, error } = await supabase
   .from('career_vault')
   .select('*')
   .eq('user_id', userId)
   .single();
 
-if (error || !vault) {
-  return createErrorResponse('Vault not found');
+if (error || !resume) {
+  return createErrorResponse('Master Resume not found');
 }
 
-// ✅ vault.id is the vault ID
-// ❌ vault.vault_id does NOT exist
+// ✅ resume.id is the resume ID
+// ❌ resume.vault_id does NOT exist
 ```
 
 ### Pattern 2: Querying Intelligence Tables
 
 ```typescript
 /**
- * Query power phrases for a vault
- * CRITICAL: Use vault.id (from career_vault), not vault.vault_id
+ * Query power phrases for a Master Resume
+ * CRITICAL: Use resume.id (from career_vault), not resume.vault_id
  */
 const { data: phrases } = await supabase
   .from('vault_power_phrases')
   .select('*')
-  .eq('vault_id', vault.id)  // ← Use vault.id!
+  .eq('vault_id', resume.id)  // ← Use resume.id!
   .order('created_at', { ascending: false });
 ```
 
@@ -172,7 +173,7 @@ const { data: phrases } = await supabase
 const { error } = await supabase
   .from('vault_power_phrases')
   .insert({
-    vault_id: vault.id,        // snake_case in database
+    vault_id: resume.id,       // snake_case in database
     power_phrase: 'Led team',  // snake_case
     quality_tier: 'gold',      // snake_case
     confidence_score: 0.95     // snake_case
@@ -195,7 +196,7 @@ const { error } = await supabase
 
 // Frontend accesses
 const result = await supabase.functions.invoke('auto-populate-vault-v3', {
-  body: { vaultId }
+  body: { resumeId }
 });
 
 if (result.data?.success) {
@@ -225,8 +226,8 @@ When you encounter "column does not exist" errors:
 ```mermaid
 graph LR
     A[Frontend invokes edge function] --> B[Edge function queries career_vault]
-    B --> C[Gets vault.id]
-    C --> D[Queries vault_* tables using vault.id]
+    B --> C[Gets resume.id]
+    C --> D[Queries vault_* tables using resume.id]
     D --> E[Returns standardized response]
     E --> F[Frontend accesses result.data.data.*]
 ```
@@ -239,7 +240,7 @@ Before committing edge function changes:
 
 - [ ] All database queries use `snake_case` for columns
 - [ ] Variable names in TypeScript use `camelCase`
-- [ ] Using `vault.id` when querying from `career_vault` result
+- [ ] Using `resume.id` when querying from `career_vault` result
 - [ ] Using `vault_id` column when querying `vault_*` tables
 - [ ] Response follows standard `{ success, data, metadata }` structure
 - [ ] Added null checks for all database query results
@@ -253,11 +254,11 @@ Before committing edge function changes:
 
 | Context | Use This | NOT This |
 |---------|----------|----------|
-| career_vault primary key | `vault.id` | `vault.vault_id` |
+| career_vault primary key | `resume.id` | `resume.vault_id` |
 | vault_* foreign key | `vault_id` | `id` |
 | Database columns | `snake_case` | `camelCase` |
 | TypeScript variables | `camelCase` | `snake_case` |
-| Edge function params | `vaultId`, `userId` | `vault_id`, `user_id` |
+| Edge function params | `resumeId`, `userId` | `vault_id`, `user_id` |
 | Response structure | `{ success, data }` | `{ data: { breakdown } }` |
 
 ---

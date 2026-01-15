@@ -2,7 +2,7 @@
 
 ## Current Problems (User Feedback)
 
-1. **Using assumed Career Vault data** → Creates vague, generic content
+1. **Using assumed Master Resume data** → Creates vague, generic content
 2. **No real industry/profession research** → Missing best practices and standards
 3. **Poor UI/UX on review page** → Doesn't inspire confidence
 4. **No "ideal example" shown** → User can't see what excellence looks like
@@ -27,7 +27,7 @@
 
 2. **Generate Ideal Example:**
    - Use ONLY job description + industry research
-   - DO NOT use Career Vault data yet
+   - DO NOT use Master Resume data yet
    - Create a "platinum standard" example
    - Show best practices for the role/industry
 
@@ -46,7 +46,7 @@
    │ ✓ Quantified achievements highlighted               │
    │ ✓ Key skills matched to job requirements            │
    │                                                     │
-   │ [Use This] [Customize with My Career Vault] →      │
+   │ [Use This] [Customize with My Master Resume] →      │
    └─────────────────────────────────────────────────────┘
    ```
 
@@ -60,7 +60,7 @@
    - Take the industry-standard format
    - Use same tone, length, and style
 
-2. **Inject Career Vault Data:**
+2. **Inject Master Resume Data:**
    ```
    • Replacing generic achievements with YOUR specific milestones
    • Adding YOUR quantified results (not assumed numbers)
@@ -81,7 +81,7 @@
    │  revenue growth..."  │  of ERP system that  │
    │  [Generic example]   │  reduced costs by    │
    │                      │  $2.3M annually..."  │
-   │                      │  [From your vault]   │
+   │                      │  [From your resume]  │
    └──────────────────────┴──────────────────────┘
 
    [Use Standard] [Use Personalized] [Edit & Blend]
@@ -98,236 +98,92 @@
 - Gains confidence in AI guidance
 
 ### 2. **Quality Assurance**
-- Industry research grounds everything in reality
-- Not making up generic achievements
-- Using proven patterns from top performers
-- Matching market expectations
+- Industry standard is always excellent
+- Personalized version has real data
+- User can compare and choose
+- No "assumed" content
 
 ### 3. **User Control**
-- Can choose industry standard (if vault data is weak)
-- Can choose personalized (if vault data is strong)
-- Can blend both (best of both worlds)
-- Can edit either version
-
-### 4. **Better Career Vault Incentive**
-- User sees immediate value difference
-- Weak vault data = generic personalization
-- Strong vault data = powerful personalization
-- Motivates completing Career Vault properly
+- Choose industry standard if Master Resume is incomplete
+- Blend best parts of both
+- Full editing capabilities
+- Clear provenance of content
 
 ---
 
-## Implementation Details
+## Technical Implementation
 
-### Backend: Enhanced Edge Function
+### New Edge Functions Required
 
-**New Endpoint:** `generate-resume-section-v2`
+1. **`research-job-industry`**
+   - Input: Job title, industry, location
+   - Output: Industry research data
+   - Purpose: Generate industry-specific insights
 
+2. **`generate-ideal-section`**
+   - Input: Section type, job analysis, industry research
+   - Output: Ideal section content
+   - Purpose: Create industry-standard example
+
+3. **`generate-personalized-section`**
+   - Input: Ideal example, Master Resume data, job analysis
+   - Output: Personalized section content
+   - Purpose: Adapt ideal to user's actual experience
+
+### Data Flow
+
+```mermaid
+graph TD
+    A[User submits job description] --> B[Analyze job requirements]
+    B --> C[Research industry standards]
+    C --> D[Generate ideal example]
+    D --> E[Display to user]
+    E --> F{User action}
+    F -->|Use ideal| G[Save ideal version]
+    F -->|Personalize| H[Inject Master Resume data]
+    H --> I[Display side-by-side]
+    I --> J{User choice}
+    J -->|Standard| K[Save standard]
+    J -->|Personalized| L[Save personalized]
+    J -->|Blend| M[Open editor with both]
+```
+
+---
+
+## Handling Low Master Resume Data
+
+### Detection Logic
 ```typescript
-// Phase 1: Industry Research
-const industryResearch = await researchIndustryStandards({
-  jobTitle: jobAnalysis.roleProfile.title,
-  industry: jobAnalysis.roleProfile.industry,
-  seniority: jobAnalysis.roleProfile.seniority,
-  jobDescription: jobAnalysis.originalJobDescription
-});
-
-// Phase 2: Generate Ideal Example (no vault data)
-const idealExample = await generateIdealSection({
-  sectionType,
-  industryResearch,
-  jobAnalysis,
-  targetCompany: jobAnalysis.roleProfile.company
-});
-
-// Phase 3: Generate Personalized Version (with vault data)
-const personalizedVersion = await generatePersonalizedSection({
-  sectionType,
-  idealExample, // Use as template
-  industryResearch,
-  jobAnalysis,
-  vaultItems: selectedVaultItems,
-  preserveStructure: true // Keep ideal format
-});
-
-return {
-  idealExample: {
-    content: idealExample,
-    researchSummary: industryResearch.summary,
-    sources: industryResearch.sources,
-    keyPatterns: industryResearch.patterns
-  },
-  personalizedVersion: {
-    content: personalizedVersion,
-    vaultItemsUsed: vaultItems.length,
-    customizationLevel: calculateCustomization(idealExample, personalizedVersion)
-  },
-  metadata: {
-    industryAnalyzed: true,
-    profilesReviewed: industryResearch.profileCount,
-    atsKeywordsIncluded: industryResearch.atsKeywords.length
-  }
+const resumeStrength = {
+  hasRealAchievements: resumeItems.filter(i => !i.isAssumed).length > 5,
+  hasQuantifiedResults: resumeItems.some(i => /\d+[%$M]/.test(i.content)),
+  hasDiverseCategories: uniqueCategories.length >= 3,
+  completenessScore: (realItems / totalItems) * 100
 };
 ```
 
----
+### Show Appropriate Message
+```
+⚠️ Limited Master Resume Data Detected
 
-### Frontend: Improved Review UI
+Your personalized version may be generic because your Master Resume
+has limited data. We recommend:
 
-**Component:** `SectionReviewComparison.tsx`
+• Complete Master Resume (15 min) for better personalization
+• Use Industry Standard version for now
+• Add real achievements and metrics to improve results
 
-```tsx
-<Card className="p-6">
-  {/* Research Summary */}
-  <div className="mb-6 p-4 bg-primary/5 border border-primary/20 rounded-lg">
-    <div className="flex items-start gap-3">
-      <Brain className="h-5 w-5 text-primary" />
-      <div>
-        <h4 className="font-semibold mb-2">Industry Research Completed</h4>
-        <ul className="text-sm space-y-1">
-          <li>✓ Analyzed 50+ {jobTitle} profiles</li>
-          <li>✓ Identified 12 key industry patterns</li>
-          <li>✓ Matched 18 ATS keywords from job description</li>
-          <li>✓ Researched {industry} terminology standards</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  {/* Comparison View */}
-  <Tabs defaultValue="side-by-side">
-    <TabsList>
-      <TabsTrigger value="side-by-side">Side by Side</TabsTrigger>
-      <TabsTrigger value="ideal-only">Industry Standard</TabsTrigger>
-      <TabsTrigger value="personalized-only">Your Version</TabsTrigger>
-    </TabsList>
-
-    <TabsContent value="side-by-side">
-      <div className="grid grid-cols-2 gap-4">
-        {/* Ideal Example */}
-        <div className="border border-primary/30 rounded-lg p-4">
-          <Badge className="mb-3">💎 Industry Standard</Badge>
-          <div className="prose prose-sm">{idealContent}</div>
-          <Button onClick={useIdeal} className="mt-4 w-full">
-            Use This Version
-          </Button>
-        </div>
-
-        {/* Personalized Version */}
-        <div className="border border-success/30 rounded-lg p-4">
-          <Badge variant="success" className="mb-3">
-            ⭐ Your Personalized Version
-          </Badge>
-          <div className="prose prose-sm">{personalizedContent}</div>
-          <Button onClick={usePersonalized} className="mt-4 w-full">
-            Use This Version
-          </Button>
-        </div>
-      </div>
-
-      <Button variant="outline" onClick={blendBoth} className="mt-4 w-full">
-        📝 Edit & Blend Both Versions
-      </Button>
-    </TabsContent>
-  </Tabs>
-</Card>
+Current Resume Strength: 35% (needs 65% for strong personalization)
 ```
 
----
-
-## Industry Research Implementation
-
-### How to Actually Research Industry Standards
-
-**Option 1: Use Perplexity AI API**
-```typescript
-const researchPrompt = `
-Research current industry standards for ${jobTitle} in ${industry}.
-
-Analyze:
-1. Common resume summary structures for this role
-2. Typical years of experience mentioned
-3. Key achievements and metrics emphasized
-4. Industry-specific terminology and buzzwords
-5. Skills most frequently highlighted
-6. Tone and writing style (formal vs. conversational)
-
-Provide:
-- 5 example summaries from top performers
-- Common patterns across examples
-- Critical keywords for ATS
-- Recommended length and structure
-`;
-
-const research = await perplexityAPI.search(researchPrompt);
+### Offer Skip to Ideal
 ```
+Since your Master Resume needs more data, would you like to:
 
-**Option 2: Use Gemini with Web Search**
-```typescript
-const research = await geminiAPI.generateContent({
-  model: "gemini-pro-1.5",
-  contents: [{
-    parts: [{
-      text: `Research ${jobTitle} resume summaries in ${industry}...`
-    }]
-  }],
-  tools: [{
-    googleSearchRetrieval: {
-      dynamicRetrievalConfig: {
-        mode: "MODE_DYNAMIC",
-        dynamicThreshold: 0.7
-      }
-    }
-  }]
-});
+[✓] Use industry standard version (recommended)
+[ ] Continue with limited personalization
+[ ] Pause and complete Master Resume first
 ```
-
-**Option 3: Pre-built Knowledge Base**
-- Build library of industry standards
-- Update monthly with latest patterns
-- Store in Supabase as `industry_resume_standards`
-- Fast lookup, no API calls needed
-
----
-
-## Handling Weak Career Vault Data
-
-### Current Problem:
-If user has minimal/assumed vault data, personalization is generic and unhelpful.
-
-### Solution:
-1. **Calculate Vault Strength Score:**
-   ```typescript
-   const vaultStrength = {
-     hasRealAchievements: vaultItems.filter(i => !i.isAssumed).length > 5,
-     hasQuantifiedResults: vaultItems.some(i => /\d+[%$M]/.test(i.content)),
-     hasDiverseCategories: uniqueCategories.length >= 3,
-     completenessScore: (realItems / totalItems) * 100
-   };
-   ```
-
-2. **Show Appropriate Message:**
-   ```
-   ⚠️ Limited Career Vault Data Detected
-
-   Your personalized version may be generic because your Career Vault
-   has limited data. We recommend:
-
-   • Complete Career Vault (15 min) for better personalization
-   • Use Industry Standard version for now
-   • Add real achievements and metrics to improve results
-
-   Current Vault Strength: 35% (needs 65% for strong personalization)
-   ```
-
-3. **Offer Skip to Ideal:**
-   ```
-   Since your Career Vault needs more data, would you like to:
-
-   [✓] Use industry standard version (recommended)
-   [ ] Continue with limited personalization
-   [ ] Pause and complete Career Vault first
-   ```
 
 ---
 
@@ -348,101 +204,59 @@ If user has minimal/assumed vault data, personalization is generic and unhelpful
 ### Engagement
 - User spends time comparing versions
 - Learns what makes great resume content
-- Motivated to improve Career Vault
 - Higher completion rates
+- Better user satisfaction
+
+---
+
+## UI/UX Improvements
+
+### Progress Indicators
+```
+┌─────────────────────────────────────────────────┐
+│ 🔬 Researching Industry Standards               │
+│                                                 │
+│ ████████████████████░░░░░░░░░░░░ 60%           │
+│                                                 │
+│ ✓ Analyzed job requirements                    │
+│ ✓ Researched 47 similar job postings           │
+│ → Extracting best practices...                 │
+│ ○ Generating ideal example                      │
+└─────────────────────────────────────────────────┘
+```
+
+### Side-by-Side Comparison View
+- Clean, professional layout
+- Highlighting differences
+- Easy to select preferred version
+- One-click to blend/edit
+
+### Quality Indicators
+- Show ATS score for each version
+- Keyword match percentages
+- Competitive strength rating
+- Clear improvement suggestions
 
 ---
 
 ## Migration Path
 
-### Phase 1: Add Industry Research (Week 1)
-- Implement `researchIndustryStandards()` function
-- Add research progress indicators
-- Store research results for reuse
+### Phase 1: Research Foundation
+- Build industry research edge function
+- Create research data caching
+- Test with common job titles
 
-### Phase 2: Dual Generation (Week 2)
-- Generate both ideal and personalized versions
-- Add side-by-side comparison UI
-- Allow user to choose either version
+### Phase 2: Ideal Generation
+- Build ideal section generator
+- Implement progress UI
+- Add quality scoring
 
-### Phase 3: Vault Strength Scoring (Week 3)
-- Calculate vault completeness
-- Show appropriate guidance
-- Encourage vault completion
+### Phase 3: Personalized Generation
+- Build personalization engine
+- Create comparison UI
+- Implement blend/edit features
 
-### Phase 4: Advanced Blending (Week 4)
-- Allow editing both versions
-- Smart merge functionality
-- Save user preferences
-
----
-
-## Cost Considerations
-
-### API Costs:
-- Industry research: ~$0.05 per section (one-time per job)
-- Ideal generation: ~$0.02 per section
-- Personalized generation: ~$0.02 per section
-- **Total: ~$0.09 per section** (vs $0.02 current)
-
-### Optimization:
-- Cache industry research by job title + industry
-- Reuse for similar jobs
-- Pre-generate common role standards
-- Amortize costs across many users
-
-### ROI:
-- 4.5x cost increase BUT:
-  - Dramatically higher quality
-  - Better user satisfaction
-  - Higher conversion to paid tiers
-  - Reduced support requests
-  - More Career Vault completions
-
----
-
-## User Journey Example
-
-### Current (Poor) Experience:
-```
-1. Select vault items (unclear why)
-2. Click generate
-3. See vague summary with assumed data
-4. Think "this is generic garbage"
-5. Abandon tool
-```
-
-### New (Excellent) Experience:
-```
-1. See AI researching industry standards (5 progress steps)
-2. View "Industry Standard" example
-3. Think "wow, that's really good!"
-4. See "Your Personalized" version side-by-side
-5. Notice personalized version is weaker (Career Vault incomplete)
-6. Motivated to complete Career Vault properly
-7. Regenerate with better data
-8. See dramatic improvement
-9. Trust AI, continue with confidence
-10. Complete entire resume with enthusiasm
-```
-
----
-
-## Next Steps
-
-1. **Do you agree with this approach?**
-   - Two-stage generation (ideal + personalized)
-   - Industry research with real data
-   - Side-by-side comparison UI
-
-2. **Should I implement this?**
-   - Start with Phase 1 (industry research)
-   - Then add dual generation
-   - Then improve UI
-
-3. **Or would you prefer different strategy?**
-   - Single generation but with real research?
-   - Different comparison approach?
-   - Alternative quality improvements?
-
-**This is a strategic decision that affects the entire resume builder experience. Let me know how you'd like to proceed.**
+### Phase 4: Polish & Launch
+- User testing and feedback
+- Performance optimization
+- Documentation and training
