@@ -18,7 +18,7 @@ serve(async (req) => {
     console.log('Generating gap roadmap for:', sectionKey);
 
     // Create roadmap prompt
-    const systemPrompt = `You are an intelligent career vault coach integrated into an AI-powered platform. Return ONLY valid JSON, no additional text or explanations.
+    const systemPrompt = `You are an intelligent Master Resume coach integrated into an AI-powered platform. Return ONLY valid JSON, no additional text or explanations.
 
 CONTEXT: This platform has AI-powered tools to analyze resumes, extract skills, and intelligently suggest content. Users don't need to manually research job descriptions or create spreadsheets - the AI does that for them.
 
@@ -38,7 +38,7 @@ CRITICAL: Return ONLY this exact JSON structure, nothing else:
       "title": "Short action title focused on recalling/articulating",
       "description": "What to reflect on or articulate from your experience",
       "goal": "Specific target (e.g., 'Add 5 quantified achievements')",
-      "impact": "How this strengthens your vault",
+      "impact": "How this strengthens your resume",
       "estimatedTime": "10-15 min",
       "current": 5,
       "target": 10,
@@ -66,7 +66,7 @@ Generate 2-3 prioritized action items to close this gap. Each action should:
 - NOT suggest manual research, browsing job boards, or creating spreadsheets
 - Focus on articulating existing experience they may have forgotten
 - Include realistic time estimates (most tasks: 10-15 minutes)
-- Provide 2-3 keywords relevant to this vault section
+- Provide 2-3 keywords relevant to this resume section
 
 Examples of GOOD suggestedActions:
 ✅ "Think of a time you reduced costs or saved time - how much exactly?"

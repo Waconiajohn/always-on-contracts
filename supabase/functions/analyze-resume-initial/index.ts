@@ -1,5 +1,5 @@
 // =====================================================
-// ANALYZE RESUME INITIAL - Career Vault 2.0
+// ANALYZE RESUME INITIAL - Master Resume 2.0
 // =====================================================
 // This function performs the FIRST AI analysis of a user's resume
 // providing instant insights that no other platform offers.
@@ -20,7 +20,7 @@ import { createLogger } from '../_shared/logger.ts';
 
 interface InitialAnalysisRequest {
   resumeText: string;
-  vaultId?: string;
+  resumeId?: string;
 }
 
 interface InitialAnalysisResponse {
@@ -71,7 +71,10 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { resumeText, vaultId }: InitialAnalysisRequest = await req.json();
+    const body = await req.json();
+    const resumeText = body.resumeText;
+    // Support both resumeId and vaultId for backward compatibility
+    const resumeId = body.resumeId || body.vaultId;
 
     if (!resumeText || resumeText.trim().length < 100) {
       throw new Error('Resume text is too short or missing');
@@ -166,18 +169,18 @@ CRITICAL: Return ONLY this exact JSON structure, nothing else:
       achievements: analysisResult.keyAchievements.length
     });
 
-    if (vaultId) {
+    if (resumeId) {
       const { error: updateError } = await supabaseClient
         .from('career_vault')
         .update({
           initial_analysis: analysisResult,
           onboarding_step: 'analysis_complete',
         })
-        .eq('id', vaultId)
+        .eq('id', resumeId)
         .eq('user_id', user.id);
 
       if (updateError) {
-        console.error('Failed to update vault:', updateError);
+        console.error('Failed to update resume:', updateError);
       }
     }
 
