@@ -194,7 +194,7 @@ To verify everything works:
 **All features exist and are functional.**
 
 If you're not seeing them:
-1. Make sure vault onboarding is complete
+1. Make sure Master Resume setup is complete
 2. Navigate to correct URLs
 3. Look for tabs/sub-components
 4. Check prerequisites (like selecting a job)

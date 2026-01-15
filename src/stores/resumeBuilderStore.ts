@@ -27,7 +27,7 @@ const createEmptyResumeOverlay = (): ResumeOverlayState => ({
   pendingPromotions: [],
 });
 
-// Edge function imports removed - Career Vault functionality deprecated
+// Edge function imports removed - Master Resume uses direct database access
 
 export interface ResumeSection {
   id: string;

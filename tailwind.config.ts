@@ -73,12 +73,12 @@ export default {
           processing: "hsl(var(--ai-processing))",
           complete: "hsl(var(--ai-complete))",
         },
-        'vault': {
-          developing: "hsl(var(--vault-developing))",
-          solid: "hsl(var(--vault-solid))",
-          strong: "hsl(var(--vault-strong))",
-          elite: "hsl(var(--vault-elite))",
-          exceptional: "hsl(var(--vault-exceptional))",
+        'strength': {
+          developing: "hsl(var(--strength-developing))",
+          solid: "hsl(var(--strength-solid))",
+          strong: "hsl(var(--strength-strong))",
+          elite: "hsl(var(--strength-elite))",
+          exceptional: "hsl(var(--strength-exceptional))",
         },
         'tier': {
           gold: "hsl(var(--tier-gold))",

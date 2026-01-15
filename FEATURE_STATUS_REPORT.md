@@ -364,11 +364,11 @@ toast.success("Job titles extracted: Senior Engineer, Engineering Manager");
 **3. Add Empty State Messages**
 ```typescript
 // When prerequisites missing
-{vaultData.length === 0 && (
+{resumeData.length === 0 && (
   <EmptyState>
-    Complete your Career Vault onboarding first to unlock AI features.
-    <Button onClick={() => navigate('/career-vault-onboarding')}>
-      Start Onboarding
+    Complete your Master Resume setup first to unlock AI features.
+    <Button onClick={() => navigate('/master-resume')}>
+      Start Setup
     </Button>
   </EmptyState>
 )}
