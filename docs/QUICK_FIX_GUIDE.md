@@ -369,8 +369,8 @@ Before considering migration complete:
 - Error handler implementation: `src/lib/edgeFunction/errorHandler.ts`
 - All schemas: `src/lib/edgeFunction/schemas.ts`
 - Working examples: 
-  - `src/components/career-vault/AIResearchProgress.tsx`
-  - `src/components/career-vault/ModernizeLanguageModal.tsx`
+  - `src/components/master-resume/AIResearchProgress.tsx`
+  - `src/components/master-resume/ModernizeLanguageModal.tsx`
   - `src/lib/services/resumeOptimizer.ts`
 
 **Common Issues**:

@@ -56,12 +56,12 @@
     --ai-processing: 38 92% 50%;
     --ai-complete: 271 81% 56%;
     
-    /* Vault Quality Status Colors */
-    --vault-developing: 215 16% 47%;
-    --vault-solid: 217 91% 60%;
-    --vault-strong: 271 81% 56%;
-    --vault-elite: 38 92% 50%;
-    --vault-exceptional: 142 76% 36%;
+    /* Resume Strength Status Colors */
+    --strength-developing: 215 16% 47%;
+    --strength-solid: 217 91% 60%;
+    --strength-strong: 271 81% 56%;
+    --strength-elite: 38 92% 50%;
+    --strength-exceptional: 142 76% 36%;
     --success: 142 76% 36%;
     --warning: 38 92% 50%;
     --info: 217 91% 60%;
@@ -124,12 +124,12 @@
     --ai-processing: 38 92% 50%;
     --ai-complete: 271 81% 56%;
     
-    /* Vault Quality Status Colors - Dark Mode */
-    --vault-developing: 215 20% 65%;
-    --vault-solid: 217 91% 60%;
-    --vault-strong: 271 81% 66%;
-    --vault-elite: 38 92% 60%;
-    --vault-exceptional: 142 76% 46%;
+    /* Resume Strength Status Colors - Dark Mode */
+    --strength-developing: 215 20% 65%;
+    --strength-solid: 217 91% 60%;
+    --strength-strong: 271 81% 66%;
+    --strength-elite: 38 92% 60%;
+    --strength-exceptional: 142 76% 46%;
     --success: 142 76% 46%;
     --warning: 38 92% 60%;
     --info: 217 91% 70%;
