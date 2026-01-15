@@ -308,7 +308,7 @@ For ${targetIndustries[0]}, prioritize domain-relevant gaps over generic advice.
 Before generating your analysis, think step-by-step:
 
 1. **Percentile Calculation**:
-   - Resume Strength: ${resumeStats.vaultStrength}%
+   - Resume Strength: ${resumeStats.resumeStrength || resumeStats.vaultStrength}%
    - Quality Distribution: ${JSON.stringify(resumeStats.qualityBreakdown)}
    - For ${careerContext.inferredSeniority} with ${careerContext.yearsOfExperience} YOE, what percentile does this represent?
 
@@ -482,7 +482,7 @@ IMPORTANT: Return ONLY the JSON object. No markdown formatting, no code blocks, 
         strengths: benchmarkAnalysis.strengths || [],
         opportunities: benchmarkAnalysis.opportunities || [],
         percentile_ranking: benchmarkAnalysis.percentileRanking?.percentile || 50,
-        resume_strength_at_analysis: resumeStats.vaultStrength || 0,
+        resume_strength_at_analysis: resumeStats.resumeStrength || resumeStats.vaultStrength || 0,
       });
 
     if (insertError) {
