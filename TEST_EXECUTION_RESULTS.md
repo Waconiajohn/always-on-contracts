@@ -60,7 +60,7 @@
 | AUTH-005 | Rate Limiting | ✅ PASS | 5 attempts/15min (lines 21-23, 95-103) |
 | AUTH-006 | Session Management | ✅ PASS | `onAuthStateChange` listener active |
 | AUTH-007 | Protected Routes | ✅ PASS | `ProtectedRoute` component @ lines 19-21 |
-| AUTH-008 | Auto-redirect | ✅ PASS | Redirects to `/career-vault/onboarding` or `/command-center` |
+| AUTH-008 | Auto-redirect | ✅ PASS | Redirects to `/master-resume` or `/command-center` |
 
 #### Security Features Verified:
 ```typescript

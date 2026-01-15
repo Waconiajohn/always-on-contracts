@@ -57,8 +57,8 @@ ORDER BY updated_at DESC;
 
 ### Step-by-Step Test
 
-1. **Go to Career Vault Onboarding**
-   - URL: `/career-vault-onboarding`
+1. **Go to Master Resume**
+   - URL: `/master-resume`
 
 2. **Upload Test Resume**
    - Use a resume with clear:
