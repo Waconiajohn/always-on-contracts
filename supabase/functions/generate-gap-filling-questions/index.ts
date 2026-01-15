@@ -389,7 +389,7 @@ CRITICAL RULES FOR QUESTION GENERATION:
 
 Generate 5-15 highly targeted questions organized into logical batches. Each question should:
 1. Address a SPECIFIC gap that someone in THEIR EXACT role would realistically have
-2. Have measurable impact on vault strength (rate 1-10)
+2. Have measurable impact on resume strength (rate 1-10)
 3. Be answerable in <2 minutes
 4. Use the most appropriate question format (multiple choice, yes/no, text, scale)
 
@@ -397,7 +397,7 @@ Generate 5-15 highly targeted questions organized into logical batches. Each que
 {
   "criticalGapsIdentified": ["gap 1", "gap 2", "gap 3"],
   "totalQuestions": 10,
-  "estimatedVaultStrengthBoost": 15,
+  "estimatedResumeStrengthBoost": 15,
   "batches": [
     {
       "batchTitle": "[Role-Appropriate Title]",
@@ -523,7 +523,7 @@ QUESTION TYPE GUIDELINES:
         questionData = {
           criticalGapsIdentified: [],
           totalQuestions: 0,
-          estimatedVaultStrengthBoost: 0,
+        estimatedResumeStrengthBoost: 0,
           batches: []
         };
       }
@@ -535,7 +535,7 @@ QUESTION TYPE GUIDELINES:
       questionData = {
         criticalGapsIdentified: [],
         totalQuestions: 0,
-        estimatedVaultStrengthBoost: 0,
+        estimatedResumeStrengthBoost: 0,
         batches: []
       };
     }
@@ -561,7 +561,7 @@ QUESTION TYPE GUIDELINES:
     console.log('✅ [GAP QUESTIONS] Generated gap-filling questions:', {
       batches: questionData.batches?.length || 0,
       totalQuestions: questionData.totalQuestions || 0,
-      estimatedBoost: questionData.estimatedVaultStrengthBoost || 0,
+      estimatedBoost: questionData.estimatedResumeStrengthBoost || 0,
       criticalGaps: questionData.criticalGapsIdentified || []
     });
     
@@ -577,10 +577,10 @@ QUESTION TYPE GUIDELINES:
         data: questionData,
         meta: {
           message: `🎯 Identified ${questionData.criticalGapsIdentified?.length || 0} critical gaps with ${questionData.totalQuestions || 0} targeted questions.`,
-          uniqueValue: `Our AI compared your vault against industry standards to identify EXACTLY what's missing. Each question is designed to fill a specific gap—no generic forms or wasted time.`,
-          impactEstimate: `Answering these questions could boost your vault strength by approximately ${questionData.estimatedVaultStrengthBoost || 10}%. This is the difference between "good" and "exceptional" profiles.`,
-          timeEstimate: `Estimated completion: 5-15 minutes to reach 85%+ vault strength.`,
-          skipNote: `You can skip this step, but industry leaders typically achieve 85-95% vault strength—and these questions are the fastest path there.`,
+          uniqueValue: `Our AI compared your Master Resume against industry standards to identify EXACTLY what's missing. Each question is designed to fill a specific gap—no generic forms or wasted time.`,
+          impactEstimate: `Answering these questions could boost your resume strength by approximately ${questionData.estimatedResumeStrengthBoost || 10}%. This is the difference between "good" and "exceptional" profiles.`,
+          timeEstimate: `Estimated completion: 5-15 minutes to reach 85%+ resume strength.`,
+          skipNote: `You can skip this step, but industry leaders typically achieve 85-95% resume strength—and these questions are the fastest path there.`,
         },
       }),
       {
