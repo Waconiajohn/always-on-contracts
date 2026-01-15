@@ -27,10 +27,10 @@ export function V3MicroWins({ resumeCompletion }: V3MicroWinsProps) {
       wins.push({
         id: 'add-skills',
         action: 'Add 3 more skills to reach competitive tier',
-        impact: '+5% vault score',
+        impact: '+5% resume score',
         timeEstimate: '3 min',
         aiModel: 'Gemini 2.5 Flash',
-        path: '/career-vault',
+        path: '/master-resume',
         icon: TrendingUp
       });
     }
@@ -50,10 +50,10 @@ export function V3MicroWins({ resumeCompletion }: V3MicroWinsProps) {
     wins.push({
       id: 'review-insights',
       action: 'Review and approve AI-generated leadership insights',
-      impact: '+3% vault quality',
+      impact: '+3% resume quality',
       timeEstimate: '4 min',
       aiModel: 'GPT-5',
-      path: '/career-vault',
+      path: '/master-resume',
       icon: Zap
     });
 

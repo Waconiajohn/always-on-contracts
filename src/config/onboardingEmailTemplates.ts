@@ -16,27 +16,27 @@ export const ONBOARDING_EMAIL_TEMPLATES: Record<
 > = {
   welcome: {
     id: "welcome",
-    subject: "Welcome – let's build your Career Vault",
+    subject: "Welcome – let's build your Master Resume",
     bodyText: `
 Hi {{firstName}},
 
 Welcome — and thanks for trusting us with your next chapter.
 
-The first thing we'll do together is build your Career Vault: a single, accurate record of your experience, results, and strengths. You upload your resume once, answer a few focused questions, and we do the heavy lifting—quantifying accomplishments, clarifying scope, and capturing the way you actually lead.
+The first thing we'll do together is build your Master Resume: a single, accurate record of your experience, results, and strengths. You upload your resume once, answer a few focused questions, and we do the heavy lifting—quantifying accomplishments, clarifying scope, and capturing the way you actually lead.
 
 From there, every targeted resume, LinkedIn update, and interview prep guide comes from the same master record. No more starting from a blank page for each opportunity.
 
 What to do next (5–10 minutes):
 
 1. Upload your most recent resume
-2. Review the initial Career Vault summary
+2. Review the initial Master Resume summary
 3. Answer 2–3 short Smart Questions to sharpen your story
 
-You stay in control at every step. You can edit, add, or remove anything in your Career Vault as we go.
+You stay in control at every step. You can edit, add, or remove anything in your Master Resume as we go.
 
 When you're ready, click below to begin:
 
-Start building my Career Vault: {{appUrl}}/career-vault
+Start building my Master Resume: {{appUrl}}/master-resume
 
 Best,
 {{senderName}}
@@ -45,15 +45,15 @@ Best,
 
   targetedResume: {
     id: "targetedResume",
-    subject: "Turn your Career Vault into a targeted resume",
+    subject: "Turn your Master Resume into a targeted resume",
     bodyText: `
 Hi {{firstName}},
 
-Now that your Career Vault is taking shape, you can use it to build resumes that speak directly to a specific role.
+Now that your Master Resume is taking shape, you can use it to build resumes that speak directly to a specific role.
 
 Instead of rewriting everything from scratch, we:
 
-• Start with your Career Vault (your "master file")
+• Start with your Master Resume (your "master file")
 • Align it to a job description you paste or save
 • Highlight the most relevant achievements, metrics, and skills for that opportunity
 
@@ -65,7 +65,7 @@ Try this next:
 2. Click "Build targeted resume" from that job
 3. Review the suggested resume and make any edits you prefer
 
-Every time you strengthen your Career Vault, your future resumes get better automatically.
+Every time you strengthen your Master Resume, your future resumes get better automatically.
 
 Build my first targeted resume: {{appUrl}}/resume-builder
 
@@ -76,11 +76,11 @@ Best,
 
   linkedinPresence: {
     id: "linkedinPresence",
-    subject: "Use your Career Vault to refresh LinkedIn",
+    subject: "Use your Master Resume to refresh LinkedIn",
     bodyText: `
 Hi {{firstName}},
 
-Your Career Vault doesn't just power resumes — it also makes LinkedIn much easier.
+Your Master Resume doesn't just power resumes — it also makes LinkedIn much easier.
 
 Because your experience, results, and leadership story are already organized, we can help you:
 
@@ -89,7 +89,7 @@ Because your experience, results, and leadership story are already organized, we
 • Refresh experience bullets with clear, quantified impact
 • Turn key experiences into thoughtful LinkedIn posts
 
-You don't need to guess what to say. We pull from your Career Vault, and you decide what to keep or adjust.
+You don't need to guess what to say. We pull from your Master Resume, and you decide what to keep or adjust.
 
 Good next step:
 
@@ -97,7 +97,7 @@ Good next step:
 • Start with your headline and About summary
 • Then update one or two roles with stronger impact statements
 
-Refresh my LinkedIn from my Career Vault: {{appUrl}}/linkedin
+Refresh my LinkedIn from my Master Resume: {{appUrl}}/linkedin
 
 Warmly,
 {{senderName}}
@@ -106,11 +106,11 @@ Warmly,
 
   interviewsAndRetirement: {
     id: "interviewsAndRetirement",
-    subject: "From Career Vault to confident interviews",
+    subject: "From Master Resume to confident interviews",
     bodyText: `
 Hi {{firstName}},
 
-As you start to get traction, your Career Vault becomes your best interview resource.
+As you start to get traction, your Master Resume becomes your best interview resource.
 
 We use it to:
 

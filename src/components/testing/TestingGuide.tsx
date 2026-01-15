@@ -33,7 +33,7 @@ const deploymentPhases: Phase[] = [
     ],
     successCriteria: [
       'All 3 migrations applied without errors',
-      'Database schema matches Career Vault 2.0 requirements',
+      'Database schema matches Master Resume 2.0 requirements',
       'GIN indexes created for search optimization'
     ]
   },
@@ -44,7 +44,7 @@ const deploymentPhases: Phase[] = [
     priority: 'critical',
     status: 'pending',
     steps: [
-      'Navigate to /career-vault',
+      'Navigate to /master-resume',
       'Upload test resume (PDF or DOCX)',
       'Verify upload succeeds without auth errors',
       'Confirm analysis completes in <10 seconds',
@@ -165,9 +165,9 @@ export function TestingGuide() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Career Vault 2.0 - Deployment & Testing Guide</CardTitle>
+        <CardTitle>Master Resume 2.0 - Deployment & Testing Guide</CardTitle>
         <CardDescription>
-          Follow this comprehensive 5-phase plan to deploy and test Career Vault 2.0
+          Follow this comprehensive 5-phase plan to deploy and test Master Resume 2.0
         </CardDescription>
       </CardHeader>
       <CardContent>

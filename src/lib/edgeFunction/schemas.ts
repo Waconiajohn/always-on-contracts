@@ -681,16 +681,9 @@ export const RedeemRetirementCodeSchema = z.object({
   deviceFingerprint: z.string().min(1, 'Device fingerprint is required')
 });
 
-// ============= Backward Compatibility Aliases =============
-// These aliases maintain backward compatibility during migration
+// ============= Legacy Aliases (Deprecated) =============
+// These are preserved for any remaining edge function references - DO NOT USE in new code
 export const Generate3060Plan = Generate3060PlanSchema;
-export const ExtractVaultIntangiblesSchema = ExtractResumeIntangiblesSchema;
-export const AutoPopulateVaultSchema = AutoPopulateResumeSchema;
-export const MatchVaultToRequirementsSchema = MatchResumeToRequirementsSchema;
-export const BulkVaultOperationsSchema = BulkResumeOperationsSchema;
-export const SearchVaultAdvancedSchema = SearchResumeAdvancedSchema;
-export const ExportVaultSchema = ExportResumeSchema;
-export const GenerateVaultRecommendationsSchema = GenerateResumeRecommendationsSchema;
 
 // ============= Helper Functions =============
 

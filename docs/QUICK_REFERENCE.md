@@ -1,17 +1,17 @@
-# Career Vault Quick Reference
+# Master Resume Quick Reference
 
 ## 🚀 Most Common Patterns
 
-### Pattern 1: Get User's Vault
+### Pattern 1: Get User's Master Resume
 ```typescript
-const { data: vault } = await supabase
+const { data: resume } = await supabase
   .from('career_vault')
   .select('*')
   .eq('user_id', userId)
   .single();
 
-// ✅ Use: vault.id
-// ❌ NOT: vault.vault_id
+// ✅ Use: resume.id
+// ❌ NOT: resume.vault_id
 ```
 
 ### Pattern 2: Query Intelligence Tables
@@ -19,7 +19,7 @@ const { data: vault } = await supabase
 const { data: items } = await supabase
   .from('vault_power_phrases')
   .select('*')
-  .eq('vault_id', vault.id)  // ← vault.id from career_vault!
+  .eq('vault_id', resume.id)  // ← resume.id from career_vault!
   .order('created_at', { ascending: false });
 ```
 
@@ -28,7 +28,7 @@ const { data: items } = await supabase
 const { error } = await supabase
   .from('vault_power_phrases')
   .insert({
-    vault_id: vault.id,      // snake_case
+    vault_id: resume.id,      // snake_case
     power_phrase: 'text',    // snake_case
     quality_tier: 'gold',    // snake_case
     confidence_score: 0.95   // snake_case
@@ -39,7 +39,7 @@ const { error } = await supabase
 
 | Context | Use | NOT |
 |---------|-----|-----|
-| career_vault PK | `vault.id` | `vault.vault_id` ❌ |
+| career_vault PK | `resume.id` | `resume.vault_id` ❌ |
 | vault_* FK | `vault_id` | `id` ❌ |
 | DB columns | `snake_case` | `camelCase` ❌ |
 | TypeScript | `camelCase` | `snake_case` ❌ |
@@ -58,11 +58,11 @@ const { error } = await supabase
 ```
 
 ## 🔍 Debugging Checklist
-- [ ] Using `vault.id` not `vault.vault_id`?
+- [ ] Using `resume.id` not `resume.vault_id`?
 - [ ] DB columns in `snake_case`?
 - [ ] TypeScript variables in `camelCase`?
 - [ ] Null checks on all queries?
 - [ ] Response matches standard structure?
 
 ## 📚 Full Documentation
-See [VAULT_NAMING_CONVENTIONS.md](./VAULT_NAMING_CONVENTIONS.md) for complete guide.
+See [MASTER_RESUME_NAMING_CONVENTIONS.md](./MASTER_RESUME_NAMING_CONVENTIONS.md) for complete guide.

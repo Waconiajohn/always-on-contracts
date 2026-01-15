@@ -266,9 +266,9 @@ Before committing edge function changes:
 ## 📚 Additional Resources
 
 - **Type Definitions:** `supabase/functions/_shared/vault-response-types.ts`
-- **Example Edge Function:** `supabase/functions/auto-populate-vault-v3/index.ts`
+- **Example Edge Function:** `supabase/functions/auto-populate-resume-v3/index.ts`
 - **Database Schema:** `src/integrations/supabase/types.ts`
-- **Frontend Types:** `src/types/career-vault.ts`
+- **Frontend Types:** `src/types/master-resume.ts`
 
 ---
 
