@@ -38,7 +38,7 @@ serve(async (req) => {
     }
 
     // Generate enhanced version
-    const prompt = `Enhance this career vault content by naturally incorporating these keywords: ${suggestedKeywords.join(', ')}
+    const prompt = `Enhance this Master Resume content by naturally incorporating these keywords: ${suggestedKeywords.join(', ')}
 
 Current content: "${currentContent}"
 

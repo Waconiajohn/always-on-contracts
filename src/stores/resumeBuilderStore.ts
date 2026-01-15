@@ -7,7 +7,7 @@ import { logger } from '@/lib/logger';
 // Resume milestone type for master resume integration
 export interface ResumeMilestone {
   id: string;
-  vault_id: string;
+  master_resume_id: string;
   milestone_text: string;
   milestone_type: string;
   work_position_id?: string | null;

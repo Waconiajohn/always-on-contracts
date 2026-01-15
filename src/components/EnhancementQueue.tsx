@@ -22,11 +22,11 @@ interface EnhancementItem {
 }
 
 interface EnhancementQueueProps {
-  vaultId: string;
+  resumeId: string;
   onEnhancementComplete?: () => void | Promise<void>;
 }
 
-export function EnhancementQueue({ vaultId, onEnhancementComplete }: EnhancementQueueProps) {
+export function EnhancementQueue({ resumeId, onEnhancementComplete }: EnhancementQueueProps) {
   const [queue, setQueue] = useState<EnhancementItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<EnhancementItem | null>(null);
@@ -35,7 +35,7 @@ export function EnhancementQueue({ vaultId, onEnhancementComplete }: Enhancement
     const { data } = await supabase
       .from('vault_interview_responses')
       .select('*')
-      .eq('vault_id', vaultId)
+      .eq('vault_id', resumeId)
       .eq('needs_enhancement', true)
       .order('enhancement_priority', { ascending: false })
       .order('intelligence_value', { ascending: true });
@@ -68,7 +68,7 @@ export function EnhancementQueue({ vaultId, onEnhancementComplete }: Enhancement
 
   useEffect(() => {
     fetchQueue();
-  }, [vaultId]);
+  }, [resumeId]);
 
   if (loading) {
     return <div className="flex justify-center p-8">Loading enhancement queue...</div>;
@@ -109,7 +109,7 @@ export function EnhancementQueue({ vaultId, onEnhancementComplete }: Enhancement
       <div className="mb-4">
         <h3 className="text-lg font-semibold mb-2">Enhancement Queue</h3>
         <p className="text-sm text-muted-foreground">
-          {queue.length} response{queue.length !== 1 ? 's' : ''} ready for enhancement to maximize your Career Vault intelligence
+          {queue.length} response{queue.length !== 1 ? 's' : ''} ready for enhancement to maximize your Master Resume intelligence
         </p>
       </div>
 
@@ -174,7 +174,7 @@ export function EnhancementQueue({ vaultId, onEnhancementComplete }: Enhancement
           open={!!selectedItem}
           onOpenChange={(open) => !open && setSelectedItem(null)}
           responseId={selectedItem.id}
-          vaultId={vaultId}
+          resumeId={resumeId}
           question={selectedItem.question}
           currentAnswer={selectedItem.response}
           currentScore={selectedItem.quality_score}

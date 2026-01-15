@@ -18,7 +18,8 @@ const corsHeaders = {
 
 interface ValidationRequest {
   resumeText: string;
-  vaultId: string;
+  resumeId?: string;
+  vaultId?: string; // Backwards compatibility
 }
 
 interface ExtractedData {
@@ -40,36 +41,39 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { resumeText, vaultId }: ValidationRequest = await req.json();
+    const body: ValidationRequest = await req.json();
+    // Support both old and new parameter names for backwards compatibility
+    const resumeId = body.resumeId || body.vaultId;
+    const resumeText = body.resumeText;
 
-    if (!resumeText || !vaultId) {
+    if (!resumeText || !resumeId) {
       return new Response(
-        JSON.stringify({ error: 'resumeText and vaultId are required' }),
+        JSON.stringify({ error: 'resumeText and resumeId are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     console.log('🔍 Starting extraction validation...');
 
-    // Fetch extracted data from vault
-    const { data: vaultData } = await supabase
+    // Fetch extracted data from Master Resume
+    const { data: resumeData } = await supabase
       .from('career_vault')
       .select('user_id')
-      .eq('id', vaultId)
+      .eq('id', resumeId)
       .single();
 
-    if (!vaultData) {
+    if (!resumeData) {
       return new Response(
-        JSON.stringify({ error: 'Vault not found' }),
+        JSON.stringify({ error: 'Master Resume not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const userId = vaultData.user_id;
+    const userId = resumeData.user_id;
 
     const [workPositions, education, milestones, skills, powerPhrases] = await Promise.all([
-      supabase.from('vault_work_positions').select('*').eq('vault_id', vaultId),
-      supabase.from('vault_education').select('*').eq('vault_id', vaultId),
+      supabase.from('vault_work_positions').select('*').eq('vault_id', resumeId),
+      supabase.from('vault_education').select('*').eq('vault_id', resumeId),
       supabase.from('vault_resume_milestones').select(`
         *,
         work_position:vault_work_positions!work_position_id (
@@ -80,9 +84,9 @@ serve(async (req) => {
           end_date,
           is_current
         )
-      `).eq('vault_id', vaultId),
-      supabase.from('vault_transferable_skills').select('*').eq('vault_id', vaultId),
-      supabase.from('vault_power_phrases').select('*').eq('vault_id', vaultId),
+      `).eq('vault_id', resumeId),
+      supabase.from('vault_transferable_skills').select('*').eq('vault_id', resumeId),
+      supabase.from('vault_power_phrases').select('*').eq('vault_id', resumeId),
     ]);
 
     const extractedData: ExtractedData = {
@@ -160,7 +164,7 @@ Return JSON with:
 
     // Store validation results
     await supabase.from('vault_activity_log').insert({
-      vault_id: vaultId,
+      vault_id: resumeId,
       user_id: userId,
       activity_type: 'extraction_validation',
       description: `Extraction validation completed: ${validation.completeness_score}% complete`,
@@ -184,14 +188,14 @@ Return JSON with:
       }
     });
 
-    // Update career_vault with extraction quality metrics
+    // Update Master Resume with extraction quality metrics
     await supabase
       .from('career_vault')
       .update({
         extraction_completeness_score: validation.completeness_score,
         extraction_quality: validation.extraction_quality,
       })
-      .eq('id', vaultId);
+      .eq('id', resumeId);
 
     return new Response(
       JSON.stringify({

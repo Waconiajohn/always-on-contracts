@@ -180,18 +180,18 @@ export const ProcessReviewActionsSchema = z.object({
   ).min(1, 'At least one action is required')
 });
 
-export const VaultCleanupSchema = z.object({
-  vaultId: z.string().uuid('Invalid vault ID'),
+export const ResumeCleanupSchema = z.object({
+  resumeId: z.string().uuid('Invalid resume ID'),
   confirmation: z.literal('DELETE_ALL_DATA'),
-  preserveVaultRecord: z.boolean().optional()
+  preserveResumeRecord: z.boolean().optional()
 });
 
 export const DetectRoleAndIndustrySchema = z.object({
   resumeText: z.string().min(100).max(50000).optional(),
-  vaultId: z.string().uuid('Invalid vault ID').optional()
+  resumeId: z.string().uuid('Invalid resume ID').optional()
 }).refine(
-  data => data.resumeText || data.vaultId,
-  { message: 'Either resumeText or vaultId is required' }
+  data => data.resumeText || data.resumeId,
+  { message: 'Either resumeText or resumeId is required' }
 );
 
 export const GenerateCompletionBenchmarkSchema = z.object({
@@ -489,10 +489,10 @@ export const ATSScoreReportSchema = z.object({
 });
 
 export const GenerateGapFillingQuestionsSchema = z.object({
-  vaultId: z.string().uuid('Invalid vault ID').optional(),
+  resumeId: z.string().uuid('Invalid resume ID').optional(),
   resumeText: z.string().min(100).max(50000),
-  vaultData: z.object({
-    vault_id: z.string().uuid().optional(),
+  resumeData: z.object({
+    resume_id: z.string().uuid().optional(),
     powerPhrases: z.array(z.any()).optional(),
     transferableSkills: z.array(z.any()).optional(),
     hiddenCompetencies: z.array(z.any()).optional(),
@@ -505,7 +505,7 @@ export const GenerateGapFillingQuestionsSchema = z.object({
 });
 
 export const ProcessGapFillingResponsesSchema = z.object({
-  vaultId: z.string().uuid('Invalid vault ID'),
+  resumeId: z.string().uuid('Invalid resume ID'),
   responses: z.array(z.object({
     questionId: z.string(),
     questionText: z.string(),
@@ -522,7 +522,7 @@ export const SuggestCareerPathsSchema = z.object({
   careerDirection: z.enum(['stay', 'pivot', 'explore']),
   currentRole: z.string().optional(),
   currentIndustry: z.string().optional(),
-  vaultId: z.string().uuid('Invalid vault ID').optional(),
+  resumeId: z.string().uuid('Invalid resume ID').optional(),
   resumeText: z.string().min(100).max(50000).optional()
 });
 
@@ -583,7 +583,7 @@ export type AtsScoreData = z.infer<typeof AtsScoreDataSchema>;
 export type SectionCoverage = z.infer<typeof SectionCoverageSchema>;
 
 export const SubmitMicroAnswersSchema = z.object({
-  vaultId: z.string().uuid('Invalid vault ID'),
+  resumeId: z.string().uuid('Invalid resume ID'),
   answers: z.array(z.object({
     questionId: z.string(),
     answer: z.string().min(1, 'Answer cannot be empty')

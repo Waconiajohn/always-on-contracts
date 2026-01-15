@@ -33,7 +33,8 @@ interface GapResponse {
 }
 
 interface ProcessResponsesRequest {
-  vaultId: string;
+  resumeId?: string;
+  vaultId?: string; // Backwards compatibility
   responses: GapResponse[];
   industryResearch?: any;
   targetRoles?: string[];
@@ -67,19 +68,19 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const {
-      vaultId,
-      responses,
-      industryResearch,
-      targetRoles,
-    }: ProcessResponsesRequest = await req.json();
+    const body: ProcessResponsesRequest = await req.json();
+    // Support both old and new parameter names for backwards compatibility
+    const resumeId = body.resumeId || body.vaultId;
+    const responses = body.responses;
+    const industryResearch = body.industryResearch;
+    const targetRoles = body.targetRoles;
 
     if (!responses || responses.length === 0) {
       throw new Error('No responses provided');
     }
 
     console.log('📝 PROCESSING GAP-FILLING RESPONSES:', {
-      vaultId,
+      resumeId,
       responseCount: responses.length,
       userId: user.id,
     });
@@ -265,7 +266,7 @@ NO MARKDOWN. ONLY JSON.`;
     // Insert power phrases
     if (vaultItems.powerPhrases && vaultItems.powerPhrases.length > 0) {
       const powerPhrasesInserts = vaultItems.powerPhrases.map((pp: any) => ({
-        vault_id: vaultId,
+        vault_id: resumeId,
         user_id: user.id,
         power_phrase: pp.phrase,
         category: pp.category || 'general',
@@ -292,7 +293,7 @@ NO MARKDOWN. ONLY JSON.`;
     // Insert transferable skills
     if (vaultItems.transferableSkills && vaultItems.transferableSkills.length > 0) {
       const skillsInserts = vaultItems.transferableSkills.map((skill: any) => ({
-        vault_id: vaultId,
+        vault_id: resumeId,
         user_id: user.id,
         stated_skill: skill.skill,
         equivalent_skills: skill.equivalentSkills || [],
@@ -317,7 +318,7 @@ NO MARKDOWN. ONLY JSON.`;
     // Insert hidden competencies
     if (vaultItems.hiddenCompetencies && vaultItems.hiddenCompetencies.length > 0) {
       const competenciesInserts = vaultItems.hiddenCompetencies.map((comp: any) => ({
-        vault_id: vaultId,
+        vault_id: resumeId,
         user_id: user.id,
         competency_area: comp.competencyArea,
         inferred_capability: comp.capability,
@@ -342,7 +343,7 @@ NO MARKDOWN. ONLY JSON.`;
     // Insert soft skills
     if (vaultItems.softSkills && vaultItems.softSkills.length > 0) {
       const softSkillsInserts = vaultItems.softSkills.map((skill: any) => ({
-        vault_id: vaultId,
+        vault_id: resumeId,
         user_id: user.id,
         skill_name: skill.skillName,
         examples: skill.examples || 'Confirmed in gap-filling questionnaire',
@@ -364,18 +365,18 @@ NO MARKDOWN. ONLY JSON.`;
       }
     }
 
-    // Recalculate vault strength
-    const { data: vaultStats } = await supabaseClient
-      .rpc('get_vault_statistics', { p_vault_id: vaultId });
+    // Recalculate resume strength
+    const { data: resumeStats } = await supabaseClient
+      .rpc('get_vault_statistics', { p_vault_id: resumeId });
 
-    let newVaultStrength = 85; // Default minimum after gap filling
-    if (vaultStats) {
-      const totalItems = vaultStats.totalItems || 0;
-      const goldCount = vaultStats.qualityBreakdown?.gold || 0;
-      const silverCount = vaultStats.qualityBreakdown?.silver || 0;
+    let newResumeStrength = 85; // Default minimum after gap filling
+    if (resumeStats) {
+      const totalItems = resumeStats.totalItems || 0;
+      const goldCount = resumeStats.qualityBreakdown?.gold || 0;
+      const silverCount = resumeStats.qualityBreakdown?.silver || 0;
 
       // Enhanced formula with gold tier bonus
-      newVaultStrength = Math.min(100, Math.round(
+      newResumeStrength = Math.min(100, Math.round(
         (totalItems / 2.5) +
         (goldCount * 0.6) +
         (silverCount * 0.3) +
@@ -383,26 +384,26 @@ NO MARKDOWN. ONLY JSON.`;
       ));
     }
 
-    // Update vault
+    // Update Master Resume
     await supabaseClient
       .from('career_vault')
       .update({
-        vault_strength_after_qa: newVaultStrength,
+        vault_strength_after_qa: newResumeStrength,
         onboarding_step: 'gap_filling_complete',
       })
-      .eq('id', vaultId)
+      .eq('id', resumeId)
       .eq('user_id', user.id);
 
     // Log activity
     await supabaseClient.from('vault_activity_log').insert({
-      vault_id: vaultId,
+      vault_id: resumeId,
       user_id: user.id,
       activity_type: 'intelligence_extracted',
       description: `Gap-filling completed: ${totalInserted} gold-tier items added`,
       metadata: {
         responsesProcessed: responses.length,
         itemsCreated: totalInserted,
-        newVaultStrength,
+        newResumeStrength,
         categories: processedData.categories,
       },
     });
@@ -410,7 +411,7 @@ NO MARKDOWN. ONLY JSON.`;
     console.log('✅ GAP-FILLING PROCESSING COMPLETE:', {
       responsesProcessed: responses.length,
       itemsCreated: totalInserted,
-      newVaultStrength,
+      newResumeStrength,
     });
 
     return new Response(
@@ -418,7 +419,7 @@ NO MARKDOWN. ONLY JSON.`;
         success: true,
         data: {
           itemsCreated: totalInserted,
-          newVaultStrength,
+          newResumeStrength,
           breakdown: {
             powerPhrases: vaultItems.powerPhrases?.length || 0,
             transferableSkills: vaultItems.transferableSkills?.length || 0,
@@ -427,9 +428,9 @@ NO MARKDOWN. ONLY JSON.`;
           },
         },
         meta: {
-          message: `✅ Gap-Filling Complete! Added ${totalInserted} gold-tier items to your vault.`,
+          message: `✅ Gap-Filling Complete! Added ${totalInserted} gold-tier items to your Master Resume.`,
           uniqueValue: `These items were created from YOUR answers—giving them the highest confidence level (gold tier). They're immediately ready for professional use.`,
-          vaultStrength: `Your vault strength increased to ${newVaultStrength}%—putting you in the ${newVaultStrength >= 90 ? 'top 10%' : 'top 20%'} of executive profiles.`,
+          resumeStrength: `Your Master Resume strength increased to ${newResumeStrength}%—putting you in the ${newResumeStrength >= 90 ? 'top 10%' : 'top 20%'} of executive profiles.`,
           nextStep: `You're ready to build AI-optimized resumes, enhance your LinkedIn, and prepare for interviews using your comprehensive career intelligence.`,
         },
       }),

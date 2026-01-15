@@ -11,10 +11,10 @@ import { logger } from "@/lib/logger";
 interface ThreeTwoOneFrameworkProps {
   jobDescription: string;
   companyResearch: any;
-  vaultId: string;
+  resumeId: string;
 }
 
-export function ThreeTwoOneFramework({ jobDescription, companyResearch, vaultId }: ThreeTwoOneFrameworkProps) {
+export function ThreeTwoOneFramework({ jobDescription, companyResearch, resumeId }: ThreeTwoOneFrameworkProps) {
   const [loading, setLoading] = useState(false);
   const [framework, setFramework] = useState<any>(null);
   const [copied, setCopied] = useState<string | null>(null);
@@ -25,7 +25,7 @@ export function ThreeTwoOneFramework({ jobDescription, companyResearch, vaultId 
     try {
       const validated = validateInput(Generate321FrameworkSchema, {
         jobDescription,
-        vaultId
+        resumeId
       });
 
       const { data, error } = await invokeEdgeFunction(

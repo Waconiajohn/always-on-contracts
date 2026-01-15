@@ -2,12 +2,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
 
 /**
- * Syncs confirmed skills from Career Vault to user profile
+ * Syncs confirmed skills from Master Resume to user profile
  * This ensures the profile always reflects the latest confirmed skills
  */
-export const syncVaultSkillsToProfile = async (userId: string): Promise<void> => {
+export const syncResumeSkillsToProfile = async (userId: string): Promise<void> => {
   try {
-    // Get confirmed skills from Career Vault
+    // Get confirmed skills from Master Resume
     const { data: confirmedSkills } = await supabase
       .from('vault_confirmed_skills')
       .select('skill_name')
@@ -37,15 +37,15 @@ export const syncVaultSkillsToProfile = async (userId: string): Promise<void> =>
 
     logger.debug(`Synced skills to profile`, { count: skillNames.length });
   } catch (error) {
-    console.error('Failed to sync Career Vault skills to profile:', error);
+    console.error('Failed to sync Master Resume skills to profile:', error);
     throw error;
   }
 };
 
 /**
- * Gets Career Vault completion status for a user
+ * Gets Master Resume completion status for a user
  */
-export const getVaultStatus = async (userId: string) => {
+export const getResumeStatus = async (userId: string) => {
   try {
     const { data, error } = await supabase
       .from('career_vault')
@@ -61,7 +61,7 @@ export const getVaultStatus = async (userId: string) => {
       isComplete: (data?.review_completion_percentage || 0) === 100
     };
   } catch (error) {
-    console.error('Error getting Career Vault status:', error);
+    console.error('Error getting Master Resume status:', error);
     return {
       completionPercentage: 0,
       strengthScore: 0,

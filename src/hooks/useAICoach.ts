@@ -13,7 +13,7 @@ interface AICoachContext {
 
 export type CoachingType = 'improve' | 'quantify' | 'expand';
 
-export const useAICoach = (vaultId: string) => {
+export const useAICoach = (resumeId: string) => {
   const [isOpen, setIsOpen] = useState(false);
   const [context, setContext] = useState<AICoachContext | null>(null);
   const [suggestion, setSuggestion] = useState<string>('');
@@ -34,7 +34,7 @@ export const useAICoach = (vaultId: string) => {
     try {
       const { data, error } = await supabase.functions.invoke('ai-coach', {
         body: { 
-          vaultId, 
+          resumeId, 
           context: contextData, 
           coachingType 
         }
@@ -70,7 +70,7 @@ export const useAICoach = (vaultId: string) => {
     try {
       const { data, error } = await supabase.functions.invoke('ai-coach', {
         body: { 
-          vaultId, 
+          resumeId, 
           context, 
           coachingType: newType 
         }
@@ -100,7 +100,7 @@ export const useAICoach = (vaultId: string) => {
       // Update coaching history
       await supabase.functions.invoke('ai-coach', {
         body: {
-          vaultId,
+          resumeId,
           context: { ...context, action: 'accept' },
           coachingType: currentCoachingType
         }

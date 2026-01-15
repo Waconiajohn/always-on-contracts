@@ -89,7 +89,7 @@ export const EnhancedQueueItem: React.FC<QueueItemProps> = ({
       // Generate executive resume with conversation context
       const validated = validateInput(GenerateExecutiveResumeSchema, {
         jobDescription: item.opportunity?.job_description || '',
-        vaultId: item.vault_id // Assuming vault_id is in item
+        resumeId: item.vault_id // Using vault_id from item (database column name unchanged)
       });
 
       const { data, error } = await invokeEdgeFunction(

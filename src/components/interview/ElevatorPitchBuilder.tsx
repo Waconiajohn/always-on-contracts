@@ -11,10 +11,10 @@ import { logger } from "@/lib/logger";
 
 interface ElevatorPitchBuilderProps {
   jobDescription: string;
-  vaultId: string;
+  resumeId: string;
 }
 
-export function ElevatorPitchBuilder({ jobDescription, vaultId }: ElevatorPitchBuilderProps) {
+export function ElevatorPitchBuilder({ jobDescription, resumeId }: ElevatorPitchBuilderProps) {
   const [loading, setLoading] = useState(false);
   const [pitch, setPitch] = useState<any>(null);
   const [copied, setCopied] = useState<string | null>(null);
@@ -24,7 +24,7 @@ export function ElevatorPitchBuilder({ jobDescription, vaultId }: ElevatorPitchB
     setLoading(true);
     try {
       const validated = validateInput(GenerateElevatorPitchSchema, {
-        vaultId,
+        resumeId,
         targetRole: 'Executive', // Extracted from job description
         jobDescription
       });
