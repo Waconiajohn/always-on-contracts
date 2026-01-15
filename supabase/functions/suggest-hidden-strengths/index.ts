@@ -15,9 +15,11 @@ serve(async (req) => {
   }
 
   try {
-    const { vaultId, benchmarkData } = await req.json();
+    const { vaultId, resumeId: bodyResumeId, benchmarkData } = await req.json();
+    // Support both resumeId and vaultId for backward compatibility
+    const resumeId = bodyResumeId || vaultId;
 
-    console.log('Discovering hidden strengths for vault:', vaultId);
+    console.log('Discovering hidden strengths for resume:', resumeId);
 
     // Initialize Supabase client
     const supabase = createClient(
@@ -25,15 +27,15 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Fetch all vault data
+    // Fetch all Master Resume data
     const [
       { data: powerPhrases },
       { data: transferableSkills },
       { data: hiddenCompetencies }
     ] = await Promise.all([
-      supabase.from('vault_power_phrases').select('*').eq('vault_id', vaultId),
-      supabase.from('vault_transferable_skills').select('*').eq('vault_id', vaultId),
-      supabase.from('vault_hidden_competencies').select('*').eq('vault_id', vaultId)
+      supabase.from('vault_power_phrases').select('*').eq('vault_id', resumeId),
+      supabase.from('vault_transferable_skills').select('*').eq('vault_id', resumeId),
+      supabase.from('vault_hidden_competencies').select('*').eq('vault_id', resumeId)
     ]);
 
     console.log('[suggest-hidden-strengths] Building analysis prompt');
@@ -51,7 +53,7 @@ CRITICAL OUTPUT FORMAT - Return ONLY this JSON structure:
       "title": "Concise name of hidden strength",
       "description": "What you discovered and why it matters",
       "evidence": "Specific examples from their vault data",
-      "suggested_action": "How to add this to their career vault",
+      "suggested_action": "How to add this to their Master Resume",
       "suggested_keywords": ["keyword1", "keyword2", "keyword3"]
     }
   ]
@@ -65,25 +67,25 @@ Analysis Guidelines:
 5. Detect soft skills evident in collaboration/coordination
 6. Focus on transferable strengths valuable across roles`;
 
-    const vaultSummary = {
+    const resumeSummary = {
       achievements: powerPhrases?.map((p: any) => p.power_phrase || p.phrase) || [],
       skills: transferableSkills?.map((s: any) => s.stated_skill || s.skill) || [],
       competencies: hiddenCompetencies?.map((c: any) => c.competency_area) || []
     };
 
     // STANDARDIZED USER PROMPT
-    const userPrompt = `Analyze this career vault to discover hidden strengths:
+    const userPrompt = `Analyze this Master Resume to discover hidden strengths:
 
-CURRENT VAULT DATA:
+CURRENT MASTER RESUME DATA:
 
-Documented Achievements (${vaultSummary.achievements.length} items):
-${vaultSummary.achievements.slice(0, 20).join('\n') || 'None documented'}
+Documented Achievements (${resumeSummary.achievements.length} items):
+${resumeSummary.achievements.slice(0, 20).join('\n') || 'None documented'}
 
-Explicit Skills (${vaultSummary.skills.length} items):
-${vaultSummary.skills.slice(0, 15).join(', ') || 'None documented'}
+Explicit Skills (${resumeSummary.skills.length} items):
+${resumeSummary.skills.slice(0, 15).join(', ') || 'None documented'}
 
-Competency Areas (${vaultSummary.competencies.length} items):
-${vaultSummary.competencies.join(', ') || 'None documented'}
+Competency Areas (${resumeSummary.competencies.length} items):
+${resumeSummary.competencies.join(', ') || 'None documented'}
 
 BENCHMARK TARGETS:
 - Skills: ${benchmarkData?.layer1_foundations?.skills?.target || 25}
@@ -98,7 +100,7 @@ TASK: Find 5-8 hidden strengths by:
 5. Detecting soft skills shown in their work
 
 For each hidden strength, provide:
-- Clear evidence from their vault
+- Clear evidence from their Master Resume
 - Specific action they can take to document it
 - 2-3 ATS-optimized keywords
 

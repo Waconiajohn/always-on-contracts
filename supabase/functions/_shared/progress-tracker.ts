@@ -5,12 +5,12 @@ import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
  * Enables streaming progress updates to the frontend
  */
 export class ProgressTracker {
-  private vaultId: string;
+  private resumeId: string;
   private supabase: SupabaseClient;
   private startTime: number;
 
-  constructor(vaultId: string, supabase: SupabaseClient<any, any, any>) {
-    this.vaultId = vaultId;
+  constructor(resumeId: string, supabase: SupabaseClient<any, any, any>) {
+    this.resumeId = resumeId;
     this.supabase = supabase;
     this.startTime = Date.now();
   }
@@ -30,7 +30,7 @@ export class ProgressTracker {
       await this.supabase
         .from('extraction_progress')
         .upsert({
-          vault_id: this.vaultId,
+          vault_id: this.resumeId,
           phase,
           percentage: Math.min(100, Math.max(0, percentage)),
           message,
@@ -44,7 +44,7 @@ export class ProgressTracker {
 
       console.log(JSON.stringify({
         event: 'progress_update',
-        vault_id: this.vaultId,
+        resume_id: this.resumeId,
         phase,
         percentage,
         message,
@@ -64,7 +64,7 @@ export class ProgressTracker {
       await this.supabase
         .from('extraction_checkpoints')
         .insert({
-          vault_id: this.vaultId,
+          vault_id: this.resumeId,
           phase,
           checkpoint_data: data
         });
@@ -83,7 +83,7 @@ export class ProgressTracker {
       const { data, error } = await this.supabase
         .from('extraction_checkpoints')
         .select('checkpoint_data')
-        .eq('vault_id', this.vaultId)
+        .eq('vault_id', this.resumeId)
         .eq('phase', phase)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -117,7 +117,7 @@ export class ProgressTracker {
       await this.supabase
         .from('extraction_errors')
         .insert({
-          vault_id: this.vaultId,
+          vault_id: this.resumeId,
           phase,
           error_code: error.name,
           error_message: error.message,
@@ -127,7 +127,7 @@ export class ProgressTracker {
 
       console.error(JSON.stringify({
         event: 'extraction_error',
-        vault_id: this.vaultId,
+        resume_id: this.resumeId,
         phase,
         error: error.message,
         metadata

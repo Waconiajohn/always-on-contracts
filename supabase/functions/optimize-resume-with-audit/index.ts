@@ -35,12 +35,12 @@ serve(async (req) => {
 
     console.log('[OPTIMIZE-RESUME-AUDIT] Starting multi-pass optimization with dual AI audit');
 
-    // Get Career Vault intelligence
-    const vaultResponse = await supabase.functions.invoke('get-vault-intelligence', {
+    // Get Master Resume intelligence
+    const resumeResponse = await supabase.functions.invoke('get-vault-intelligence', {
       body: { userId: user.id }
     });
 
-    const vaultData = vaultResponse.data?.intelligence || {};
+    const resumeData = resumeResponse.data?.intelligence || {};
 
     // Pass 1: Initial Resume Generation
     console.log('[OPTIMIZE-RESUME-AUDIT] Pass 1: Initial generation');
@@ -52,7 +52,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         jobDescription,
-        careerVaultData: vaultData
+        masterResumeData: resumeData
       })
     });
 
@@ -110,8 +110,8 @@ ${optimizedResume}
 HIRING MANAGER FEEDBACK:
 ${hiringManagerFeedback}
 
-CAREER VAULT DATA:
-${JSON.stringify(vaultData)}
+MASTER RESUME DATA:
+${JSON.stringify(resumeData)}
 
 Create a refined resume with this EXACT STRUCTURE:
 
@@ -182,7 +182,7 @@ CRITICAL FORMATTING RULES:
         contentType: 'resume',
         context: {
           jobDescription,
-          careerVaultData: vaultData
+          masterResumeData: resumeData
         }
       })
     });

@@ -47,8 +47,8 @@ export const dataPersistenceSuite: TestSuite = {
     },
     {
       id: 'persist-002',
-      name: 'Career Vault persists',
-      description: 'Career Vault data should persist',
+      name: 'Master Resume persists',
+      description: 'Master Resume data should persist',
       category: 'data-persistence',
       priority: 'critical',
       execute: async () => {
@@ -70,8 +70,8 @@ export const dataPersistenceSuite: TestSuite = {
             passed: true,
             duration: Date.now() - startTime,
             metadata: {
-              hasVault: !!data,
-              vaultId: data?.id,
+              hasResume: !!data,
+              resumeId: data?.id,
             },
           };
         } catch (error: any) {

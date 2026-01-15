@@ -12,7 +12,8 @@ interface CoachRequest {
   itemId?: string;
   itemType?: string;
   positionId?: string;
-  vaultId: string;
+  resumeId?: string;
+  vaultId?: string; // Backward compatibility
   userQuery?: string; // For 'expand' mode
   marketContext?: any; // Gap data, requirements
   positionTitle?: string;
@@ -48,9 +49,11 @@ serve(async (req) => {
     }
 
     const body: CoachRequest = await req.json();
-    const { mode, originalText, itemId, itemType, positionId, vaultId, userQuery, marketContext, positionTitle } = body;
+    const { mode, originalText, itemId, itemType, positionId, resumeId: bodyResumeId, vaultId, userQuery, marketContext, positionTitle } = body;
+    // Support both resumeId and vaultId for backward compatibility
+    const resumeId = bodyResumeId || vaultId;
 
-    if (!mode || !originalText || !vaultId) {
+    if (!mode || !originalText || !resumeId) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -165,7 +168,7 @@ Provide:
 
     // Save to coaching history
     await supabaseClient.from('vault_ai_coaching_history').insert({
-      vault_id: vaultId,
+      vault_id: resumeId,
       user_id: user.id,
       item_id: itemId,
       item_type: itemType,

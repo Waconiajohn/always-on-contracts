@@ -29,7 +29,8 @@ interface CareerPathRequest {
   careerDirection: 'stay' | 'pivot' | 'explore';
   currentRole: string;
   currentIndustry: string;
-  vaultId?: string;
+  resumeId?: string;
+  vaultId?: string; // Backward compatibility
   resumeText?: string;
 }
 
@@ -91,34 +92,38 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
+    const body: CareerPathRequest = await req.json();
     const {
       resumeAnalysis,
       careerDirection,
       currentRole,
       currentIndustry,
+      resumeId: bodyResumeId,
       vaultId,
       resumeText: providedResumeText
-    }: CareerPathRequest = await req.json();
+    } = body;
+    // Support both resumeId and vaultId for backward compatibility
+    const resumeId = bodyResumeId || vaultId;
 
     console.log('🚀 Generating career path suggestions:', {
       direction: careerDirection,
       currentRole,
       seniority: resumeAnalysis.seniorityLevel,
-      hasVaultId: !!vaultId,
+      hasResumeId: !!resumeId,
       hasResumeText: !!providedResumeText
     });
 
     // For "stay" direction, fetch full resume text for deeper analysis
     let fullResumeText = providedResumeText;
-    if (careerDirection === 'stay' && !fullResumeText && vaultId) {
-      const { data: vault } = await supabaseClient
+    if (careerDirection === 'stay' && !fullResumeText && resumeId) {
+      const { data: resume } = await supabaseClient
         .from('career_vault')
         .select('resume_raw_text')
-        .eq('id', vaultId)
+        .eq('id', resumeId)
         .single();
       
-      fullResumeText = vault?.resume_raw_text;
-      console.log('📄 Fetched resume text from vault:', !!fullResumeText);
+      fullResumeText = resume?.resume_raw_text;
+      console.log('📄 Fetched resume text from Master Resume:', !!fullResumeText);
     }
 
     // Build context-aware prompt based on career direction

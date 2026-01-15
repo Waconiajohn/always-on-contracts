@@ -91,13 +91,16 @@ export class ExtractionObservability {
    * Start a new extraction session
    */
   async startSession(config: {
-    vaultId: string;
+    resumeId?: string;
+    vaultId?: string; // Backward compatibility
     userId: string;
     extractionVersion?: string;
     metadata?: Record<string, any>;
   }): Promise<ExtractionSession> {
+    // Support both resumeId and vaultId for backward compatibility
+    const resumeId = config.resumeId || config.vaultId;
     const session: Partial<ExtractionSession> = {
-      vault_id: config.vaultId,
+      vault_id: resumeId,
       user_id: config.userId,
       extraction_version: config.extractionVersion || 'v3',
       started_at: new Date(),
