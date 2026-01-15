@@ -7,19 +7,19 @@
 
 ## Summary
 
-The Resume Builder's Career Vault Intelligence Panel was broken due to JSON parsing errors in the `match-vault-to-requirements` edge function. **Lovable has already implemented all the necessary fixes** and deployed them to production.
+The Resume Builder's Master Resume Intelligence Panel was broken due to JSON parsing errors in the `match-resume-to-requirements` edge function. **Lovable has already implemented all the necessary fixes** and deployed them to production.
 
 ---
 
 ## What Was Broken
 
 ### Original Problem:
-- Resume Builder right column (Career Vault panel) appeared empty
+- Resume Builder right column (Master Resume panel) appeared empty
 - Edge function crashed with: `SyntaxError: Unterminated string in JSON at position 26887`
-- No vault matches were being populated
+- No resume matches were being populated
 
 ### Root Cause:
-- Too much vault data sent to AI (all items from all 20 categories)
+- Too much resume data sent to AI (all items from all 20 categories)
 - AI response exceeded token limits and got truncated mid-JSON
 - Truncated JSON couldn't be parsed
 - No fallback strategy when AI failed
@@ -28,7 +28,7 @@ The Resume Builder's Career Vault Intelligence Panel was broken due to JSON pars
 
 ## Fixes Implemented by Lovable
 
-**File:** `supabase/functions/match-vault-to-requirements/index.ts`
+**File:** `supabase/functions/match-resume-to-requirements/index.ts`
 
 ### 1. Safe JSON Parsing (Line 127-135)
 ```typescript
@@ -46,7 +46,7 @@ const safeJSONParse = (text: string) => {
 
 ### 2. Data Compaction (Line 140-156)
 ```typescript
-const compactVault = vaultCategories.map(cat => ({
+const compactResume = resumeCategories.map(cat => ({
   category: cat.name,
   type: cat.type,
   items: (Array.isArray(cat.data) ? cat.data : [cat.data])
@@ -123,8 +123,8 @@ npm run build
 ```
 
 ### ✅ Code Location:
-- **Edge Function:** [supabase/functions/match-vault-to-requirements/index.ts](supabase/functions/match-vault-to-requirements/index.ts)
-- **Frontend Component:** [src/components/resume-builder/IntelligentVaultPanel.tsx](src/components/resume-builder/IntelligentVaultPanel.tsx)
+- **Edge Function:** [supabase/functions/match-resume-to-requirements/index.ts](supabase/functions/match-resume-to-requirements/index.ts)
+- **Frontend Component:** [src/components/resume-builder/IntelligentResumePanel.tsx](src/components/resume-builder/IntelligentResumePanel.tsx)
 - **Page Component:** [src/pages/agents/ResumeBuilderAgent.tsx](src/pages/agents/ResumeBuilderAgent.tsx)
 
 ---
@@ -152,10 +152,10 @@ npm run build
    - Wait 5-10 seconds for analysis
    - Should see success toast: "Job analyzed successfully"
 
-4. **Verify Vault Intelligence Panel:**
+4. **Verify Master Resume Intelligence Panel:**
    - Right sidebar should automatically populate
-   - Look for "Career Vault Intelligence" header
-   - Should display vault matches with:
+   - Look for "Master Resume Intelligence" header
+   - Should display resume matches with:
      - Match scores (percentage)
      - Category badges
      - ATS keywords in green badges
@@ -175,14 +175,14 @@ npm run build
 ### Data Flow:
 1. User enters job description → `JobInputSection` component
 2. `handleAnalyzeJob()` calls `analyze-job-requirements` edge function
-3. Job analysis returns → `handleMatchVault()` called automatically
-4. `match-vault-to-requirements` edge function processes (FIXED)
-5. Vault matches returned → `IntelligentVaultPanel` renders
-6. Right sidebar displays Career Vault Intelligence
+3. Job analysis returns → `handleMatchResume()` called automatically
+4. `match-resume-to-requirements` edge function processes (FIXED)
+5. Resume matches returned → `IntelligentResumePanel` renders
+6. Right sidebar displays Master Resume Intelligence
 
 ### API Structure:
 ```typescript
-// Request to match-vault-to-requirements
+// Request to match-resume-to-requirements
 {
   userId: string,
   jobRequirements: { required: [], preferred: [], niceToHave: [] },
@@ -191,18 +191,18 @@ npm run build
   atsKeywords: { critical: [], important: [] }
 }
 
-// Response from match-vault-to-requirements
+// Response from match-resume-to-requirements
 {
   success: true,
-  totalVaultItems: number,
-  matchedItems: VaultMatch[],
+  totalResumeItems: number,
+  matchedItems: ResumeMatch[],
   unmatchedRequirements: string[],
   coverageScore: number,
   differentiatorStrength: number,
   recommendations: {
-    mustInclude: VaultMatch[],      // 90-100 score
-    stronglyRecommended: VaultMatch[], // 70-89 score
-    consider: VaultMatch[]          // 50-69 score
+    mustInclude: ResumeMatch[],      // 90-100 score
+    stronglyRecommended: ResumeMatch[], // 70-89 score
+    consider: ResumeMatch[]          // 50-69 score
   }
 }
 ```
@@ -217,14 +217,14 @@ npm run build
 ## Performance Improvements
 
 ### Before Fix:
-- ❌ Sent ~500KB of vault data to AI
+- ❌ Sent ~500KB of resume data to AI
 - ❌ Used 8192 max_tokens
 - ❌ Crashed on malformed JSON
 - ❌ No fallback strategy
 - ❌ Response time: 15-30 seconds (when it worked)
 
 ### After Fix:
-- ✅ Sends ~50KB of compacted vault data (90% reduction)
+- ✅ Sends ~50KB of compacted resume data (90% reduction)
 - ✅ Uses 4096 max_tokens (50% reduction)
 - ✅ Handles malformed JSON gracefully
 - ✅ Keyword fallback ensures reliability
@@ -269,21 +269,21 @@ These are NOT required - the system is fully functional. Consider for future:
 
 3. **Check Edge Function Logs:**
    - Go to Supabase Dashboard → Logs
-   - Filter for "match-vault-to-requirements"
+   - Filter for "match-resume-to-requirements"
    - Look for errors or warnings
 
-4. **Verify Vault Has Data:**
-   - User must have populated Career Vault
+4. **Verify Master Resume Has Data:**
+   - User must have populated Master Resume
    - Check at least some categories have items
-   - Empty vault = no matches
+   - Empty resume = no matches
 
 ### Common Issues:
 
-**Issue:** "Vault matching failed" toast appears
+**Issue:** "Resume matching failed" toast appears
 **Solution:** Check if LOVABLE_API_KEY is set. Keyword fallback should still work.
 
 **Issue:** No matches found
-**Solution:** Check if Career Vault is populated. Empty vault = no matches.
+**Solution:** Check if Master Resume is populated. Empty resume = no matches.
 
 **Issue:** Matches but no enhanced language
 **Solution:** This is optional. AI provides when confident, otherwise shows original.
@@ -305,7 +305,7 @@ Lovable has successfully implemented all fixes:
 
 **Confidence:** 95% - All fixes implemented and verified.
 
-The Resume Builder's Career Vault Intelligence Panel is now fully functional and ready for use! 🚀
+The Resume Builder's Master Resume Intelligence Panel is now fully functional and ready for use! 🚀
 
 ---
 

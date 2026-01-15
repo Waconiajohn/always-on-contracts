@@ -7,7 +7,8 @@ const corsHeaders = {
 };
 
 interface MarketFitRequest {
-  vaultId: string;
+  resumeId?: string;
+  vaultId?: string; // Backward compatibility
   targetRole: string;
   targetIndustry?: string;
   resumeText?: string;
@@ -44,10 +45,12 @@ serve(async (req) => {
     }
 
     const body: MarketFitRequest = await req.json();
-    const { vaultId, targetRole, targetIndustry, resumeText, numJobs = 10 } = body;
+    const { vaultId, resumeId: bodyResumeId, targetRole, targetIndustry, resumeText, numJobs = 10 } = body;
+    // Support both resumeId and vaultId for backward compatibility
+    const resumeId = bodyResumeId || vaultId;
 
-    if (!vaultId || !targetRole) {
-      return new Response(JSON.stringify({ error: 'Missing vaultId or targetRole' }), {
+    if (!resumeId || !targetRole) {
+      return new Response(JSON.stringify({ error: 'Missing resumeId or targetRole' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -304,7 +307,7 @@ Focus on identifying:
     const { data: savedResearch, error: saveError } = await supabaseClient
       .from('vault_market_research')
       .insert({
-        vault_id: vaultId,
+        vault_id: resumeId,
         target_role: targetRole,
         target_industry: targetIndustry,
         sample_jobs: jobs,
@@ -368,7 +371,7 @@ Focus on identifying:
     const { data: benchmarkData, error: benchmarkError } = await supabaseClient
       .from('vault_benchmark_comparison')
       .insert({
-        vault_id: vaultId,
+        vault_id: resumeId,
         user_id: user.id,
         job_title: targetRole,
         industry: targetIndustry || 'General',

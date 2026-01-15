@@ -116,7 +116,7 @@ export function ResponseReviewModal({
 
         if (extractValidation.success) {
           await invokeEdgeFunction(
-            'extract-vault-intangibles',
+            'extract-resume-intangibles',
             extractValidation.data
           );
         }

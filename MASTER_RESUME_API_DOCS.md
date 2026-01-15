@@ -1,8 +1,8 @@
-# Career Vault 2.0 - API Documentation
+# Master Resume 2.0 - API Documentation
 
 ## Overview
 
-Career Vault 2.0 provides 13 edge functions for career intelligence extraction, analysis, search, and management.
+Master Resume 2.0 provides 13 edge functions for career intelligence extraction, analysis, search, and management.
 
 **Base URL:** `https://<project-ref>.supabase.co/functions/v1/`
 **Authentication:** Bearer token in `Authorization` header
@@ -30,7 +30,7 @@ Career Vault 2.0 provides 13 edge functions for career intelligence extraction, 
 **Request:**
 ```json
 {
-  "vaultId": "uuid",
+  "resumeId": "uuid",
   "resumeText": "string (full resume text)"
 }
 ```
@@ -70,7 +70,7 @@ Career Vault 2.0 provides 13 edge functions for career intelligence extraction, 
 **Request:**
 ```json
 {
-  "vaultId": "uuid",
+  "resumeId": "uuid",
   "currentRole": "VP Engineering",
   "currentIndustry": "FinTech",
   "targetIndustry": "FinTech",
@@ -117,7 +117,7 @@ Career Vault 2.0 provides 13 edge functions for career intelligence extraction, 
 **Request:**
 ```json
 {
-  "vaultId": "uuid",
+  "resumeId": "uuid",
   "targetRoles": ["CTO", "VP Engineering"],
   "targetIndustries": ["FinTech", "SaaS"]
 }
@@ -150,7 +150,7 @@ Career Vault 2.0 provides 13 edge functions for career intelligence extraction, 
 
 ---
 
-### 4. auto-populate-vault-v2
+### 4. auto-populate-resume-v2
 
 **Purpose:** Deep intelligence extraction across 10 categories (150-250 items)
 
@@ -159,7 +159,7 @@ Career Vault 2.0 provides 13 edge functions for career intelligence extraction, 
 **Request:**
 ```json
 {
-  "vaultId": "uuid",
+  "resumeId": "uuid",
   "resumeText": "string (full resume)",
   "targetRoles": ["CTO"],
   "targetIndustries": ["FinTech"],
@@ -202,16 +202,16 @@ Career Vault 2.0 provides 13 edge functions for career intelligence extraction, 
 
 ---
 
-### 5. extract-vault-intangibles
+### 5. extract-resume-intangibles
 
 **Purpose:** Extract executive intelligence layer (leadership brand, presence)
 
-**Endpoint:** `POST /extract-vault-intangibles`
+**Endpoint:** `POST /extract-resume-intangibles`
 
 **Request:**
 ```json
 {
-  "vaultId": "uuid",
+  "resumeId": "uuid",
   "resumeText": "string",
   "powerPhrases": [],
   "transferableSkills": []
@@ -251,7 +251,7 @@ Career Vault 2.0 provides 13 edge functions for career intelligence extraction, 
 **Request:**
 ```json
 {
-  "vaultId": "uuid",
+  "resumeId": "uuid",
   "actions": [
     {
       "itemId": "uuid",
@@ -272,7 +272,7 @@ Career Vault 2.0 provides 13 edge functions for career intelligence extraction, 
     "confirmed": 20,
     "rejected": 3,
     "edited": 2,
-    "newVaultStrength": 82
+    "newResumeStrength": 82
   },
   "meta": {
     "message": "Batch review complete",
@@ -294,8 +294,8 @@ Career Vault 2.0 provides 13 edge functions for career intelligence extraction, 
 **Request:**
 ```json
 {
-  "vaultId": "uuid",
-  "currentVaultData": { ... },
+  "resumeId": "uuid",
+  "currentResumeData": { ... },
   "industryBenchmarks": { ... }
 }
 ```
@@ -348,7 +348,7 @@ Career Vault 2.0 provides 13 edge functions for career intelligence extraction, 
 **Request:**
 ```json
 {
-  "vaultId": "uuid",
+  "resumeId": "uuid",
   "responses": [
     {
       "questionId": "uuid",
@@ -367,8 +367,8 @@ Career Vault 2.0 provides 13 edge functions for career intelligence extraction, 
   "success": true,
   "data": {
     "itemsCreated": 12,
-    "vaultStrengthIncrease": 8,
-    "newVaultStrength": 90
+    "resumeStrengthIncrease": 8,
+    "newResumeStrength": 90
   },
   "meta": {
     "message": "Responses transformed into gold-tier intelligence",
@@ -388,7 +388,7 @@ Career Vault 2.0 provides 13 edge functions for career intelligence extraction, 
 **Request:**
 ```json
 {
-  "vaultId": "uuid",
+  "resumeId": "uuid",
   "targetRoles": ["CTO"],
   "targetIndustries": ["FinTech"]
 }
@@ -402,10 +402,10 @@ Career Vault 2.0 provides 13 edge functions for career intelligence extraction, 
     "percentileRanking": {
       "percentile": 10,
       "ranking": "top 10%",
-      "comparisonStatement": "You rank higher than 90% of executives..."
+      "comparisonStatement": "You rank higher than 90% of professionals..."
     },
     "overallScore": {
-      "vaultStrength": 92,
+      "resumeStrength": 92,
       "qualityScore": 88,
       "coverageScore": 95,
       "competitivenessRating": "Elite"
@@ -438,12 +438,12 @@ Career Vault 2.0 provides 13 edge functions for career intelligence extraction, 
     ],
     "recommendations": [
       {
-        "title": "Add Board Communication Examples",
-        "description": "Include 2-3 board presentations",
-        "impact": "high",
-        "estimatedBoost": "+5-8% vault strength",
-        "timeToImplement": "10 minutes",
-        "category": "executive_presence"
+      "title": "Add Board Communication Examples",
+      "description": "Include 2-3 board presentations",
+      "impact": "high",
+      "estimatedBoost": "+5-8% resume strength",
+      "timeToImplement": "10 minutes",
+      "category": "executive_presence"
       }
     ]
   },
@@ -458,16 +458,16 @@ Career Vault 2.0 provides 13 edge functions for career intelligence extraction, 
 
 ## Dashboard Functions
 
-### 10. search-vault-advanced
+### 10. search-resume-advanced
 
 **Purpose:** Full-text search across all 10 categories with relevance ranking
 
-**Endpoint:** `POST /search-vault-advanced`
+**Endpoint:** `POST /search-resume-advanced`
 
 **Request:**
 ```json
 {
-  "vaultId": "uuid",
+  "resumeId": "uuid",
   "query": "leadership team building",
   "category": "leadership_philosophy" | null,
   "qualityTier": "gold" | null,
@@ -512,16 +512,16 @@ Career Vault 2.0 provides 13 edge functions for career intelligence extraction, 
 
 ---
 
-### 11. bulk-vault-operations
+### 11. bulk-resume-operations
 
 **Purpose:** Mass update/delete/archive operations
 
-**Endpoint:** `POST /bulk-vault-operations`
+**Endpoint:** `POST /bulk-resume-operations`
 
 **Request:**
 ```json
 {
-  "vaultId": "uuid",
+  "resumeId": "uuid",
   "operations": [
     {
       "operation": "update_quality" | "delete" | "archive",
@@ -547,7 +547,7 @@ Career Vault 2.0 provides 13 edge functions for career intelligence extraction, 
       }
     ],
     "totalProcessed": 3,
-    "newVaultStrength": 87
+    "newResumeStrength": 87
   },
   "meta": {
     "message": "Successfully processed 3 items",
@@ -559,16 +559,16 @@ Career Vault 2.0 provides 13 edge functions for career intelligence extraction, 
 
 ---
 
-### 12. export-vault
+### 12. export-resume
 
 **Purpose:** Multi-format export (JSON/CSV/Text)
 
-**Endpoint:** `POST /export-vault`
+**Endpoint:** `POST /export-resume`
 
 **Request:**
 ```json
 {
-  "vaultId": "uuid",
+  "resumeId": "uuid",
   "format": "json" | "csv" | "text",
   "categories": ["power_phrases", "transferable_skills"],
   "qualityTiers": ["gold", "silver"],
@@ -582,7 +582,7 @@ Career Vault 2.0 provides 13 edge functions for career intelligence extraction, 
   "success": true,
   "data": {
     "content": "... (formatted export content) ...",
-    "filename": "career-vault-12345678-1234567890.json",
+    "filename": "master-resume-12345678-1234567890.json",
     "contentType": "application/json",
     "totalItems": 45,
     "categories": ["power_phrases", "transferable_skills"]
@@ -647,7 +647,7 @@ Career Vault 2.0 provides 13 edge functions for career intelligence extraction, 
 ```json
 {
   "success": false,
-  "error": "vaultId is required",
+  "error": "resumeId is required",
   "userMessage": "Invalid request. Please try again."
 }
 ```
@@ -691,8 +691,8 @@ All functions implement exponential backoff:
 ### 1. Error Handling
 Always check `success` field:
 ```typescript
-const { data, error } = await supabase.functions.invoke('search-vault-advanced', {
-  body: { vaultId, query }
+const { data, error } = await supabase.functions.invoke('search-resume-advanced', {
+  body: { resumeId, query }
 });
 
 if (!data.success) {
@@ -727,7 +727,7 @@ for (const itemId of itemIds) {
 }
 
 // ✅ Good: Single batch call
-await supabase.functions.invoke('bulk-vault-operations', {
+await supabase.functions.invoke('bulk-resume-operations', {
   body: {
     operations: [{
       operation: 'update_quality',
@@ -748,4 +748,4 @@ For API issues:
 3. Ensure request body matches schema
 4. Check API rate limits
 
-**Last Updated:** October 29, 2025
+**Last Updated:** January 15, 2026

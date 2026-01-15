@@ -12,7 +12,8 @@ import { buildFrameworkPromptContext } from '../frameworks/framework-service.ts'
 
 export interface OrchestrationConfig {
   resumeText: string;
-  vaultId: string;
+  resumeId?: string;
+  vaultId?: string; // Backward compatibility
   userId: string;
   targetRoles?: string[];
   targetIndustries?: string[];
@@ -64,6 +65,9 @@ export async function orchestrateExtraction(
   config: OrchestrationConfig
 ): Promise<OrchestrationResult> {
   const startTime = Date.now();
+  
+  // Support both resumeId and vaultId for backward compatibility
+  const resumeId = config.resumeId || config.vaultId;
 
   // Initialize observability
   const observability = new ExtractionObservability(config.supabaseUrl, config.supabaseKey);
@@ -94,7 +98,7 @@ export async function orchestrateExtraction(
     }
 
     const session = await observability.startSession({
-      vaultId: config.vaultId,
+      resumeId: resumeId,
       userId: config.userId,
       extractionVersion: 'v3',
       metadata: {
@@ -336,14 +340,14 @@ export async function orchestrateExtraction(
       retryCount: totalRetries,
     });
 
-    // Update vault with extraction version
+    // Update Master Resume with extraction version
     await supabase
       .from('career_vault')
       .update({
         extraction_version: 'v3',
         last_extraction_session_id: sessionId,
       })
-      .eq('id', config.vaultId);
+      .eq('id', resumeId);
 
     console.log('\n═══════════════════════════════════════════════════════════');
     console.log('✅ EXTRACTION COMPLETE');
