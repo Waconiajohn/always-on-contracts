@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { vaultId, sectionKey, benchmarkData, currentItems } = await req.json();
+    const { resumeId, sectionKey, benchmarkData, currentItems } = await req.json();
 
     console.log('Generating gap roadmap for:', sectionKey);
 

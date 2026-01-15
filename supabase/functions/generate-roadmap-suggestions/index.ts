@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { roadmapItem, sectionKey, vaultId, currentItems } = await req.json();
+    const { roadmapItem, sectionKey, resumeId, currentItems } = await req.json();
 
     // Analyze current items to avoid duplicates
     const existingContent = currentItems.map((item: any) => 
