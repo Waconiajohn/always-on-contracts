@@ -156,17 +156,19 @@ analyze-job-qualifications  // Parse qualifications
 parse-job-document          // Parse job posting
 ```
 
-### Vault Operations
+### Master Resume Operations
+
+> **Note:** Database tables retain `vault_*` naming for backward compatibility.
 
 ```typescript
-// Core vault functions
+// Core Master Resume functions
 auto-populate-vault-v3      // Current version
 add-vault-item              // Single item addition
 bulk-vault-operations       // Batch operations
-get-vault-data              // Retrieve vault data
+get-vault-data              // Retrieve Master Resume data
 search-vault-advanced       // Advanced search
 
-// Vault analysis
+// Master Resume analysis
 discover-hidden-competencies // Find hidden skills
 extract-vault-intangibles    // Extract soft skills
 conduct-industry-research    // Industry context
