@@ -62,8 +62,8 @@ const JobSearchContent = () => {
   const [basicSearchCount, setBasicSearchCount] = useState<number | null>(null);
   const [booleanSearchCount, setBooleanSearchCount] = useState<number | null>(null);
   
-  // Phase 2: Vault integration state (for metadata tracking)
-  const [searchOrigin] = useState<'vault_title' | 'typed_query' | 'saved_search' | 'boolean_ai'>('typed_query');
+  // Phase 2: Master Resume integration state (for metadata tracking)
+  const [searchOrigin] = useState<'resume_title' | 'typed_query' | 'saved_search' | 'boolean_ai'>('typed_query');
   const [selectedJobTitle] = useState<string | null>(null);
 
   // handleApplyAISearch removed as it was tightly coupled to old UI structure
@@ -169,7 +169,7 @@ const JobSearchContent = () => {
           },
           metadata: {
             searchOrigin,
-            vaultTitleUsed: selectedJobTitle,
+            resumeTitleUsed: selectedJobTitle,
             userId: userId || undefined,
             timestamp: new Date().toISOString()
           },

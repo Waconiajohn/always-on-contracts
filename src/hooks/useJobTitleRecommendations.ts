@@ -32,20 +32,20 @@ export const useJobTitleRecommendations = (userId: string | null): JobTitleRecom
     setError(null);
 
     try {
-      // First, fetch vault data for AI analysis
-      const { data: vault } = await supabase
+      // First, fetch resume data for AI analysis
+      const { data: resume } = await supabase
         .from('career_vault')
         .select('*')
         .eq('user_id', userId)
         .maybeSingle();
 
-      if (!vault) {
+      if (!resume) {
         throw new Error('No Master Resume found. Please set up your Master Resume first.');
       }
 
       // Check if we have cached recommendations
-      if (vault.initial_analysis) {
-        const analysis = vault.initial_analysis as any;
+      if (resume.initial_analysis) {
+        const analysis = resume.initial_analysis as any;
         if (analysis?.recommended_positions && analysis.recommended_positions.length > 0) {
           setSuggestedTitles(analysis.recommended_positions.slice(0, 7));
           setIsLoading(false);
@@ -53,39 +53,39 @@ export const useJobTitleRecommendations = (userId: string | null): JobTitleRecom
         }
       }
 
-      // Fetch vault items for comprehensive analysis
+      // Fetch resume items for comprehensive analysis (DB tables retain vault_* naming for back-compat)
       const [powerPhrases, skills, competencies] = await Promise.all([
         supabase
           .from('vault_power_phrases')
           .select('power_phrase, category, impact_metrics')
-          .eq('vault_id', vault.id)
+          .eq('vault_id', resume.id)
           .order('confidence_score', { ascending: false })
           .limit(10),
         supabase
           .from('vault_transferable_skills')
           .select('stated_skill')
-          .eq('vault_id', vault.id)
+          .eq('vault_id', resume.id)
           .order('confidence_score', { ascending: false })
           .limit(10),
         supabase
           .from('vault_hidden_competencies')
           .select('competency_area, inferred_capability')
-          .eq('vault_id', vault.id)
+          .eq('vault_id', resume.id)
           .order('confidence_score', { ascending: false })
           .limit(10)
       ]);
 
       // Build comprehensive resume analysis for AI
-      const analysis = vault.initial_analysis as any;
+      const resumeAnalysisData = resume.initial_analysis as any;
       const resumeAnalysis = {
-        current_role: analysis?.current_role || 'Professional',
-        years_of_experience: analysis?.years_of_experience || 5,
-        seniority_level: analysis?.seniority_level || 'Mid-Level',
-        industry: analysis?.industry || 'General',
+        current_role: resumeAnalysisData?.current_role || 'Professional',
+        years_of_experience: resumeAnalysisData?.years_of_experience || 5,
+        seniority_level: resumeAnalysisData?.seniority_level || 'Mid-Level',
+        industry: resumeAnalysisData?.industry || 'General',
         key_skills: skills.data?.map(s => s.stated_skill) || [],
         key_achievements: powerPhrases.data?.map(p => p.power_phrase).slice(0, 5) || [],
         management_capabilities: competencies.data?.map(c => c.inferred_capability) || [],
-        analysis_summary: analysis?.analysis_summary || 'Experienced professional with demonstrated expertise'
+        analysis_summary: resumeAnalysisData?.analysis_summary || 'Experienced professional with demonstrated expertise'
       };
 
       // Call infer-target-roles edge function
@@ -119,8 +119,8 @@ export const useJobTitleRecommendations = (userId: string | null): JobTitleRecom
 
       setSuggestedTitles(titles);
 
-      // Cache recommendations in career_vault
-      const currentAnalysis = (vault.initial_analysis as any) || {};
+      // Cache recommendations in career_vault (DB table name retained for back-compat)
+      const currentAnalysis = (resume.initial_analysis as any) || {};
       const updatedAnalysis = {
         ...currentAnalysis,
         recommended_positions: titles,
@@ -130,7 +130,7 @@ export const useJobTitleRecommendations = (userId: string | null): JobTitleRecom
       await supabase
         .from('career_vault')
         .update({ initial_analysis: updatedAnalysis })
-        .eq('id', vault.id);
+        .eq('id', resume.id);
 
       toast({
         title: "Job Titles Generated",

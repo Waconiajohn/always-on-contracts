@@ -73,11 +73,12 @@ export async function getSearchOriginStats(
 export async function getResumeTitlePerformance(
   userId: string
 ): Promise<ResumeTitlePerformance[]> {
+  // Note: DB column is 'vault_title_used' for backward compatibility
   const { data: sessions } = await supabase
     .from('job_search_sessions')
     .select('vault_title_used, results_count, id')
     .eq('user_id', userId)
-    .eq('search_origin', 'vault_title')
+    .in('search_origin', ['vault_title', 'resume_title'])
     .not('vault_title_used', 'is', null);
   
   if (!sessions) return [];

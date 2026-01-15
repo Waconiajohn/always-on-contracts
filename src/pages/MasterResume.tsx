@@ -128,7 +128,7 @@ const MasterResumeContent = () => {
             Your complete career history in one place
           </p>
         </div>
-        <Button onClick={() => navigate("/resume-jobs")} className="gap-2">
+        <Button onClick={() => navigate("/resume-builder")} className="gap-2">
           <ArrowRight className="h-4 w-4" />
           Build Tailored Resume
         </Button>

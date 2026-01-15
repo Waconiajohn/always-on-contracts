@@ -231,14 +231,14 @@ analyze-linkedin-post-with-audit
 
 ```typescript
 // ✅ CORRECT - Use shared types
-import { VaultSuccessResponse } from '@/supabase/functions/_shared/vault-response-types';
+import { ResumeSuccessResponse } from '@/supabase/functions/_shared/resume-response-types';
 
-async function callVaultFunction() {
+async function callResumeFunction() {
   const { data, error } = await supabase.functions.invoke('auto-populate-vault-v3', {
-    body: { vaultId, resumeText }
+    body: { resumeId, resumeText }
   });
   
-  return data as VaultSuccessResponse;
+  return data as ResumeSuccessResponse;
 }
 ```
 
