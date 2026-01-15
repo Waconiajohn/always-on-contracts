@@ -25,19 +25,19 @@ export function ResumeOptimizer() {
   const [jobDescription, setJobDescription] = useState('');
   const [result, setResult] = useState<ResumeOptimizationResult | null>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
-  const [vaultData, setVaultData] = useState<any>(null);
-  const [loadingVault, setLoadingVault] = useState(true);
+  const [resumeData, setResumeData] = useState<any>(null);
+  const [loadingResume, setLoadingResume] = useState(true);
 
   useEffect(() => {
-    loadVaultData();
+    loadResumeData();
   }, []);
 
-  const loadVaultData = async () => {
+  const loadResumeData = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: vault } = await supabase
+      const { data: resume } = await supabase
         .from('career_vault')
         .select(`
           resume_raw_text,
@@ -47,17 +47,17 @@ export function ResumeOptimizer() {
         .eq('user_id', user.id)
         .single();
 
-      if (vault) {
-        setVaultData(vault);
+      if (resume) {
+        setResumeData(resume);
         // Auto-populate resume if empty
-        if (!resumeText && vault.resume_raw_text) {
-          setResumeText(vault.resume_raw_text);
+        if (!resumeText && resume.resume_raw_text) {
+          setResumeText(resume.resume_raw_text);
         }
       }
     } catch (error) {
-      logger.error('Error loading Career Vault data', error);
+      logger.error('Error loading Master Resume data', error);
     } finally {
-      setLoadingVault(false);
+      setLoadingResume(false);
     }
   };
 
@@ -87,7 +87,7 @@ export function ResumeOptimizer() {
 
       const { data, error } = await invokeEdgeFunction(
         'optimize-resume-with-audit',
-        { ...validation.data, vaultData }
+        { ...validation.data, resumeData }
       );
 
       if (error) return;
@@ -553,12 +553,12 @@ export function ResumeOptimizer() {
           </AlertDescription>
         </Alert>
 
-        {vaultData && !loadingVault && (
+        {resumeData && !loadingResume && (
           <Card className="border-primary/20 bg-primary/5">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Package className="h-5 w-5" />
-                Your Career Vault Intelligence
+                Your Master Resume Intelligence
               </CardTitle>
               <CardDescription>
                 Click to add power phrases to your resume
@@ -566,7 +566,7 @@ export function ResumeOptimizer() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                {vaultData.vault_power_phrases?.slice(0, 10).map((phrase: any, idx: number) => (
+                {resumeData.vault_power_phrases?.slice(0, 10).map((phrase: any, idx: number) => (
                   <Button
                     key={idx}
                     variant="outline"

@@ -1180,7 +1180,7 @@ serve(async (req) => {
       confidence_level: validation.confidence > 0.8 ? 'high' : validation.confidence > 0.6 ? 'medium' : 'low'
     });
 
-    // Extract role and industry for Career Vault redesign
+    // Extract role and industry for Master Resume
     // Priority: AI extracted current_role > recommended_positions > regex fallback
     let detectedRole = analysis.current_role || analysis.recommended_positions?.[0] || null;
     let detectedIndustry = analysis.primary_industry || analysis.industry_expertise?.[0] || null;

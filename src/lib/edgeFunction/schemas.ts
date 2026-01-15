@@ -325,7 +325,7 @@ export const GenerateSeriesOutlineSchema = z.object({
 
 export const GenerateGapSolutionsSchema = z.object({
   requirement: z.string().min(10, 'Requirement description too short'),
-  vault_items: z.array(z.any()),
+  resume_items: z.array(z.any()),
   job_title: z.string().min(1, 'Job title is required'),
   industry: z.string().min(1, 'Industry is required'),
   seniority: z.string().min(1, 'Seniority is required')

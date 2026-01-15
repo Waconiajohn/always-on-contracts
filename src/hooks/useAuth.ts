@@ -1,5 +1,5 @@
 // =====================================================
-// CUSTOM AUTH HOOK - Career Vault 2.0
+// CUSTOM AUTH HOOK - Master Resume 2.0
 // =====================================================
 // Replacement for deprecated @supabase/auth-helpers-react
 //

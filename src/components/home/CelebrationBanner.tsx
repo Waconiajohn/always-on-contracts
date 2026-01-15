@@ -29,7 +29,7 @@ export const CelebrationBanner = ({ onDismiss }: CelebrationBannerProps) => {
 
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
-            <h2 className="text-2xl font-semibold">Your Career Vault is Complete!</h2>
+            <h2 className="text-2xl font-semibold">Your Master Resume is Complete!</h2>
             <Sparkles className="h-5 w-5 text-primary animate-pulse" />
           </div>
           

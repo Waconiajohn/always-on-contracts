@@ -100,12 +100,12 @@ const BUNDLES = [
     price: "$29",
     icon: Rocket,
     description: "Resume & Career Vault bundle",
-    modules: ["Resume & Jobs Studio", "Career Vault"],
+    modules: ["Resume & Jobs Studio", "Master Resume"],
     features: [
       "Everything in Free",
       "Full Resume Builder",
       "Job Search Engine",
-      "Career Vault (100% power)",
+      "Master Resume (100% power)",
       "STAR Stories & Coaching"
     ],
     savings: "Save $9/mo",
@@ -120,7 +120,7 @@ const BUNDLES = [
     modules: ["All Modules Included"],
     features: [
       "Resume & Jobs Studio",
-      "Career Vault",
+      "Master Resume",
       "LinkedIn Pro",
       "Interview Mastery",
       "Priority Support"

@@ -15,7 +15,7 @@ export const AIActivityBanner = () => {
     {
       id: '1',
       system: 'AI Analysis',
-      message: 'Career vault analysis complete',
+      message: 'Master Resume analysis complete',
       status: 'complete'
     },
     {

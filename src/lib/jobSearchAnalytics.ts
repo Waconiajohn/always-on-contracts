@@ -9,7 +9,7 @@ export interface SearchOriginStats {
   conversionRate: number;
 }
 
-export interface VaultTitlePerformance {
+export interface ResumeTitlePerformance {
   title: string;
   timesUsed: number;
   totalResults: number;
@@ -70,9 +70,9 @@ export async function getSearchOriginStats(
   return Array.from(originMap.values());
 }
 
-export async function getVaultTitlePerformance(
+export async function getResumeTitlePerformance(
   userId: string
-): Promise<VaultTitlePerformance[]> {
+): Promise<ResumeTitlePerformance[]> {
   const { data: sessions } = await supabase
     .from('job_search_sessions')
     .select('vault_title_used, results_count, id')
@@ -82,7 +82,7 @@ export async function getVaultTitlePerformance(
   
   if (!sessions) return [];
   
-  const titleMap = new Map<string, VaultTitlePerformance>();
+  const titleMap = new Map<string, ResumeTitlePerformance>();
   
   for (const session of sessions) {
     const title = session.vault_title_used!;

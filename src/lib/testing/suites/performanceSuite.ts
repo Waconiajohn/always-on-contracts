@@ -43,8 +43,8 @@ export const performanceSuite: TestSuite = {
     },
     {
       id: 'perf-002',
-      name: 'RLS enforcement - Career Vault',
-      description: 'RLS should prevent unauthorized vault access',
+      name: 'RLS enforcement - Master Resume',
+      description: 'RLS should prevent unauthorized resume access',
       category: 'performance',
       priority: 'critical',
       execute: async () => {

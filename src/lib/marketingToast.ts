@@ -1,5 +1,5 @@
 // =====================================================
-// MARKETING TOAST UTILITY - Career Vault 2.0
+// MARKETING TOAST UTILITY - Master Resume 2.0
 // =====================================================
 // Helper function to display marketing messages from
 // edge function responses in a consistent way.

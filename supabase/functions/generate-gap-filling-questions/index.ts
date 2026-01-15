@@ -1,15 +1,15 @@
 // =====================================================
-// GENERATE GAP-FILLING QUESTIONS - Career Vault 2.0
+// GENERATE GAP-FILLING QUESTIONS - Master Resume 2.0
 // =====================================================
 // INTELLIGENT GAP ANALYSIS
 //
-// This function identifies gaps by comparing vault contents
+// This function identifies gaps by comparing Master Resume contents
 // against industry benchmarks and generates TARGETED questions
-// that will have the highest impact on vault strength.
+// that will have the highest impact on resume strength.
 //
 // UNIQUE VALUE:
 // - Only asks questions that ADD value (not just filling forms)
-// - Each question shows expected impact on vault strength
+// - Each question shows expected impact on resume strength
 // - Prioritized by importance to target role/industry
 // - Multi-format questions (multiple choice, yes/no, text)
 //
@@ -17,7 +17,7 @@
 // "We identify exactly what's missing from your profile by
 // comparing against industry standards—then ask precise
 // questions to close those gaps. 5-15 minutes for +10-15%
-// vault strength."
+// resume strength."
 // =====================================================
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
