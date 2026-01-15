@@ -15,9 +15,7 @@ serve(async (req) => {
   }
 
   try {
-    const { vaultId, resumeId: bodyResumeId, benchmarkData } = await req.json();
-    // Support both resumeId and vaultId for backward compatibility
-    const resumeId = bodyResumeId || vaultId;
+    const { resumeId, benchmarkData } = await req.json();
 
     console.log('Discovering hidden strengths for resume:', resumeId);
 
