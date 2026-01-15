@@ -17,9 +17,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    // Support both old and new parameter names for backwards compatibility
-    const resumeId = body.resumeId || body.vaultId;
-    const { responses, industryStandards } = body;
+    const { resumeId, responses, industryStandards } = body;
     console.log('[PROCESS RESPONSES] Processing', responses.length, 'responses for Master Resume:', resumeId);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;

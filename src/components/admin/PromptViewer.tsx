@@ -19,7 +19,7 @@ const ALL_PROMPTS = [
   },
   {
     id: 'POWER_PHRASE_EXTRACTION',
-    category: 'vault',
+    category: 'resume',
     name: 'Power Phrase Extraction',
     description: 'Extracts quantified achievements with metrics',
     systemPrompt: `Extract power phrases from the resume. Power phrases are achievement statements with quantifiable metrics. Focus on:
@@ -31,7 +31,7 @@ const ALL_PROMPTS = [
   },
   {
     id: 'TRANSFERABLE_SKILLS',
-    category: 'vault',
+    category: 'resume',
     name: 'Transferable Skills Detection',
     description: 'Identifies skills applicable across industries',
     systemPrompt: `Analyze the resume to identify transferable skills - capabilities that can be applied across different industries and roles. Focus on:
@@ -43,7 +43,7 @@ const ALL_PROMPTS = [
   },
   {
     id: 'HIDDEN_COMPETENCIES',
-    category: 'vault',
+    category: 'resume',
     name: 'Hidden Competencies Inference',
     description: 'Identifies competencies demonstrated but not explicitly stated',
     systemPrompt: `Infer hidden competencies from the resume content. These are skills the candidate demonstrates through their actions but may not explicitly name. For example:
@@ -55,7 +55,7 @@ const ALL_PROMPTS = [
   },
   {
     id: 'SOFT_SKILLS_ANALYSIS',
-    category: 'vault',
+    category: 'resume',
     name: 'Soft Skills Analysis',
     description: 'Extracts behavioral skills with evidence',
     systemPrompt: `Identify soft skills demonstrated in the resume with concrete evidence. Focus on:

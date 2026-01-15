@@ -9,8 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 export const MarketRealityWidget = () => {
   const navigate = useNavigate();
 
-  const { data: vaultData } = useQuery({
-    queryKey: ["career-vault-completion"],
+  const { data: resumeData } = useQuery({
+    queryKey: ["master-resume-completion"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
@@ -26,7 +26,7 @@ export const MarketRealityWidget = () => {
     },
   });
 
-  const completion = vaultData?.review_completion_percentage || 0;
+  const completion = resumeData?.review_completion_percentage || 0;
   const isComplete = completion === 100;
 
   return (
@@ -91,7 +91,7 @@ export const MarketRealityWidget = () => {
 
             <div className="space-y-2 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Career Vault:</span>
+                <span className="text-muted-foreground">Master Resume:</span>
                 <span className="font-semibold text-primary">{completion}% complete</span>
               </div>
               <div className="flex items-center justify-between">
@@ -140,12 +140,12 @@ export const MarketRealityWidget = () => {
           {!isComplete ? (
             <>
               <Button 
-                onClick={() => navigate("/career-vault")} 
+                onClick={() => navigate("/master-resume")} 
                 className="w-full"
                 size="lg"
               >
                 <TrendingUp className="h-4 w-4 mr-2" />
-                Complete Career Vault to Activate
+                Complete Master Resume to Activate
               </Button>
               <p className="text-xs text-center text-muted-foreground">
                 {100 - completion}% remaining • Unlock strategic positioning

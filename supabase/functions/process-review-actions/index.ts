@@ -84,9 +84,7 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    // Support both old and new parameter names for backwards compatibility
-    const resumeId = body.resumeId || body.vaultId;
-    const actions: ReviewAction[] = body.actions;
+    const { resumeId, actions }: ProcessReviewRequest = body;
 
     if (!resumeId || !actions || actions.length === 0) {
       throw new Error('Missing required fields: resumeId and actions');

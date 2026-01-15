@@ -34,37 +34,37 @@ export function ResumeMatchWorkspace({ className }: ResumeMatchWorkspaceProps) {
     clearResult
   } = useRealtimeResumeScore();
 
-  const [isLoadingVault, setIsLoadingVault] = useState(false);
+  const [isLoadingResume, setIsLoadingResume] = useState(false);
 
-  // Load vault data on mount
+  // Load resume data on mount
   useEffect(() => {
-    const loadVaultData = async () => {
+    const loadResumeData = async () => {
       if (!isLoaded) return;
       if (resumeText) return; // Don't overwrite existing text
 
-      setIsLoadingVault(true);
+      setIsLoadingResume(true);
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const { data: vault } = await supabase
+        const { data: resume } = await supabase
           .from('career_vault')
           .select('resume_raw_text')
           .eq('user_id', user.id)
           .single();
 
-        if (vault?.resume_raw_text) {
-          updateResume(vault.resume_raw_text);
-          toast.success('Resume loaded from Career Vault');
+        if (resume?.resume_raw_text) {
+          updateResume(resume.resume_raw_text);
+          toast.success('Resume loaded from Master Resume');
         }
       } catch (error) {
-        // Ignore - vault may not exist
+        // Ignore - resume may not exist
       } finally {
-        setIsLoadingVault(false);
+        setIsLoadingResume(false);
       }
     };
 
-    loadVaultData();
+    loadResumeData();
   }, [isLoaded]);
 
   const handleAnalyze = useCallback(() => {
@@ -146,7 +146,7 @@ export function ResumeMatchWorkspace({ className }: ResumeMatchWorkspaceProps) {
           <ResumeInputPanel
             resumeText={resumeText}
             onResumeChange={updateResume}
-            isAnalyzing={isAnalyzing || isLoadingVault}
+            isAnalyzing={isAnalyzing || isLoadingResume}
           />
         </div>
 
