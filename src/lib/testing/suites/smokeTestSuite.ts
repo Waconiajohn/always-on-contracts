@@ -44,9 +44,9 @@ export const smokeTestSuite: TestSuite = {
       }
     },
     {
-      id: 'smoke-vault-exists',
-      name: 'Career Vault Access',
-      category: 'career-vault',
+      id: 'smoke-resume-exists',
+      name: 'Master Resume Access',
+      category: 'master-resume',
       priority: 'high',
       execute: async () => {
         const startTime = Date.now();
@@ -64,20 +64,20 @@ export const smokeTestSuite: TestSuite = {
             .limit(1);
 
           if (error) {
-            throw new Error(`Vault query error: ${error.message}`);
+            throw new Error(`Master Resume query error: ${error.message}`);
           }
 
-          const hasVault = data && data.length > 0;
+          const hasResume = data && data.length > 0;
 
           return {
-            passed: true, // Non-blocking - user may not have vault yet
+            passed: true, // Non-blocking - user may not have Master Resume yet
             duration: Date.now() - startTime,
             metadata: {
-              message: hasVault 
-                ? 'Career vault exists and is accessible'
-                : 'No career vault found (user may not have completed onboarding)',
-              hasVault,
-              vaultId: data?.[0]?.id
+              message: hasResume 
+                ? 'Master Resume exists and is accessible'
+                : 'No Master Resume found (user may not have completed onboarding)',
+              hasResume,
+              resumeId: data?.[0]?.id
             }
           };
         } catch (error: any) {
@@ -90,9 +90,9 @@ export const smokeTestSuite: TestSuite = {
       }
     },
     {
-      id: 'smoke-vault-items-count',
-      name: 'Vault Items Populated',
-      category: 'career-vault',
+      id: 'smoke-resume-items-count',
+      name: 'Master Resume Items Populated',
+      category: 'master-resume',
       priority: 'medium',
       execute: async () => {
         const startTime = Date.now();
@@ -103,19 +103,19 @@ export const smokeTestSuite: TestSuite = {
             throw new Error('Must be authenticated');
           }
 
-          const { data: vault } = await supabase
+          const { data: resume } = await supabase
             .from('career_vault')
             .select('id')
             .eq('user_id', session.session.user.id)
             .limit(1)
             .single();
 
-          if (!vault) {
+          if (!resume) {
             return {
               passed: true, // Non-blocking
               duration: Date.now() - startTime,
               metadata: {
-                message: 'No vault found - user has not completed onboarding',
+                message: 'No Master Resume found - user has not completed onboarding',
                 itemCount: 0
               }
             };
@@ -136,7 +136,7 @@ export const smokeTestSuite: TestSuite = {
             const { count } = await supabase
               .from(table as any)
               .select('*', { count: 'exact', head: true })
-              .eq('vault_id', vault.id);
+              .eq('vault_id', resume.id);
 
             breakdown[table] = count || 0;
             totalItems += count || 0;
@@ -147,8 +147,8 @@ export const smokeTestSuite: TestSuite = {
             duration: Date.now() - startTime,
             metadata: {
               message: totalItems > 0 
-                ? `Vault has ${totalItems} items across ${Object.keys(breakdown).length} categories`
-                : 'Vault is empty - user should complete onboarding',
+                ? `Master Resume has ${totalItems} items across ${Object.keys(breakdown).length} categories`
+                : 'Master Resume is empty - user should complete onboarding',
               totalItems,
               breakdown
             }
@@ -176,19 +176,19 @@ export const smokeTestSuite: TestSuite = {
             throw new Error('Must be authenticated');
           }
 
-          const { data: vault } = await supabase
+          const { data: resume } = await supabase
             .from('career_vault')
             .select('id')
             .eq('user_id', session.session.user.id)
             .limit(1)
             .single();
 
-          if (!vault) {
+          if (!resume) {
             return {
               passed: true, // Non-blocking
               duration: Date.now() - startTime,
               metadata: {
-                message: 'No vault found - skipping search test'
+                message: 'No Master Resume found - skipping search test'
               }
             };
           }
@@ -196,7 +196,7 @@ export const smokeTestSuite: TestSuite = {
           const searchStart = performance.now();
 
           const { data, error } = await supabase.rpc('search_vault_items', {
-            p_vault_id: vault.id,
+            p_vault_id: resume.id,
             p_search_query: 'management',
             p_limit: 50
           });
@@ -244,19 +244,19 @@ export const smokeTestSuite: TestSuite = {
             throw new Error('Must be authenticated');
           }
 
-          const { data: vault } = await supabase
+          const { data: resume } = await supabase
             .from('career_vault')
             .select('id')
             .eq('user_id', session.session.user.id)
             .limit(1)
             .single();
 
-          if (!vault) {
+          if (!resume) {
             return {
               passed: true,
               duration: Date.now() - startTime,
               metadata: {
-                message: 'No vault found - skipping quality tier test'
+                message: 'No Master Resume found - skipping quality tier test'
               }
             };
           }
@@ -265,7 +265,7 @@ export const smokeTestSuite: TestSuite = {
           const { data: platinumItems } = await supabase
             .from('vault_power_phrases')
             .select('id, quality_tier')
-            .eq('vault_id', vault.id)
+            .eq('vault_id', resume.id)
             .eq('quality_tier', 'platinum')
             .limit(1);
 
@@ -293,7 +293,7 @@ export const smokeTestSuite: TestSuite = {
     {
       id: 'smoke-gap-analysis-schema',
       name: 'Gap Analysis Table Schema',
-      category: 'career-vault',
+      category: 'master-resume',
       priority: 'high',
       execute: async () => {
         const startTime = Date.now();

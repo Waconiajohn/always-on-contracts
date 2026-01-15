@@ -26,16 +26,16 @@ serve(createAIHandler({
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    logger.info('Fetching vault data for answer enhancement');
+    logger.info('Fetching Master Resume data for answer enhancement');
 
-    // Get Career Vault data for resume context
-    const { data: vault } = await supabase
+    // Get Master Resume data for context
+    const { data: resumeData } = await supabase
       .from('career_vault')
       .select('*')
       .eq('user_id', user.id)
       .single();
 
-    logger.info('Building enhancement prompt with vault context');
+    logger.info('Building enhancement prompt with Master Resume context');
 
     // STANDARDIZED SYSTEM PROMPT
     const systemPrompt = `You are an expert interview coach specializing in STAR method answer enhancement.
@@ -58,7 +58,7 @@ Requirements:
 - Do NOT fabricate information`;
 
     // STANDARDIZED USER PROMPT
-    const userPrompt = `Enhance this interview answer using the candidate's career vault data:
+    const userPrompt = `Enhance this interview answer using the candidate's Master Resume data:
 
 INTERVIEW QUESTION:
 ${question}
@@ -69,12 +69,12 @@ ${currentAnswer}
 VALIDATION FEEDBACK:
 ${JSON.stringify(validationFeedback || {}, null, 2)}
 
-CAREER VAULT CONTEXT:
-${JSON.stringify(vault?.initial_analysis || {}, null, 2)}
+MASTER RESUME CONTEXT:
+${JSON.stringify(resumeData?.initial_analysis || {}, null, 2)}
 
 TASK: Create an enhanced version that:
 1. Preserves the candidate's original intent and voice
-2. Adds specific details from their career vault (metrics, technologies, outcomes)
+2. Adds specific details from their Master Resume (metrics, technologies, outcomes)
 3. Fills in missing elements: specificity, quantification, context, impact
 4. Follows complete STAR structure
 5. Remains authentic to their actual experience

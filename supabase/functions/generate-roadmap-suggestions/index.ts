@@ -22,9 +22,9 @@ serve(async (req) => {
 
     // Create context-specific prompt
     const sectionContext = getSectionContext(sectionKey);
-    const systemPrompt = `You are a career coach helping users build their professional vault. Return ONLY valid JSON with no markdown formatting, no code blocks, no explanations - just the raw JSON object.`;
+    const systemPrompt = `You are a career coach helping users build their professional Master Resume. Return ONLY valid JSON with no markdown formatting, no code blocks, no explanations - just the raw JSON object.`;
     
-    const userPrompt = `You are helping a user improve their career vault for the "${sectionKey}" section.
+    const userPrompt = `You are helping a user improve their Master Resume for the "${sectionKey}" section.
 
 Current Situation:
 - Goal: ${roadmapItem.title}
