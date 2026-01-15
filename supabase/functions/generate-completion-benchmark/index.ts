@@ -1,5 +1,5 @@
 // =====================================================
-// GENERATE COMPLETION BENCHMARK - Career Vault 2.0
+// GENERATE COMPLETION BENCHMARK - Master Resume 2.0
 // =====================================================
 // COMPETITIVE POSITIONING ANALYSIS WITH DEEP REASONING
 //
@@ -20,7 +20,7 @@ import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { analyzeCareerContextAI, getCareerLevelGuidance, type CareerContext } from '../_shared/career-context-analyzer-ai.ts';
 
 interface BenchmarkRequest {
-  vaultId: string;
+  resumeId: string;
   targetRoles: string[];
   targetIndustries: string[];
   forceRegenerate?: boolean;
@@ -53,15 +53,17 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
+    const body = await req.json();
+    // Support both resumeId and vaultId for backward compatibility
+    const resumeId = body.resumeId || body.vaultId;
     const {
-      vaultId,
       targetRoles,
       targetIndustries,
       forceRegenerate = false,
-    }: BenchmarkRequest = await req.json();
+    }: BenchmarkRequest = body;
 
     console.log('📊 GENERATING COMPLETION BENCHMARK:', {
-      vaultId,
+      resumeId,
       targetRoles,
       targetIndustries,
       forceRegenerate,
@@ -73,7 +75,7 @@ serve(async (req) => {
       const { data: cached } = await supabase
         .from('vault_gap_analysis')
         .select('*')
-        .eq('vault_id', vaultId)
+        .eq('vault_id', resumeId)
         .eq('analysis_type', 'completion_benchmark')
         .order('created_at', { ascending: false })
         .limit(1)
@@ -110,33 +112,33 @@ serve(async (req) => {
 
     console.log('⚡ Generating fresh analysis with deep reasoning model...');
 
-    // ===== STEP 2: FETCH VAULT DATA =====
-    const { data: vaultStats } = await supabase
-      .rpc('get_vault_statistics', { p_vault_id: vaultId });
+    // ===== STEP 2: FETCH MASTER RESUME DATA =====
+    const { data: resumeStats } = await supabase
+      .rpc('get_vault_statistics', { p_vault_id: resumeId });
 
-    if (!vaultStats) {
-      throw new Error('Could not fetch vault statistics');
+    if (!resumeStats) {
+      throw new Error('Could not fetch resume statistics');
     }
 
     // Fetch industry research for benchmarks
     const { data: industryResearch } = await supabase
       .from('vault_industry_research')
       .select('*')
-      .eq('vault_id', vaultId)
+      .eq('vault_id', resumeId)
       .order('created_at', { ascending: false })
       .limit(1);
 
     const benchmarks = industryResearch?.[0]?.results || {};
 
-    // Fetch actual vault items for detailed analysis
+    // Fetch actual resume items for detailed analysis
     const [powerPhrases, skills, competencies, softSkills, leadershipPhilosophy, executivePresence, confirmedSkills] = await Promise.all([
-      supabase.from('vault_power_phrases').select('*').eq('vault_id', vaultId),
-      supabase.from('vault_transferable_skills').select('*').eq('vault_id', vaultId),
-      supabase.from('vault_hidden_competencies').select('*').eq('vault_id', vaultId),
-      supabase.from('vault_soft_skills').select('*').eq('vault_id', vaultId),
-      supabase.from('vault_leadership_philosophy').select('*').eq('vault_id', vaultId),
-      supabase.from('vault_executive_presence').select('*').eq('vault_id', vaultId),
-      supabase.from('vault_confirmed_skills').select('*').eq('vault_id', vaultId),
+      supabase.from('vault_power_phrases').select('*').eq('vault_id', resumeId),
+      supabase.from('vault_transferable_skills').select('*').eq('vault_id', resumeId),
+      supabase.from('vault_hidden_competencies').select('*').eq('vault_id', resumeId),
+      supabase.from('vault_soft_skills').select('*').eq('vault_id', resumeId),
+      supabase.from('vault_leadership_philosophy').select('*').eq('vault_id', resumeId),
+      supabase.from('vault_executive_presence').select('*').eq('vault_id', resumeId),
+      supabase.from('vault_confirmed_skills').select('*').eq('vault_id', resumeId),
     ]);
 
     // ===== STEP 3: GET CACHED CAREER CONTEXT (NO AI CALL) =====
@@ -146,7 +148,7 @@ serve(async (req) => {
     const { data: cachedContext } = await supabase
       .from('vault_career_context')
       .select('*')
-      .eq('vault_id', vaultId)
+      .eq('vault_id', resumeId)
       .single();
 
     if (cachedContext) {
@@ -216,7 +218,7 @@ serve(async (req) => {
     const benchmarkPrompt = `You are an elite executive career strategist and talent assessor with 20+ years of experience evaluating senior leadership candidates at Fortune 500 companies and high-growth startups.
 
 <TASK>
-Perform a hyper-personalized, career-level-appropriate competitive positioning analysis for this professional's Career Vault. Your analysis will directly impact their career trajectory for the next 2-5 years.
+Perform a hyper-personalized, career-level-appropriate competitive positioning analysis for this professional's Master Resume. Your analysis will directly impact their career trajectory for the next 2-5 years.
 </TASK>
 
 <CONTEXT>
@@ -243,7 +245,7 @@ CAREER PROFILE (AI-INFERRED FROM VAULT CONTENT):
 PRIMARY RESPONSIBILITIES (from their actual achievements):
 ${careerContext.primaryResponsibilities.map((r: string, i: number) => `${i + 1}. ${r}`).join('\n')}
 
-VAULT CONTENTS ANALYSIS:
+MASTER RESUME CONTENTS ANALYSIS:
 ├─ Power Phrases: ${powerPhrases.data?.length || 0} quantified achievements
 ├─ ✅ TECHNICAL SKILLS: ${(skills.data?.length ?? 0)} extracted from resume (vault_transferable_skills)
 ├─ User-Confirmed Skills: ${(confirmedSkills.data?.length ?? 0)} manually validated (vault_confirmed_skills)
@@ -284,7 +286,7 @@ ${getCareerLevelGuidance(careerContext.inferredSeniority)}
 Only suggest gaps they can REALISTICALLY fill in 3-6 months that will SIGNIFICANTLY impact their competitiveness for ${careerContext.nextLikelyRole}.
 
 **CRITICAL RULE #3: EVIDENCE-BASED & RESPECT CAREER CONTEXT**
-Base ALL assessments on actual vault content AND career context cache:
+Base ALL assessments on actual resume content AND career context cache:
 - If career context shows has_management_experience=true, NEVER suggest management/supervision gaps
 - If career context shows has_budget_ownership=true, NEVER suggest budget responsibility gaps
 - If they have ${skills.data?.length || 0} technical skills (vault_transferable_skills), NEVER suggest "add technical skills" gaps - they already have them!
@@ -306,8 +308,8 @@ For ${targetIndustries[0]}, prioritize domain-relevant gaps over generic advice.
 Before generating your analysis, think step-by-step:
 
 1. **Percentile Calculation**:
-   - Vault Strength: ${vaultStats.vaultStrength}%
-   - Quality Distribution: ${JSON.stringify(vaultStats.qualityBreakdown)}
+   - Resume Strength: ${resumeStats.vaultStrength}%
+   - Quality Distribution: ${JSON.stringify(resumeStats.qualityBreakdown)}
    - For ${careerContext.inferredSeniority} with ${careerContext.yearsOfExperience} YOE, what percentile does this represent?
 
 2. **Strengths Identification**:
@@ -320,7 +322,7 @@ Before generating your analysis, think step-by-step:
    - What do TOP PERFORMERS at this level have that they don't?
    - Is this gap FIXABLE in 3-6 months?
    - Focus on 3-5 HIGH-IMPACT gaps, not 10 minor ones
-   - **CRITICAL**: Each gap MUST map to an actual vault section:
+   - **CRITICAL**: Each gap MUST map to an actual resume section:
      * "achievements" = quantified results, impact stories, regulatory/safety achievements
      * "skills" = technical skills, domain expertise
      * "leadership" = leadership philosophy, executive presence
@@ -374,7 +376,7 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations):
     }
     // 3-5 gaps ONLY, prioritized by impact
     //
-    // CRITICAL: categoryKey MUST be one of these EXACT values (maps to actual vault dashboard sections):
+    // CRITICAL: categoryKey MUST be one of these EXACT values (maps to actual resume dashboard sections):
     // - "achievements" = For power phrases, quantified results, impact stories, regulatory/safety achievements
     // - "skills" = For technical skills, domain expertise, certifications
     // - "leadership" = For leadership philosophy, executive presence, management style
@@ -388,7 +390,7 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations):
       "title": "Action title",
       "description": "Clear, specific action they can take TODAY",
       "impact": "Expected outcome with metrics",
-      "estimatedBoost": "+X% vault strength",
+      "estimatedBoost": "+X% resume strength",
       "timeToImplement": "15 min | 30 min | 1 hour | 1 week",
       "category": "power-phrases | skills | leadership | etc",
       "order": <number 1-5, in priority order>
@@ -469,7 +471,7 @@ IMPORTANT: Return ONLY the JSON object. No markdown formatting, no code blocks, 
     const { error: insertError } = await supabase
       .from('vault_gap_analysis')
       .insert({
-        vault_id: vaultId,
+        vault_id: resumeId,
         user_id: user.id,
         analysis_type: 'completion_benchmark',
         gap_type: 'comprehensive',
@@ -480,7 +482,7 @@ IMPORTANT: Return ONLY the JSON object. No markdown formatting, no code blocks, 
         strengths: benchmarkAnalysis.strengths || [],
         opportunities: benchmarkAnalysis.opportunities || [],
         percentile_ranking: benchmarkAnalysis.percentileRanking?.percentile || 50,
-        vault_strength_at_analysis: vaultStats.vaultStrength || 0,
+        resume_strength_at_analysis: resumeStats.vaultStrength || 0,
       });
 
     if (insertError) {
@@ -498,7 +500,7 @@ IMPORTANT: Return ONLY the JSON object. No markdown formatting, no code blocks, 
         identified_gaps: benchmarkAnalysis.gaps || [],
         updated_at: new Date().toISOString()
       })
-      .eq('vault_id', vaultId);
+      .eq('vault_id', resumeId);
     
     if (syncError) {
       console.error('Failed to sync gaps to cache:', syncError);
