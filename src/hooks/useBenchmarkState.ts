@@ -60,7 +60,7 @@ export const useBenchmarkState = (
     if (completion < 60) {
       return {
         state: 'building',
-        message: 'Building your career vault',
+        message: 'Building your Master Resume',
         nextAction: 'Complete foundational items'
       };
     }
@@ -68,14 +68,14 @@ export const useBenchmarkState = (
     if (completion < 85) {
       return {
         state: 'optimizing',
-        message: 'Optimizing your career vault',
+        message: 'Optimizing your Master Resume',
         nextAction: 'Add strategic impact'
       };
     }
 
     return {
       state: 'ready',
-      message: 'Your vault is market ready!',
+      message: 'Your Master Resume is market ready!',
       nextAction: 'Start applying to jobs'
     };
   }, [vault, stats]);

@@ -26,9 +26,7 @@ Deno.serve(async (req) => {
     );
 
     const body = await req.json();
-    // Support both old and new parameter names for backwards compatibility
-    const resumeId = body.resumeId || body.vaultId;
-    const sessionId = body.sessionId;
+    const { resumeId, sessionId } = body;
     const userId = body.userId;
 
     if (!resumeId || !userId) {
