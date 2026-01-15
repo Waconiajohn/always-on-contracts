@@ -26,7 +26,7 @@ export function BugTracker() {
     title: '',
     description: '',
     severity: 'P2' as const,
-    category: 'career-vault'
+    category: 'master-resume'
   });
 
   const addBug = () => {
@@ -41,7 +41,7 @@ export function BugTracker() {
       title: '',
       description: '',
       severity: 'P2',
-      category: 'career-vault'
+      category: 'master-resume'
     });
     setDialogOpen(false);
   };
@@ -139,7 +139,7 @@ export function BugTracker() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="career-vault">Career Vault</SelectItem>
+                      <SelectItem value="master-resume">Master Resume</SelectItem>
                       <SelectItem value="onboarding">Onboarding</SelectItem>
                       <SelectItem value="search">Search</SelectItem>
                       <SelectItem value="database">Database</SelectItem>

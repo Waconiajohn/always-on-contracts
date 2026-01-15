@@ -34,23 +34,23 @@ const Auth = () => {
       return returnTo;
     }
     
-    // Otherwise, check vault and determine default destination
+    // Otherwise, check resume and determine default destination
     try {
-      const { data: vault, error } = await supabase
+      const { data: resume, error } = await supabase
         .from('career_vault')
         .select('resume_raw_text, review_completion_percentage')
         .eq('user_id', userId)
         .maybeSingle();
       
       if (error) {
-        console.error('Error checking vault:', error);
-        return "/career-vault";
+        console.error('Error checking resume:', error);
+        return "/master-resume";
       }
       
-      return vault?.resume_raw_text ? "/home" : "/career-vault";
+      return resume?.resume_raw_text ? "/home" : "/master-resume";
     } catch (err) {
       console.error('Unexpected error:', err);
-      return "/career-vault";
+      return "/master-resume";
     }
   };
 
