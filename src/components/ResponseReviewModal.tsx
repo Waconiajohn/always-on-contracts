@@ -19,7 +19,7 @@ interface ResponseReviewModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   responseId: string;
-  vaultId: string;
+  resumeId: string;
   question: string;
   currentAnswer: string;
   currentScore: number;
@@ -39,7 +39,7 @@ export function ResponseReviewModal({
   open,
   onOpenChange,
   responseId,
-  vaultId,
+  resumeId,
   question,
   currentAnswer,
   currentScore,
@@ -109,7 +109,7 @@ export function ResponseReviewModal({
 
         // Re-extract intelligence
         const extractValidation = safeValidateInput(ExtractVaultIntangiblesSchema, {
-          vaultId,
+          resumeId,
           questionText: question,
           responseText: answer
         });

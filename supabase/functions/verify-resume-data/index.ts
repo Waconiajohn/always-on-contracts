@@ -25,19 +25,23 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    const { vaultId, sessionId, userId } = await req.json();
+    const body = await req.json();
+    // Support both old and new parameter names for backwards compatibility
+    const resumeId = body.resumeId || body.vaultId;
+    const sessionId = body.sessionId;
+    const userId = body.userId;
 
-    if (!vaultId || !userId) {
-      throw new Error('vaultId and userId are required');
+    if (!resumeId || !userId) {
+      throw new Error('resumeId and userId are required');
     }
 
-    console.log(`[VERIFY-RESUME-DATA] Starting verification for vault: ${vaultId}`);
+    console.log(`[VERIFY-RESUME-DATA] Starting verification for resume: ${resumeId}`);
 
     // Fetch all relevant data
-    const [vaultRes, workRes, eduRes, milestonesRes] = await Promise.all([
-      supabase.from('career_vault').select('resume_raw_text, user_id').eq('id', vaultId).single(),
-      supabase.from('vault_work_positions').select('*').eq('vault_id', vaultId),
-      supabase.from('vault_education').select('*').eq('vault_id', vaultId),
+    const [resumeRes, workRes, eduRes, milestonesRes] = await Promise.all([
+      supabase.from('career_vault').select('resume_raw_text, user_id').eq('id', resumeId).single(),
+      supabase.from('vault_work_positions').select('*').eq('vault_id', resumeId),
+      supabase.from('vault_education').select('*').eq('vault_id', resumeId),
       supabase.from('vault_resume_milestones').select(`
         *,
         work_position:vault_work_positions!work_position_id (
@@ -48,11 +52,11 @@ Deno.serve(async (req) => {
           end_date,
           is_current
         )
-      `).eq('vault_id', vaultId)
+      `).eq('vault_id', resumeId)
     ]);
 
-    if (vaultRes.error) throw vaultRes.error;
-    const resume = vaultRes.data.resume_raw_text || '';
+    if (resumeRes.error) throw resumeRes.error;
+    const resume = resumeRes.data.resume_raw_text || '';
     const verificationResults: VerificationResult[] = [];
     let discrepanciesCount = 0;
 
@@ -221,7 +225,7 @@ Deno.serve(async (req) => {
     const { error: saveError } = await supabase
       .from('resume_verification_results')
       .insert({
-        vault_id: vaultId,
+        vault_id: resumeId,
         user_id: userId,
         session_id: sessionId,
         verification_status: overallStatus,
@@ -241,14 +245,14 @@ Deno.serve(async (req) => {
       activity_type: 'resume_verification',
       description: `Resume verification completed: ${overallStatus} (${discrepanciesCount} discrepancies)`,
       metadata: {
-        vault_id: vaultId,
+        resume_id: resumeId,
         session_id: sessionId,
         status: overallStatus,
         discrepancies: discrepanciesCount
       }
     });
 
-    console.log(`[VERIFY-RESUME-DATA] Verification complete: ${overallStatus} (${discrepanciesCount} discrepancies)`);
+    console.log(`[VERIFY-RESUME-DATA] Verification complete for resume ${resumeId}: ${overallStatus} (${discrepanciesCount} discrepancies)`);
 
     return new Response(
       JSON.stringify({

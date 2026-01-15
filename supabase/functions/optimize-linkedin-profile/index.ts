@@ -122,10 +122,10 @@ serve(async (req) => {
       researchContext = "",
     } = parsed.data;
 
-    // ---- Build Master Resume / Resume fact-check context ----
+    // ---- Build Master Resume fact-check context ----
 
     // 1) Master Resume: power phrases, key achievements, etc.
-    const { data: vaultData } = await supabase
+    const { data: resumeData } = await supabase
       .from("career_vault")
       .select(
         `
@@ -141,13 +141,13 @@ serve(async (req) => {
       .eq("user_id", user.id)
       .maybeSingle();
 
-    const vaultSummary = vaultData?.analysis_summary ?? "";
+    const resumeSummary = resumeData?.analysis_summary ?? "";
     const powerPhrases: string[] =
-      vaultData?.vault_power_phrases?.map((p: any) => p.power_phrase) ?? [];
+      resumeData?.vault_power_phrases?.map((p: any) => p.power_phrase) ?? [];
 
-    // 2) CRITICAL FIX: Use actual work positions from vault
-    const workPositions = vaultData?.vault_work_positions || [];
-    const educationRecords = vaultData?.vault_education || [];
+    // 2) CRITICAL FIX: Use actual work positions from Master Resume
+    const workPositions = resumeData?.vault_work_positions || [];
+    const educationRecords = resumeData?.vault_education || [];
 
     const knownEmployers: string[] = workPositions.map((wp: any) => wp.company_name).filter(Boolean);
     const knownRoles: string[] = workPositions.map((wp: any) => wp.job_title).filter(Boolean);
@@ -167,11 +167,11 @@ serve(async (req) => {
           job_title
         )
       `)
-      .eq("vault_id", vaultData?.id)
+      .eq("vault_id", resumeData?.id)
       .limit(20);
 
     // Work positions and education already provide employers/roles/degrees
-    console.log('[OPTIMIZE-LINKEDIN] Fact check data loaded:', {
+    console.log('[OPTIMIZE-LINKEDIN] Master Resume fact check data loaded:', {
       employers: knownEmployers.length,
       roles: knownRoles.length,
       degrees: knownDegrees.length,
@@ -191,9 +191,9 @@ CRITICAL FACTUALITY RULES:
   • Add a warning to that section: "⚠️ Verify: [Company/Role] not found in your Master Resume."
 `;
 
-    const resumeDataContext = `
+const resumeDataContext = `
 MASTER RESUME SUMMARY:
-${vaultSummary || "(No extended summary on record)"}
+${resumeSummary || "(No extended summary on record)"}
 
 TOP POWER PHRASES / ACHIEVEMENTS:
 ${powerPhrases.map((p, i) => `${i + 1}. ${p}`).join("\n") || "(None on record)"}
@@ -317,7 +317,7 @@ ${currentAbout || "None provided."}
     const result = {
       ...extracted.data,
       metadata: {
-        usedResumeSummary: !!vaultSummary,
+        usedResumeSummary: !!resumeSummary,
         employerCount: knownEmployers.length,
         roleCount: knownRoles.length,
       },

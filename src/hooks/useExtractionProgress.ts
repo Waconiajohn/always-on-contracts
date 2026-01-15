@@ -10,7 +10,7 @@ interface ProgressUpdate {
   duration_ms?: number;
 }
 
-export const useExtractionProgress = (vaultId: string | undefined) => {
+export const useExtractionProgress = (resumeId: string | undefined) => {
   const [progress, setProgress] = useState(0);
   const [currentMessage, setCurrentMessage] = useState('Initializing extraction...');
   const [isComplete, setIsComplete] = useState(false);
@@ -18,9 +18,9 @@ export const useExtractionProgress = (vaultId: string | undefined) => {
   const [itemsExtracted, setItemsExtracted] = useState(0);
 
   useEffect(() => {
-    if (!vaultId) return;
+    if (!resumeId) return;
 
-    console.log('🔍 [ExtractionProgress] Monitoring vault:', vaultId);
+    console.log('🔍 [ExtractionProgress] Monitoring resume:', resumeId);
 
     // Fetch current progress immediately
     const fetchCurrentProgress = async () => {
@@ -28,7 +28,7 @@ export const useExtractionProgress = (vaultId: string | undefined) => {
         const { data, error } = await supabase
           .from('extraction_progress' as any)
           .select('*')
-          .eq('vault_id', vaultId)
+          .eq('vault_id', resumeId)
           .single();
         
         if (error) {
@@ -65,14 +65,14 @@ export const useExtractionProgress = (vaultId: string | undefined) => {
 
     // Subscribe to real-time progress updates
     const channel = supabase
-      .channel(`extraction-progress-${vaultId}`)
+      .channel(`extraction-progress-${resumeId}`)
       .on(
         'postgres_changes' as any,
         {
           event: '*',
           schema: 'public',
           table: 'extraction_progress',
-          filter: `vault_id=eq.${vaultId}`
+          filter: `vault_id=eq.${resumeId}`
         },
         (payload: RealtimePostgresChangesPayload<ProgressUpdate>) => {
           if (payload.new) {
@@ -103,10 +103,10 @@ export const useExtractionProgress = (vaultId: string | undefined) => {
       });
 
     return () => {
-      console.log('🔌 [ExtractionProgress] Unsubscribing from:', vaultId);
+      console.log('🔌 [ExtractionProgress] Unsubscribing from:', resumeId);
       supabase.removeChannel(channel);
     };
-  }, [vaultId]);
+  }, [resumeId]);
 
   return {
     progress,

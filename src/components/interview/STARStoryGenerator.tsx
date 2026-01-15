@@ -20,10 +20,10 @@ interface STARStory {
 }
 
 interface STARStoryGeneratorProps {
-  vaultId: string;
+  resumeId: string;
 }
 
-export function STARStoryGenerator({ vaultId }: STARStoryGeneratorProps) {
+export function STARStoryGenerator({ resumeId }: STARStoryGeneratorProps) {
   const [selectedPhrase, setSelectedPhrase] = useState<any>(null);
   const [powerPhrases, setPowerPhrases] = useState<any[]>([]);
   const [softSkills, setSoftSkills] = useState<any[]>([]);
@@ -35,7 +35,7 @@ export function STARStoryGenerator({ vaultId }: STARStoryGeneratorProps) {
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchVaultData = async () => {
+    const fetchResumeData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
@@ -43,7 +43,7 @@ export function STARStoryGenerator({ vaultId }: STARStoryGeneratorProps) {
       const { data: phrasesData } = await supabase
         .from('vault_power_phrases')
         .select('*')
-        .eq('vault_id', vaultId)
+        .eq('vault_id', resumeId)
         .order('impact_metrics', { ascending: false });
 
       if (phrasesData) setPowerPhrases(phrasesData);
@@ -52,7 +52,7 @@ export function STARStoryGenerator({ vaultId }: STARStoryGeneratorProps) {
       const { data: skillsData } = await supabase
         .from('vault_soft_skills')
         .select('*')
-        .eq('vault_id', vaultId)
+        .eq('vault_id', resumeId)
         .limit(5);
 
       if (skillsData) setSoftSkills(skillsData);
@@ -61,15 +61,15 @@ export function STARStoryGenerator({ vaultId }: STARStoryGeneratorProps) {
       const { data: leadershipData } = await supabase
         .from('vault_leadership_philosophy')
         .select('*')
-        .eq('vault_id', vaultId)
+        .eq('vault_id', resumeId)
         .limit(1)
         .single();
 
       if (leadershipData) setLeadershipPhilosophy(leadershipData);
     };
     
-    fetchVaultData();
-  }, [vaultId]);
+    fetchResumeData();
+  }, [resumeId]);
 
   const generateSTARStory = async () => {
     if (!selectedPhrase || !competency) {

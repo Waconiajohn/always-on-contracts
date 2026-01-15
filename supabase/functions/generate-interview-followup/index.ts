@@ -50,8 +50,8 @@ serve(async (req) => {
       throw new Error('Job project not found');
     }
 
-    // Fetch Career Vault data
-    const { data: vault } = await supabaseClient
+    // Fetch Master Resume data
+    const { data: resumeData } = await supabaseClient
       .from('career_vault')
       .select(`
         *,
@@ -115,8 +115,8 @@ JOB DETAILS:
 
 CANDIDATE INFO:
 - Name: ${profile?.full_name || 'The candidate'}
-- Key Competencies: ${vault?.vault_hidden_competencies?.map((c: any) => c.competency_area).join(', ') || 'N/A'}
-- Notable Skills: ${vault?.vault_transferable_skills?.slice(0, 5).map((s: any) => s.stated_skill).join(', ') || 'N/A'}
+- Key Competencies: ${resumeData?.vault_hidden_competencies?.map((c: any) => c.competency_area).join(', ') || 'N/A'}
+- Notable Skills: ${resumeData?.vault_transferable_skills?.slice(0, 5).map((s: any) => s.stated_skill).join(', ') || 'N/A'}
 
 CUSTOM INSTRUCTIONS: ${customInstructions || 'None'}
 

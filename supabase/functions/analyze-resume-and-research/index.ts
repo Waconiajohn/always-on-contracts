@@ -94,7 +94,7 @@ ${resumeDataContext}
 Generate three categories with HIERARCHICAL DEPTH:
 
 1. CORE SKILLS (from resume): Skills explicitly mentioned or clearly demonstrated
-   - Mark as "resume_verified" if confirmed in Master Resume
+   - Mark as "resume_verified" if matches Master Resume data
    - Organize by skill hierarchy: Expert > Advanced > Intermediate > Basic
 
 2. INFERRED SKILLS (likely has): Skills implied by roles/achievements but not explicitly stated

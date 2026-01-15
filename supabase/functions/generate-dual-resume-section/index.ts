@@ -161,16 +161,16 @@ Return ONLY the bullet points/content.`;
     if (user_id) {
       console.log(`🔍 Fetching complete Master Resume data for user: ${user_id}`);
       
-      const { data: vaultRecord } = await supabase
+      const { data: resumeRecord } = await supabase
         .from('career_vault')
         .select('id')
         .eq('user_id', user_id)
         .maybeSingle();
 
-      if (vaultRecord) {
+      if (resumeRecord) {
         const [workPos, edu, miles] = await Promise.all([
-          supabase.from('vault_work_positions').select('*').eq('vault_id', vaultRecord.id).order('start_date', { ascending: false }),
-          supabase.from('vault_education').select('*').eq('vault_id', vaultRecord.id).order('graduation_year', { ascending: false }),
+          supabase.from('vault_work_positions').select('*').eq('vault_id', resumeRecord.id).order('start_date', { ascending: false }),
+          supabase.from('vault_education').select('*').eq('vault_id', resumeRecord.id).order('graduation_year', { ascending: false }),
           supabase.from('vault_resume_milestones').select(`
             *,
             work_position:vault_work_positions!work_position_id (
@@ -182,7 +182,7 @@ Return ONLY the bullet points/content.`;
               is_current,
               description
             )
-          `).eq('vault_id', vaultRecord.id).order('created_at', { ascending: false })
+          `).eq('vault_id', resumeRecord.id).order('created_at', { ascending: false })
         ]);
 
         workPositions = workPos.data || [];

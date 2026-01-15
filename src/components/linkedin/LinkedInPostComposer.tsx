@@ -9,10 +9,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Sparkles, Copy, Check, BookOpen, Award, TrendingUp } from "lucide-react";
 
 interface LinkedInPostComposerProps {
-  vaultId: string;
+  resumeId: string;
 }
 
-export function LinkedInPostComposer({ vaultId }: LinkedInPostComposerProps) {
+export function LinkedInPostComposer({ resumeId }: LinkedInPostComposerProps) {
   const [postContent, setPostContent] = useState('');
   const [powerPhrases, setPowerPhrases] = useState<any[]>([]);
   const [leadershipPhilosophy, setLeadershipPhilosophy] = useState<any>(null);
@@ -22,7 +22,7 @@ export function LinkedInPostComposer({ vaultId }: LinkedInPostComposerProps) {
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchVaultIntelligence = async () => {
+    const fetchResumeIntelligence = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
@@ -30,7 +30,7 @@ export function LinkedInPostComposer({ vaultId }: LinkedInPostComposerProps) {
       const { data: phrasesData } = await supabase
         .from('vault_power_phrases')
         .select('*')
-        .eq('vault_id', vaultId)
+        .eq('vault_id', resumeId)
         .order('confidence_score', { ascending: false })
         .limit(5);
 
@@ -40,7 +40,7 @@ export function LinkedInPostComposer({ vaultId }: LinkedInPostComposerProps) {
       const { data: leadershipData } = await supabase
         .from('vault_leadership_philosophy')
         .select('*')
-        .eq('vault_id', vaultId)
+        .eq('vault_id', resumeId)
         .limit(1)
         .single();
 
@@ -50,7 +50,7 @@ export function LinkedInPostComposer({ vaultId }: LinkedInPostComposerProps) {
       const { data: thoughtData } = await supabase
         .from('vault_thought_leadership')
         .select('*')
-        .eq('vault_id', vaultId)
+        .eq('vault_id', resumeId)
         .order('date_published', { ascending: false });
 
       if (thoughtData) setThoughtLeadership(thoughtData);
@@ -59,14 +59,14 @@ export function LinkedInPostComposer({ vaultId }: LinkedInPostComposerProps) {
       const { data: advantagesData } = await supabase
         .from('vault_competitive_advantages')
         .select('*')
-        .eq('vault_id', vaultId)
+        .eq('vault_id', resumeId)
         .order('differentiator_strength', { ascending: false });
 
       if (advantagesData) setCompetitiveAdvantages(advantagesData);
     };
     
-    fetchVaultIntelligence();
-  }, [vaultId]);
+    fetchResumeIntelligence();
+  }, [resumeId]);
 
   const insertIntoPost = (text: string) => {
     setPostContent(prev => prev + (prev ? '\n\n' : '') + text);

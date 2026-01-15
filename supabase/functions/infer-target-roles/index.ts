@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
     const analysis: ResumeAnalysis = resume_analysis;
 
     // Fetch actual work positions for factual career progression
-    const { data: vaultRecord } = await supabase
+    const { data: resumeRecord } = await supabase
       .from('career_vault')
       .select('id')
       .eq('user_id', user.id)
@@ -59,11 +59,11 @@ Deno.serve(async (req) => {
     let actualYears = analysis.years_of_experience;
     let careerProgression = '';
 
-    if (vaultRecord) {
+    if (resumeRecord) {
       const { data: positions } = await supabase
         .from('vault_work_positions')
         .select('*')
-        .eq('vault_id', vaultRecord.id)
+        .eq('vault_id', resumeRecord.id)
         .order('start_date', { ascending: false });
       
       workPositions = positions || [];

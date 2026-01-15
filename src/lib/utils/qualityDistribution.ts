@@ -20,8 +20,8 @@ export interface QualityDistribution {
 }
 
 /**
- * Calculate quality distribution across all vault item arrays
- * Handles both quality_tier and source fields (for vault_confirmed_skills)
+ * Calculate quality distribution across all Master Resume item arrays
+ * Handles both quality_tier and source fields (for confirmed skills)
  *
  * NEW: Filters "assumed" items to only those that need review:
  * - Has NOT been user reviewed (user_reviewed !== true)

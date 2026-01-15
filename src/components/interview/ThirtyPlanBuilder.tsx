@@ -10,10 +10,10 @@ import { logger } from "@/lib/logger";
 interface ThirtyPlanBuilderProps {
   jobDescription: string;
   companyResearch: any;
-  vaultId: string;
+  resumeId: string;
 }
 
-export function ThirtyPlanBuilder({ jobDescription, companyResearch, vaultId }: ThirtyPlanBuilderProps) {
+export function ThirtyPlanBuilder({ jobDescription, companyResearch, resumeId }: ThirtyPlanBuilderProps) {
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState<any>(null);
 
@@ -22,7 +22,7 @@ export function ThirtyPlanBuilder({ jobDescription, companyResearch, vaultId }: 
     try {
       const validated = validateInput(Generate3060Plan, {
         jobDescription,
-        vaultId
+        resumeId
       });
 
       const { data, error } = await invokeEdgeFunction(

@@ -63,7 +63,7 @@ serve(async (req) => {
     });
 
     // Fetch Master Resume intelligence
-    const { data: vaultRecord } = await supabase
+    const { data: resumeRecord } = await supabase
       .from('career_vault')
       .select('id')
       .eq('user_id', user.id)
@@ -72,9 +72,9 @@ serve(async (req) => {
     let workPositions: any[] = [];
     let resumeMilestones: any[] = [];
     
-    if (vaultRecord) {
+    if (resumeRecord) {
       const [workPos, miles] = await Promise.all([
-        supabase.from('vault_work_positions').select('*').eq('vault_id', vaultRecord.id).order('start_date', { ascending: false }),
+        supabase.from('vault_work_positions').select('*').eq('vault_id', resumeRecord.id).order('start_date', { ascending: false }),
         supabase.from('vault_resume_milestones').select(`
           *,
           work_position:vault_work_positions!work_position_id (
@@ -86,7 +86,7 @@ serve(async (req) => {
             is_current,
             description
           )
-        `).eq('vault_id', vaultRecord.id).order('created_at', { ascending: false })
+        `).eq('vault_id', resumeRecord.id).order('created_at', { ascending: false })
       ]);
       
       workPositions = workPos.data || [];
