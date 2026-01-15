@@ -35,29 +35,29 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch vault data if userId provided
-    let vaultContent = '';
-    let vault: any = null;
+    // Fetch Master Resume data if userId provided
+    let resumeContent = '';
+    let resume: any = null;
     
     if (userId) {
-      const { data: vaultData } = await supabase
+      const { data: resumeData } = await supabase
         .from('career_vault')
         .select('id, resume_raw_text')
         .eq('user_id', userId)
         .maybeSingle();
       
-      vault = vaultData;
+      resume = resumeData;
 
-      if (vault) {
+      if (resume) {
         const [milestones, skills, positions, education] = await Promise.all([
-          supabase.from('vault_resume_milestones').select('*').eq('vault_id', vault.id).limit(20),
+          supabase.from('vault_resume_milestones').select('*').eq('vault_id', resume.id).limit(20),
           supabase.from('vault_confirmed_skills').select('*').eq('user_id', userId).limit(30),
-          supabase.from('vault_work_positions').select('*').eq('vault_id', vault.id).limit(10),
-          supabase.from('vault_education').select('*').eq('vault_id', vault.id).limit(5)
+          supabase.from('vault_work_positions').select('*').eq('vault_id', resume.id).limit(10),
+          supabase.from('vault_education').select('*').eq('vault_id', resume.id).limit(5)
         ]);
 
-        vaultContent = `
-CAREER VAULT DATA:
+        resumeContent = `
+MASTER RESUME DATA:
 
 Work Positions:
 ${(positions.data || []).map(p => `- ${p.job_title} at ${p.company_name} (${p.start_date} - ${p.end_date || 'Present'})`).join('\n')}
@@ -74,9 +74,9 @@ ${(skills.data || []).map(s => s.skill_name).join(', ')}
       }
     }
 
-    // Determine actual resume text to use (prioritize parameter, then vault)
-    const actualResumeText = resumeText || vault?.resume_raw_text || '';
-    console.log('📄 Resume text source:', resumeText ? 'parameter' : vault?.resume_raw_text ? 'vault' : 'none');
+    // Determine actual resume text to use (prioritize parameter, then Master Resume)
+    const actualResumeText = resumeText || resume?.resume_raw_text || '';
+    console.log('📄 Resume text source:', resumeText ? 'parameter' : resume?.resume_raw_text ? 'master_resume' : 'none');
     console.log('📄 Resume text length:', actualResumeText.length);
     console.log('📄 Resume preview:', actualResumeText.substring(0, 200));
 
@@ -93,7 +93,7 @@ ${actualResumeText ? `CANDIDATE'S EXISTING RESUME:
 ${actualResumeText}
 ` : ''}
 
-${vaultContent}
+${resumeContent}
 
 CRITICAL MULTI-STEP PROCESS:
 

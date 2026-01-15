@@ -36,7 +36,7 @@ interface VaultData {
   leadership_philosophy: any[];
   intangible_skills: any[];
   working_knowledge: any[];
-  vault_strength: number;
+  resume_strength: number;
 }
 
 interface JobOpportunity {
@@ -130,7 +130,7 @@ serve(async (req) => {
       );
     }
 
-    // 3. Fetch Career Vault Data (ALL categories + CRITICAL: work positions, education, milestones)
+    // 3. Fetch Master Resume Data (ALL categories + CRITICAL: work positions, education, milestones)
     const { data: vaultData, error: vaultError } = await supabase
       .from('career_vault')
       .select(`
@@ -156,13 +156,13 @@ serve(async (req) => {
       .single();
 
     if (vaultError || !vaultData) {
-      throw new Error('Career Vault not found. Please complete your vault first.');
+      throw new Error('Master Resume not found. Please complete your resume first.');
     }
 
     if ((vaultData.overall_strength_score || 0) < 50) {
       return new Response(
         JSON.stringify({ 
-          error: 'Career Vault completeness too low. Please add more content before using AI matching.',
+          error: 'Master Resume completeness too low. Please add more content before using AI matching.',
           current_strength: vaultData.overall_strength_score
         }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -238,7 +238,7 @@ serve(async (req) => {
       );
     }
 
-    // 6. Prepare compact vault data for AI (ALL 10 vault categories)
+    // 6. Prepare compact resume data for AI (ALL 10 categories)
     const compactVault = {
       target_roles: vaultData.target_roles || [],
       target_industries: vaultData.target_industries || [],

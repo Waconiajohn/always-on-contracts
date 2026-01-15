@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Career Vault not found. Complete your Career Vault first.',
+          error: 'Master Resume not found. Complete your Master Resume first.',
         }),
         {
           status: 400,
@@ -87,8 +87,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Step 2: Get vault intelligence details
-    const { data: vaultIntelligence } = await supabase
+    // Step 2: Get resume intelligence details
+    const { data: resumeIntelligence } = await supabase
       .from('vault_intelligence')
       .select('*')
       .eq('user_id', user_id)
@@ -166,14 +166,14 @@ ${JSON.stringify(market_data, null, 2)}
 - Core Skills: ${profile?.core_skills?.join(', ') || 'N/A'}
 - Key Achievements: ${profile?.key_achievements?.join(', ') || 'N/A'}
 
-**CAREER VAULT INTELLIGENCE:**
-- Total Vault Strength: ${vaultData.overall_strength_score || 0}/100
+**MASTER RESUME INTELLIGENCE:**
+- Total Resume Strength: ${vaultData.overall_strength_score || 0}/100
 - Power Phrases: ${vaultData.total_power_phrases || 0}
 - Hidden Competencies: ${vaultData.total_hidden_competencies || 0}
 - Transferable Skills: ${vaultData.total_transferable_skills || 0}
 
 DETAILED INTELLIGENCE:
-${JSON.stringify(vaultIntelligence, null, 2)}
+${JSON.stringify(resumeIntelligence, null, 2)}
 
 Provide analysis:
 1. Strengths vs market (specific evidence)
@@ -335,7 +335,7 @@ Cite all sources.`;
         salary_range_recommendation: analysis.salary_range_recommendation || {},
         market_intelligence: analysis.market_intelligence || null,
         data_sources: citations,
-        vault_strength_score: vaultData.overall_strength_score,
+        resume_strength_score: vaultData.overall_strength_score,
         analyzed_at: new Date().toISOString()
       }),
       {
