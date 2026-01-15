@@ -101,20 +101,20 @@ serve(async (req) => {
     // ========================
     const bullets: any[] = [];
 
-    // 1. Fetch Vault Data - First get vault_id
-    const { data: vaultData, error: vaultError } = await supabase
+    // 1. Fetch Master Resume Data - First get resume_id
+    const { data: resumeData, error: resumeError } = await supabase
       .from('career_vault')
       .select('id')
       .eq('user_id', userId)
       .maybeSingle();
 
-    if (vaultError) {
-      console.error('[MATCH-REQ-TO-BULLETS] Vault fetch error:', vaultError);
+    if (resumeError) {
+      console.error('[MATCH-REQ-TO-BULLETS] Master Resume fetch error:', resumeError);
       // Don't throw - continue with resume text fallback
     }
 
-    if (vaultData) {
-      console.log('[MATCH-REQ-TO-BULLETS] Found vault_id:', vaultData.id);
+    if (resumeData) {
+      console.log('[MATCH-REQ-TO-BULLETS] Found resume_id:', resumeData.id);
 
       // SOURCE A: Resume Milestones (original)
       const { data: milestonesWithPositions, error: milestoneError } = await supabase
@@ -131,7 +131,7 @@ serve(async (req) => {
             description
           )
         `)
-        .eq('vault_id', vaultData.id);
+        .eq('vault_id', resumeData.id);
 
       if (!milestoneError && milestonesWithPositions) {
         console.log('[MATCH-REQ-TO-BULLETS] Found', milestonesWithPositions.length, 'milestones');
@@ -157,7 +157,7 @@ serve(async (req) => {
       const { data: workPositions, error: wpError } = await supabase
         .from('vault_work_positions')
         .select('id, company_name, job_title, description, start_date, end_date, is_current')
-        .eq('vault_id', vaultData.id);
+        .eq('vault_id', resumeData.id);
 
       if (!wpError && workPositions) {
         console.log('[MATCH-REQ-TO-BULLETS] Found', workPositions.length, 'work positions');
@@ -189,7 +189,7 @@ serve(async (req) => {
       const { data: powerPhrases, error: ppError } = await supabase
         .from('vault_power_phrases')
         .select('id, power_phrase, impact_metrics, category')
-        .eq('vault_id', vaultData.id);
+        .eq('vault_id', resumeData.id);
 
       if (!ppError && powerPhrases) {
         console.log('[MATCH-REQ-TO-BULLETS] Found', powerPhrases.length, 'power phrases');
@@ -206,7 +206,7 @@ serve(async (req) => {
               source: {
                 type: 'power_phrase',
                 category: pp.category || 'Achievement',
-                company: 'Career Vault',
+                company: 'Master Resume',
                 jobTitle: 'Power Phrase',
                 dateRange: ''
               }
@@ -219,7 +219,7 @@ serve(async (req) => {
       const { data: skills, error: skillError } = await supabase
         .from('vault_transferable_skills')
         .select('id, stated_skill, evidence, skill_category')
-        .eq('vault_id', vaultData.id);
+        .eq('vault_id', resumeData.id);
 
       if (!skillError && skills) {
         console.log('[MATCH-REQ-TO-BULLETS] Found', skills.length, 'transferable skills');
@@ -231,7 +231,7 @@ serve(async (req) => {
               source: {
                 type: 'transferable_skill',
                 category: skill.skill_category || 'Skill',
-                company: 'Career Vault',
+                company: 'Master Resume',
                 jobTitle: 'Transferable Skill',
                 dateRange: ''
               }
@@ -245,7 +245,7 @@ serve(async (req) => {
     const { data: education, error: eduError } = await supabase
       .from('vault_education')
       .select('id, institution_name, degree_type, degree_name, field_of_study, graduation_year, honors, relevant_coursework')
-      .eq('vault_id', vaultData!.id);
+      .eq('vault_id', resumeData!.id);
 
     if (!eduError && education) {
       console.log('[MATCH-REQ-TO-BULLETS] Found', education.length, 'education records');
@@ -306,7 +306,7 @@ serve(async (req) => {
       });
     }
 
-    console.log('[MATCH-REQ-TO-BULLETS] Total vault bullets:', bullets.length);
+    console.log('[MATCH-REQ-TO-BULLETS] Total resume bullets:', bullets.length);
     console.log('[MATCH-REQ-TO-BULLETS] Bullet sources breakdown:', {
       milestones: bullets.filter((b: any) => b.source.type === 'milestone').length,
       workPositions: bullets.filter((b: any) => b.source.type === 'work_position').length,
@@ -319,7 +319,7 @@ serve(async (req) => {
     // FALLBACK: Parse from uploaded resume text if vault is empty
     // ========================
     if (bullets.length === 0 && resumeText) {
-      console.log('[MATCH-REQ-TO-BULLETS] Vault empty, parsing bullets from uploaded resume text');
+      console.log('[MATCH-REQ-TO-BULLETS] Master Resume empty, parsing bullets from uploaded resume text');
       const resumeBullets = parseResumeBullets(resumeText);
       bullets.push(...resumeBullets);
       console.log('[MATCH-REQ-TO-BULLETS] Extracted', resumeBullets.length, 'bullets from resume text');
@@ -337,7 +337,7 @@ serve(async (req) => {
             matchedRequirements: 0, 
             coverageScore: 0 
           },
-          message: 'No career evidence found. Please upload a resume or build your Career Vault to get started.'
+          message: 'No career evidence found. Please upload a resume or build your Master Resume to get started.'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
