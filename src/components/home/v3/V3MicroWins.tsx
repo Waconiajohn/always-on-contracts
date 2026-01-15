@@ -30,7 +30,7 @@ export function V3MicroWins({ resumeCompletion }: V3MicroWinsProps) {
         impact: '+5% resume score',
         timeEstimate: '3 min',
         aiModel: 'Gemini 2.5 Flash',
-        path: '/master-resume',
+        path: '/resume-builder',
         icon: TrendingUp
       });
     }
@@ -42,7 +42,7 @@ export function V3MicroWins({ resumeCompletion }: V3MicroWinsProps) {
         impact: '+2% resume score',
         timeEstimate: '5 min',
         aiModel: 'Gemini 3.0 Pro',
-        path: '/master-resume',
+        path: '/resume-builder',
         icon: Sparkles
       });
     }
@@ -53,7 +53,7 @@ export function V3MicroWins({ resumeCompletion }: V3MicroWinsProps) {
       impact: '+3% resume quality',
       timeEstimate: '4 min',
       aiModel: 'GPT-5',
-      path: '/master-resume',
+      path: '/resume-builder',
       icon: Zap
     });
 

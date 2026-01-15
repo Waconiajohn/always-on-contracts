@@ -109,7 +109,7 @@ export const useJobTitleRecommendations = (userId: string | null): JobTitleRecom
             title: suggestion,
             confidence: 70,
             synonyms: [],
-            reasoning: 'Based on career vault analysis',
+            reasoning: 'Based on Master Resume analysis',
             industryAlignment: 'medium' as const
           };
         }

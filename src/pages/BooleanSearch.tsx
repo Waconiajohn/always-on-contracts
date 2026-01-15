@@ -14,7 +14,7 @@ import { Loader2, Copy, Check, Sparkles, Plus, Search } from "lucide-react";
 
 const BooleanSearchContent = () => {
   const { toast } = useToast();
-  const [vaultTitles, setVaultTitles] = useState<string[]>([]);
+  const [resumeTitles, setResumeTitles] = useState<string[]>([]);
   const [selectedTitles, setSelectedTitles] = useState<string[]>([]);
   const [customTitle, setCustomTitle] = useState("");
   const [suggestedTitles, setSuggestedTitles] = useState<string[]>([]);
@@ -23,23 +23,23 @@ const BooleanSearchContent = () => {
   const [copiedIndeed, setCopiedIndeed] = useState(false);
 
   useEffect(() => {
-    loadVaultTitles();
+    loadResumeTitles();
   }, []);
 
-  const loadVaultTitles = async () => {
+  const loadResumeTitles = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data: vault } = await supabase
+    const { data: resume } = await supabase
       .from('career_vault')
       .select('target_roles')
       .eq('user_id', user.id)
       .single();
 
-    if (vault?.target_roles && vault.target_roles.length > 0) {
-      setVaultTitles(vault.target_roles);
-      // Auto-select vault titles
-      setSelectedTitles(vault.target_roles);
+    if (resume?.target_roles && resume.target_roles.length > 0) {
+      setResumeTitles(resume.target_roles);
+      // Auto-select resume titles
+      setSelectedTitles(resume.target_roles);
     }
   };
 
@@ -154,13 +154,13 @@ const BooleanSearchContent = () => {
           </p>
         </div>
 
-        {/* Career Vault Titles */}
-        {vaultTitles.length > 0 && (
+        {/* Master Resume Titles */}
+        {resumeTitles.length > 0 && (
           <Card className="mb-6">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-primary" />
-                From Your Career Vault
+                From Your Master Resume
               </CardTitle>
               <CardDescription>
                 These are your target roles - we've pre-selected them for you
@@ -168,14 +168,14 @@ const BooleanSearchContent = () => {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-3">
-                {vaultTitles.map((title) => (
+                {resumeTitles.map((title) => (
                   <div key={title} className="flex items-center space-x-2">
                     <Checkbox
-                      id={`vault-${title}`}
+                      id={`resume-${title}`}
                       checked={selectedTitles.includes(title)}
                       onCheckedChange={() => toggleTitle(title)}
                     />
-                    <Label htmlFor={`vault-${title}`} className="cursor-pointer">
+                    <Label htmlFor={`resume-${title}`} className="cursor-pointer">
                       {title}
                     </Label>
                   </div>

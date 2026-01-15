@@ -46,7 +46,7 @@ Generate 5 specific, actionable items that:
 5. Include quantifiable metrics where possible
 
 For each suggestion, provide:
-- content: The actual text to add to the vault
+- content: The actual text to add to the Master Resume
 - qualityTier: 'gold', 'silver', or 'bronze'
 - reasoning: Why this helps achieve the goal (1 sentence)
 - keywords: Array of 2-3 relevant keywords from the suggestion

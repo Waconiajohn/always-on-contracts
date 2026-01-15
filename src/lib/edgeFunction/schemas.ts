@@ -360,7 +360,7 @@ export const GenerateDualResumeSectionSchema = z.object({
   section_type: z.string().min(1, 'Section type required'),
   section_guidance: z.string(),
   job_analysis_research: z.string(),
-  vault_items: z.array(z.any()),
+  resume_items: z.array(z.any()),
   resume_milestones: z.array(z.any()),
   user_id: z.string().uuid('Invalid user ID'),
   job_title: z.string(),
