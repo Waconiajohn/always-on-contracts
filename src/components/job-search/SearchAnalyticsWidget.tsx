@@ -33,7 +33,8 @@ export const SearchAnalyticsWidget = ({ userId }: SearchAnalyticsWidgetProps) =>
   
   if (!userId || loading) return null;
   
-  const resumeStats = stats.find(s => s.origin === 'vault_title');
+  // Note: DB stores 'vault_title' for backward compatibility, but UI shows "Master Resume"
+  const resumeStats = stats.find(s => s.origin === 'vault_title' || s.origin === 'resume_title');
   const typedStats = stats.find(s => s.origin === 'typed_query');
   
   if (!resumeStats && !typedStats) return null;

@@ -91,12 +91,12 @@ All schemas are imported from `@/lib/edgeFunction/schemas`:
 - `ParseResumeMilestonesSchema`
 - `ParseJobDocumentSchema`
 
-### Career Vault
-- `ExtractVaultIntangiblesSchema`
-- `AutoPopulateVaultSchema`
+### Master Resume
+- `ExtractResumeIntangiblesSchema`
+- `AutoPopulateResumeSchema`
 - `DiscoverHiddenCompetenciesSchema`
 - `ProcessReviewActionsSchema`
-- `VaultCleanupSchema`
+- `ResumeCleanupSchema`
 - `DetectRoleAndIndustrySchema`
 - `GenerateCompletionBenchmarkSchema`
 

@@ -14,7 +14,6 @@ export const AISystemsStatusWidget = () => {
     { name: "Agency Matcher", active: true },
     { name: "Financial Planning", active: true },
     { name: "Master Resume Builder", active: true },
-    { name: "Resume Builder", active: true },
   ];
 
   return (

@@ -15,21 +15,21 @@ Comprehensive documentation of all Supabase Edge Functions in this project, incl
 
 ## AI & Generation Functions
 
-### `career-vault-chat`
-**Purpose**: AI chatbot for career vault assistance using Lovable AI streaming
+### `master-resume-chat`
+**Purpose**: AI chatbot for Master Resume assistance using Lovable AI streaming
 
 **Inputs**:
 ```typescript
 {
   messages: Array<{ role: 'user' | 'assistant', content: string }>,
-  vaultContext: string // Serialized career vault data
+  resumeContext: string // Serialized Master Resume data
 }
 ```
 
 **Outputs**: Server-Sent Events (SSE) stream of AI responses
 
 **Frontend Usage**:
-- `src/components/career-vault/VaultAIAssistant.tsx` (line 74)
+- `src/components/career-vault/MasterResumeAIAssistant.tsx` (line 74)
 
 **Authentication**: Required (`verify_jwt = true`)
 
@@ -114,7 +114,7 @@ Comprehensive documentation of all Supabase Edge Functions in this project, incl
 ```
 
 **Frontend Usage**:
-- `src/components/career-vault/ModernizeLanguageModal.tsx` (line 102)
+- `src/components/master-resume/ModernizeLanguageModal.tsx` (line 102)
 
 **Authentication**: Required (`verify_jwt = true`)
 
@@ -158,8 +158,8 @@ Comprehensive documentation of all Supabase Edge Functions in this project, incl
 
 ---
 
-### `extract-vault-intangibles`
-**Purpose**: Extracts soft skills, personality traits, and intangible qualities from responses
+### `extract-resume-intangibles`
+**Purpose**: Extracts soft skills, personality traits, and intangible qualities from Master Resume responses
 
 **Inputs**:
 ```typescript
@@ -183,14 +183,14 @@ Comprehensive documentation of all Supabase Edge Functions in this project, incl
 
 **Frontend Usage**:
 - `src/components/ResponseReviewModal.tsx` (line 101)
-- `src/components/career-vault/VoiceNoteRecorder.tsx` (line 194)
+- `src/components/master-resume/VoiceNoteRecorder.tsx` (line 194)
 
 **Authentication**: Required (`verify_jwt = true`)
 
 ---
 
 ### `discover-hidden-competencies`
-**Purpose**: AI-powered discovery of implicit competencies from career vault data
+**Purpose**: AI-powered discovery of implicit competencies from Master Resume data
 
 **Inputs**:
 ```typescript
@@ -220,7 +220,7 @@ Comprehensive documentation of all Supabase Edge Functions in this project, incl
 ---
 
 ### `generate-power-phrases`
-**Purpose**: Generates achievement-focused power phrases from vault data
+**Purpose**: Generates achievement-focused power phrases from Master Resume data
 
 **Inputs**:
 ```typescript
@@ -242,7 +242,7 @@ Comprehensive documentation of all Supabase Edge Functions in this project, incl
 ```
 
 **Frontend Usage**:
-- Vault intelligence building in `CorporateAssistant.tsx`
+- Master Resume intelligence building in `CorporateAssistant.tsx`
 
 **Authentication**: Required (`verify_jwt = true`)
 
@@ -271,14 +271,14 @@ Comprehensive documentation of all Supabase Edge Functions in this project, incl
 ```
 
 **Frontend Usage**:
-- Vault intelligence building in `CorporateAssistant.tsx`
+- Master Resume intelligence building in `CorporateAssistant.tsx`
 
 **Authentication**: Required (`verify_jwt = true`)
 
 ---
 
 ### `process-review-actions`
-**Purpose**: Batch processes user review actions (confirm/edit/reject) on vault items
+**Purpose**: Batch processes user review actions (confirm/edit/reject) on Master Resume items
 
 **Inputs**:
 ```typescript
@@ -304,14 +304,14 @@ Comprehensive documentation of all Supabase Edge Functions in this project, incl
 ```
 
 **Frontend Usage**:
-- Review workflows for vault quality assurance
+- Review workflows for Master Resume quality assurance
 
 **Authentication**: Required (`verify_jwt = true`)
 
 ---
 
 ### `detect-role-and-industry`
-**Purpose**: AI detection of target roles and industries from resume or vault data
+**Purpose**: AI detection of target roles and industries from resume or Master Resume data
 
 **Inputs**:
 ```typescript
@@ -338,8 +338,8 @@ Comprehensive documentation of all Supabase Edge Functions in this project, incl
 
 ---
 
-### `vault-cleanup`
-**Purpose**: Removes duplicate and low-quality items from vault
+### `resume-cleanup`
+**Purpose**: Removes duplicate and low-quality items from Master Resume
 
 **Inputs**:
 ```typescript
@@ -359,7 +359,7 @@ Comprehensive documentation of all Supabase Edge Functions in this project, incl
 ```
 
 **Frontend Usage**:
-- `src/components/career-vault/VaultMigrationTool.tsx`
+- `src/components/master-resume/ResumeMigrationTool.tsx`
 
 **Authentication**: Required (`verify_jwt = true`)
 
