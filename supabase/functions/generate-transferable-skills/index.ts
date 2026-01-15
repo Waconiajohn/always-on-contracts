@@ -14,13 +14,14 @@ serve(createAIHandler({
   parseResponse: false,  // Custom handling with database
 
   inputValidation: (body) => {
-    if (!body.vaultId) {
-      throw new Error('vaultId is required');
+    // Support both resumeId and vaultId for backward compatibility
+    if (!body.resumeId && !body.vaultId) {
+      throw new Error('resumeId is required');
     }
   },
 
   handler: async ({ body, logger }) => {
-    const { vaultId } = body;
+    const vaultId = body.resumeId || body.vaultId;
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;

@@ -92,7 +92,7 @@ export class ExtractionObservability {
    */
   async startSession(config: {
     resumeId?: string;
-    vaultId?: string; // Backward compatibility
+    vaultId?: string; // Backward compatibility - DB table still named career_vault
     userId: string;
     extractionVersion?: string;
     metadata?: Record<string, any>;

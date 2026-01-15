@@ -103,11 +103,11 @@ export function SearchHeader({
             </Button>
           </div>
 
-          {/* Vault Chips */}
+          {/* Master Resume Chips */}
           {suggestedTitles && suggestedTitles.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium uppercase tracking-wide">
-                <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded">Career Vault</span>
+                <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded">Master Resume</span>
                 Recommended for you
               </div>
               <div className="flex flex-wrap gap-2">

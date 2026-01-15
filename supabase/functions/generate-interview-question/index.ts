@@ -388,7 +388,7 @@ CONTEXT FIELD RULES:
 - "Tell me more about how you..." (restating the question)
 - "That's wonderful! Let me ask about..." (conversational filler)
 
-The context field is NOT a second question or intro—it's a brief explanation of WHY we're asking for strategic Career Vault building purposes.
+The context field is NOT a second question or intro—it's a brief explanation of WHY we're asking for strategic Master Resume building purposes.
 
 CRITICAL INSTRUCTIONS (PHASE 2 FIX - Use FULL resume context):
 1. FULL RESUME TEXT: ${vault?.resume_raw_text?.substring(0, 800) || 'N/A'}

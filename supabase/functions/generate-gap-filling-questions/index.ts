@@ -183,7 +183,7 @@ serve(async (req) => {
     if (cachedContext && !contextError) {
       console.log('[GAP QUESTIONS] ✅ Cache hit - using verified career context');
       console.log('[GAP QUESTIONS] 📊 Full Cache Data Retrieved:', {
-        vaultId: cachedContext.vault_id,
+        resumeId: cachedContext.vault_id, // DB column still named vault_id for backward compatibility
         hasManagement: cachedContext.has_management_experience,
         managementDetails: cachedContext.management_details,
         teamSizes: cachedContext.team_sizes_managed,

@@ -246,7 +246,7 @@ I'm happy to discuss this further and find a mutually beneficial arrangement.`;
                       <Sparkles className="h-5 w-5 text-green-600" />
                       Your Competitive Position
                     </CardTitle>
-                    <CardDescription>Analysis based on your Career Vault</CardDescription>
+                    <CardDescription>Analysis based on your Master Resume</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-center gap-4">

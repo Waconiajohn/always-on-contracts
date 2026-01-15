@@ -129,7 +129,7 @@ export const FormatSelector = ({
           </p>
           <ol className="text-sm text-muted-foreground space-y-1 mt-2 ml-4">
             <li>1. See AI guidance on what should be included</li>
-            <li>2. Select relevant items from your Career Vault</li>
+            <li>2. Select relevant items from your Master Resume</li>
             <li>3. Review AI-generated content tailored to this job</li>
             <li>4. Edit if needed, then approve to continue</li>
           </ol>

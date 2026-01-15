@@ -168,7 +168,7 @@ export const QuickBooleanBuilder = ({ open, onOpenChange, onApply }: QuickBoolea
             </div>
           ) : vaultTitles.length > 0 ? (
             <div className="space-y-2">
-              <Label>From Your Career Vault</Label>
+              <Label>From Your Master Resume</Label>
               <div className="space-y-2 p-3 border rounded-lg bg-muted/30">
                 {vaultTitles.map((title) => (
                   <div key={title} className="flex items-center space-x-2">
