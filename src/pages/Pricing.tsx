@@ -28,8 +28,8 @@ const MODULES = [
     color: "from-blue-500/20 to-blue-600/5"
   },
   {
-    id: "career_vault" as ModuleId,
-    name: "Career Vault",
+    id: "master_resume" as ModuleId,
+    name: "Master Resume",
     price: "$19",
     icon: Package,
     description: "Your long-term career intelligence hub",

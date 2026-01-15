@@ -99,12 +99,12 @@ CERTIFICATIONS
     return data.id;
   }
 
-  async createMockCareerVault(userId: string): Promise<string> {
+  async createMockMasterResume(userId: string): Promise<string> {
     const { data, error } = await supabase
       .from('career_vault')
       .insert({
         user_id: userId,
-        vault_name: 'Test Vault',
+        vault_name: 'Test Resume',
         target_roles: ['Software Engineer', 'Full Stack Developer'],
         target_industries: ['Technology', 'Finance'],
         overall_strength_score: 75,
