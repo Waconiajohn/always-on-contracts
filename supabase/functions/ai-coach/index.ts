@@ -13,7 +13,6 @@ interface CoachRequest {
   itemType?: string;
   positionId?: string;
   resumeId?: string;
-  vaultId?: string; // Backward compatibility
   userQuery?: string; // For 'expand' mode
   marketContext?: any; // Gap data, requirements
   positionTitle?: string;
@@ -49,9 +48,7 @@ serve(async (req) => {
     }
 
     const body: CoachRequest = await req.json();
-    const { mode, originalText, itemId, itemType, positionId, resumeId: bodyResumeId, vaultId, userQuery, marketContext, positionTitle } = body;
-    // Support both resumeId and vaultId for backward compatibility
-    const resumeId = bodyResumeId || vaultId;
+    const { mode, originalText, itemId, itemType, positionId, resumeId, userQuery, marketContext, positionTitle } = body;
 
     if (!mode || !originalText || !resumeId) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {

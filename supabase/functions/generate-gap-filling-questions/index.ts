@@ -54,9 +54,7 @@ interface QuestionBatch {
 
 interface GapFillingRequest {
   resumeId?: string;
-  vaultId?: string; // Backward compatibility
   resumeData?: any;
-  vaultData?: any; // Backward compatibility
   industryResearch?: any;
   targetRoles?: string[];
   resumeText?: string;
@@ -91,12 +89,9 @@ serve(async (req) => {
 
     // Parse request
     const requestBody: GapFillingRequest = await req.json();
-    const { vaultId, resumeId: bodyResumeId, vaultData, resumeData: bodyResumeData, industryResearch, targetRoles, resumeText } = requestBody;
-    // Support both resumeId/resumeData and vaultId/vaultData for backward compatibility
-    const resumeId = bodyResumeId || vaultId;
-    const masterResumeData = bodyResumeData || vaultData;
+    const { resumeId, resumeData, industryResearch, targetRoles, resumeText } = requestBody;
 
-    if (!masterResumeData) {
+    if (!resumeData) {
       throw new Error('resumeData is required');
     }
 
@@ -259,9 +254,9 @@ serve(async (req) => {
       gapAreas.forEach(gap => console.log(`  ⚠ ${gap}`));
       console.log('[GAP QUESTIONS] ✅ Using cached career context with', verifiedAreas.length, 'verified areas and', gapAreas.length, 'gaps');
     } else {
-      console.warn('[GAP QUESTIONS] ⚠️ Cache miss - vault may need re-extraction');
+      console.warn('[GAP QUESTIONS] ⚠️ Cache miss - resume may need re-extraction');
       console.warn('[GAP QUESTIONS] 🔍 Debug Info:', {
-        vaultIdProvided: vaultId,
+        resumeIdProvided: resumeId,
         contextError: contextError,
         errorCode: contextError?.code,
         errorMessage: contextError?.message,
@@ -347,14 +342,14 @@ Executive Exposure: ${careerContext.hasExecutiveExposure ? 'YES ✓' : 'NO'}
 Career Archetype: ${careerContext.careerArchetype}
 
 ## PROFESSIONAL IDENTITY:
-Current Title: ${masterResumeData.professional_identity?.current_title || 'Unknown'}
-Industry: ${masterResumeData.professional_identity?.industry || 'Unknown'}
-Years of Experience: ${masterResumeData.professional_identity?.years_of_experience || careerContext.yearsOfExperience}
-Target Roles: ${masterResumeData.professional_identity?.target_roles?.join(', ') || targetRoles?.join(', ') || 'Not specified'}
+Current Title: ${resumeData.professional_identity?.current_title || 'Unknown'}
+Industry: ${resumeData.professional_identity?.industry || 'Unknown'}
+Years of Experience: ${resumeData.professional_identity?.years_of_experience || careerContext.yearsOfExperience}
+Target Roles: ${resumeData.professional_identity?.target_roles?.join(', ') || targetRoles?.join(', ') || 'Not specified'}
 
 ## MASTER RESUME STRENGTH:
-Overall Strength: ${masterResumeData.overall_strength_score || 0}%
-Completion: ${masterResumeData.review_completion_percentage || 0}%
+Overall Strength: ${resumeData.overall_strength_score || 0}%
+Completion: ${resumeData.review_completion_percentage || 0}%
 
 ${industryInsights ? `## INDUSTRY CONTEXT:
 Expected Competencies: ${industryInsights.keyCompetencies.join(', ')}
@@ -388,7 +383,7 @@ CRITICAL RULES FOR QUESTION GENERATION:
      'Focus on building foundational skills and documenting technical achievements'}
 
 3. **Industry Specificity:**
-   - Use terminology from THEIR industry (${masterResumeData.professional_identity?.industry || 'their field'})
+   - Use terminology from THEIR industry (${resumeData.professional_identity?.industry || 'their field'})
    - Ask about gaps that are REALISTIC for someone in their specific role
    - NO generic questions that could apply to anyone
 

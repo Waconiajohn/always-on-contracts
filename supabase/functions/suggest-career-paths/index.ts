@@ -30,7 +30,6 @@ interface CareerPathRequest {
   currentRole: string;
   currentIndustry: string;
   resumeId?: string;
-  vaultId?: string; // Backward compatibility
   resumeText?: string;
 }
 
@@ -98,12 +97,9 @@ serve(async (req) => {
       careerDirection,
       currentRole,
       currentIndustry,
-      resumeId: bodyResumeId,
-      vaultId,
+      resumeId,
       resumeText: providedResumeText
     } = body;
-    // Support both resumeId and vaultId for backward compatibility
-    const resumeId = bodyResumeId || vaultId;
 
     console.log('🚀 Generating career path suggestions:', {
       direction: careerDirection,

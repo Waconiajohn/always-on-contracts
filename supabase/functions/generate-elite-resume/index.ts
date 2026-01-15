@@ -25,7 +25,7 @@ serve(async (req) => {
       jobTitle,
       industry,
       resumeText,
-      vaultData,
+      resumeData,
       userId
     } = await req.json();
 
@@ -262,24 +262,24 @@ Return ONLY the JSON, no markdown.`;
       throw new Error('AI returned invalid JSON format. Please try again.');
     }
 
-    const resumeData = parseResult.data;
+    const parsedResumeData = parseResult.data;
 
-    if (!resumeData.sections || !Array.isArray(resumeData.sections)) {
+    if (!parsedResumeData.sections || !Array.isArray(parsedResumeData.sections)) {
       throw new Error('Invalid resume structure returned by AI');
     }
 
     console.log('✅ Elite resume v2 generated successfully');
-    console.log(`📊 Stats: ${resumeData.sections.length} sections`);
+    console.log(`📊 Stats: ${parsedResumeData.sections.length} sections`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        resumeData,
+        resumeData: parsedResumeData,
         analysis: {
-          totalSections: resumeData.sections.length,
-          hasEducation: resumeData.sections.some((s: any) => s.type === 'education'),
-          hasCertifications: resumeData.sections.some((s: any) => s.type === 'certifications'),
-          hasSkills: resumeData.sections.some((s: any) => s.type === 'skills'),
+          totalSections: parsedResumeData.sections.length,
+          hasEducation: parsedResumeData.sections.some((s: any) => s.type === 'education'),
+          hasCertifications: parsedResumeData.sections.some((s: any) => s.type === 'certifications'),
+          hasSkills: parsedResumeData.sections.some((s: any) => s.type === 'skills'),
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

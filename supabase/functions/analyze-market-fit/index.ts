@@ -7,8 +7,7 @@ const corsHeaders = {
 };
 
 interface MarketFitRequest {
-  resumeId?: string;
-  vaultId?: string; // Backward compatibility
+  resumeId: string;
   targetRole: string;
   targetIndustry?: string;
   resumeText?: string;
@@ -45,9 +44,7 @@ serve(async (req) => {
     }
 
     const body: MarketFitRequest = await req.json();
-    const { vaultId, resumeId: bodyResumeId, targetRole, targetIndustry, resumeText, numJobs = 10 } = body;
-    // Support both resumeId and vaultId for backward compatibility
-    const resumeId = bodyResumeId || vaultId;
+    const { resumeId, targetRole, targetIndustry, resumeText, numJobs = 10 } = body;
 
     if (!resumeId || !targetRole) {
       return new Response(JSON.stringify({ error: 'Missing resumeId or targetRole' }), {
