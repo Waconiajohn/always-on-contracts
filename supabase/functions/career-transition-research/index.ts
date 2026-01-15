@@ -38,7 +38,7 @@ serve(async (req) => {
       .single();
 
     if (vaultError || !vault) {
-      return errorResponse(new Error('Vault not found. Please complete your career vault first.'), 404);
+      return errorResponse(new Error('Master Resume not found. Please complete your Master Resume first.'), 404);
     }
 
     // Fetch career context

@@ -21,7 +21,7 @@ function renderTemplate(
   return templateBody
     .replace(/{{firstName}}/g, firstName || "there")
     .replace(/{{appUrl}}/g, appUrl)
-    .replace(/{{senderName}}/g, senderName || "Your Career Vault Team");
+    .replace(/{{senderName}}/g, senderName || "Your Master Resume Team");
 }
 
 export async function sendOnboardingEmail(

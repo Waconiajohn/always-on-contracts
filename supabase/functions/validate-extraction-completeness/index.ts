@@ -18,8 +18,7 @@ const corsHeaders = {
 
 interface ValidationRequest {
   resumeText: string;
-  resumeId?: string;
-  vaultId?: string; // Backwards compatibility
+  resumeId: string;
 }
 
 interface ExtractedData {
@@ -42,8 +41,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const body: ValidationRequest = await req.json();
-    // Support both old and new parameter names for backwards compatibility
-    const resumeId = body.resumeId || body.vaultId;
+    const resumeId = body.resumeId;
     const resumeText = body.resumeText;
 
     if (!resumeText || !resumeId) {

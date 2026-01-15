@@ -66,7 +66,7 @@ function LinkedInNetworkingAgentContent() {
         .eq('user_id', user.id)
         .single();
 
-      if (!vault) throw new Error("Career Vault not found");
+      if (!vault) throw new Error("Master Resume not found");
 
       const { data: phrases } = await supabase
         .from('vault_power_phrases')

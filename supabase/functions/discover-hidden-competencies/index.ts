@@ -40,7 +40,7 @@ serve(async (req) => {
       .eq('vault_id', vaultId)
       .eq('phase', 'hidden_gems');
 
-    if (!vault) throw new Error('Career Vault not found');
+    if (!vault) throw new Error('Master Resume not found');
 
     const systemPrompt = `You are an expert at discovering hidden competencies and reframing experience with modern terminology. Return ONLY valid JSON, no additional text or explanations.
 
@@ -73,7 +73,7 @@ Discover 8-12 hidden competencies like:
 - Created Excel macros for 10 years → RPA candidate, Python automation ready, process improvement expert
 - "Coordinated between sales and engineering" → Product management capable, stakeholder management expert`;
 
-    console.log('Discovering hidden competencies for career vault:', vaultId);
+    console.log('Discovering hidden competencies for Master Resume:', vaultId);
 
     const { response, metrics } = await retryWithBackoff(
       async () => await callLovableAI(
