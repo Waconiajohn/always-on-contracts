@@ -19,39 +19,39 @@ interface QuickBooleanBuilderProps {
 
 export const QuickBooleanBuilder = ({ open, onOpenChange, onApply }: QuickBooleanBuilderProps) => {
   const { toast } = useToast();
-  const [vaultTitles, setVaultTitles] = useState<string[]>([]);
+  const [resumeTitles, setResumeTitles] = useState<string[]>([]);
   const [selectedTitles, setSelectedTitles] = useState<Set<string>>(new Set());
   const [customTitle, setCustomTitle] = useState("");
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
-  const [isLoadingVault, setIsLoadingVault] = useState(true);
+  const [isLoadingResume, setIsLoadingResume] = useState(true);
 
   useEffect(() => {
     if (open) {
-      loadVaultTitles();
+      loadResumeTitles();
     }
   }, [open]);
 
-  const loadVaultTitles = async () => {
+  const loadResumeTitles = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: vault } = await supabase
+      const { data: resume } = await supabase
         .from('career_vault')
         .select('target_roles')
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (vault?.target_roles) {
-        setVaultTitles(vault.target_roles);
-        // Auto-select all vault titles
-        setSelectedTitles(new Set(vault.target_roles));
+      if (resume?.target_roles) {
+        setResumeTitles(resume.target_roles);
+        // Auto-select all resume titles
+        setSelectedTitles(new Set(resume.target_roles));
       }
     } catch (error) {
-      logger.error('Error loading vault', error);
+      logger.error('Error loading Master Resume', error);
     } finally {
-      setIsLoadingVault(false);
+      setIsLoadingResume(false);
     }
   };
 
@@ -161,16 +161,16 @@ export const QuickBooleanBuilder = ({ open, onOpenChange, onApply }: QuickBoolea
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Vault Titles */}
-          {isLoadingVault ? (
+          {/* Resume Titles */}
+          {isLoadingResume ? (
             <div className="flex items-center justify-center py-4">
               <Loader2 className="h-6 w-6 animate-spin" />
             </div>
-          ) : vaultTitles.length > 0 ? (
+          ) : resumeTitles.length > 0 ? (
             <div className="space-y-2">
               <Label>From Your Master Resume</Label>
               <div className="space-y-2 p-3 border rounded-lg bg-muted/30">
-                {vaultTitles.map((title) => (
+                {resumeTitles.map((title) => (
                   <div key={title} className="flex items-center space-x-2">
                     <Checkbox
                       checked={selectedTitles.has(title)}

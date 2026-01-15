@@ -46,7 +46,7 @@ export const SubscriptionGate = ({
             </h2>
             <p className="text-muted-foreground">
               {requiredTier === 'concierge_elite' 
-                ? 'AI Job Matching is exclusive to Concierge Elite subscribers. Upgrade to have our AI automatically discover and recommend opportunities tailored to your Career Vault.'
+                ? 'AI Job Matching is exclusive to Concierge Elite subscribers. Upgrade to have our AI automatically discover and recommend opportunities tailored to your Master Resume.'
                 : 'This feature requires a paid subscription. Unlock all career intelligence tools and accelerate your job search.'}
             </p>
             <div className="flex gap-4 justify-center">

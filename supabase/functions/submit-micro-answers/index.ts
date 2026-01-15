@@ -120,27 +120,27 @@ serve(async (req) => {
       console.warn('[SUBMIT-MICRO] Could not update trigger status:', triggerUpdateError);
     }
 
-    // Update vault progressive profiling score
+    // Update Master Resume progressive profiling score
     const successCount = results.filter(r => r.success).length;
     if (successCount > 0) {
-      // Fetch vault to update score
-      const { data: vaultData } = await supabase
+      // Fetch resume to update score
+      const { data: resumeData } = await supabase
         .from('progressive_profiling_triggers')
         .select('vault_id')
         .eq('id', triggerId)
         .single();
 
-      if (vaultData) {
-        const { error: vaultUpdateError } = await supabase
+      if (resumeData) {
+        const { error: resumeUpdateError } = await supabase
           .from('career_vault')
           .update({
             total_micro_questions_answered: supabase.rpc('increment', { x: successCount }),
             last_profiling_prompt_at: new Date().toISOString()
           })
-          .eq('id', vaultData.vault_id);
+          .eq('id', resumeData.vault_id);
 
-        if (vaultUpdateError) {
-          console.warn('[SUBMIT-MICRO] Could not update vault stats:', vaultUpdateError);
+        if (resumeUpdateError) {
+          console.warn('[SUBMIT-MICRO] Could not update resume stats:', resumeUpdateError);
         }
       }
     }

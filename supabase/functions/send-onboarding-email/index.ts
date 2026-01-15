@@ -45,7 +45,7 @@ serve(async (req) => {
     console.log(`Sending onboarding email (${templateId}) to ${to}`);
 
     const { data, error } = await resend.emails.send({
-      from: "Career Vault <onboarding@resend.dev>",
+      from: "Master Resume <onboarding@resend.dev>",
       to: [to],
       subject,
       text,

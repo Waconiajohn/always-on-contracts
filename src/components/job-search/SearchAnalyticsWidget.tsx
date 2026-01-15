@@ -33,10 +33,10 @@ export const SearchAnalyticsWidget = ({ userId }: SearchAnalyticsWidgetProps) =>
   
   if (!userId || loading) return null;
   
-  const vaultStats = stats.find(s => s.origin === 'vault_title');
+  const resumeStats = stats.find(s => s.origin === 'vault_title');
   const typedStats = stats.find(s => s.origin === 'typed_query');
   
-  if (!vaultStats && !typedStats) return null;
+  if (!resumeStats && !typedStats) return null;
   
   return (
     <Card>
@@ -47,10 +47,10 @@ export const SearchAnalyticsWidget = ({ userId }: SearchAnalyticsWidgetProps) =>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {vaultStats && (
+        {resumeStats && (
           <div className="flex items-center justify-between text-xs">
-            <span>Vault-powered searches:</span>
-            <span className="font-semibold">{vaultStats.totalSearches}</span>
+            <span>Master Resume-powered searches:</span>
+            <span className="font-semibold">{resumeStats.totalSearches}</span>
           </div>
         )}
         {typedStats && (
@@ -59,10 +59,10 @@ export const SearchAnalyticsWidget = ({ userId }: SearchAnalyticsWidgetProps) =>
             <span className="font-semibold">{typedStats.totalSearches}</span>
           </div>
         )}
-        {vaultStats && typedStats && vaultStats.avgResultsPerSearch > typedStats.avgResultsPerSearch && (
+        {resumeStats && typedStats && resumeStats.avgResultsPerSearch > typedStats.avgResultsPerSearch && (
           <div className="flex items-center gap-2 text-xs text-green-600">
             <TrendingUp className="h-3 w-3" />
-            <span>Vault searches find {Math.round(vaultStats.avgResultsPerSearch - typedStats.avgResultsPerSearch)} more jobs on average</span>
+            <span>Master Resume searches find {Math.round(resumeStats.avgResultsPerSearch - typedStats.avgResultsPerSearch)} more jobs on average</span>
           </div>
         )}
       </CardContent>

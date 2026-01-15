@@ -53,12 +53,12 @@ serve(async (req) => {
 **Target Industry**: ${targetIndustry}
 **Industry Standards**: ${JSON.stringify(industryResearch).substring(0, 800)}
 
-**Existing Vault Data**:
+**Existing Master Resume Data**:
 - Power Phrases: ${existingPhrases?.length || 0} items
 - Skills: ${existingSkills?.length || 0} items
 
 Generate questions that:
-1. Fill gaps in their career vault compared to industry standards
+1. Fill gaps in their Master Resume compared to industry standards
 2. Uncover hidden achievements and metrics
 3. Explore leadership philosophy and soft skills
 4. Discover transferable skills they haven't mentioned

@@ -77,7 +77,7 @@ export function SkillsTagInput({
 
       {suggestions.length > 0 && skills.length < maxSkills && (
         <div className="space-y-2">
-          <p className="text-xs font-medium">Suggested from Career Vault:</p>
+          <p className="text-xs font-medium">Suggested from Master Resume:</p>
           <div className="flex flex-wrap gap-1">
             {suggestions
               .filter(s => !skills.includes(s))

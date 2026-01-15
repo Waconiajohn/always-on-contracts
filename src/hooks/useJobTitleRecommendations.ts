@@ -40,7 +40,7 @@ export const useJobTitleRecommendations = (userId: string | null): JobTitleRecom
         .maybeSingle();
 
       if (!vault) {
-        throw new Error('No Career Vault found. Please set up your vault first.');
+        throw new Error('No Master Resume found. Please set up your Master Resume first.');
       }
 
       // Check if we have cached recommendations
@@ -134,7 +134,7 @@ export const useJobTitleRecommendations = (userId: string | null): JobTitleRecom
 
       toast({
         title: "Job Titles Generated",
-        description: `Found ${titles.length} recommended roles based on your vault`,
+        description: `Found ${titles.length} recommended roles based on your Master Resume`,
       });
 
     } catch (err: any) {
@@ -143,7 +143,7 @@ export const useJobTitleRecommendations = (userId: string | null): JobTitleRecom
       
       toast({
         title: "Could not generate recommendations",
-        description: err.message || "Please ensure your Career Vault has sufficient data",
+        description: err.message || "Please ensure your Master Resume has sufficient data",
         variant: "destructive"
       });
     } finally {
