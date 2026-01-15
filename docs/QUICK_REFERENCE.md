@@ -1,9 +1,13 @@
 # Master Resume Quick Reference
 
+> **Note:** Database tables retain `career_vault` and `vault_*` naming for backward compatibility.
+> The product is called "Master Resume" but the underlying tables are unchanged.
+
 ## 🚀 Most Common Patterns
 
 ### Pattern 1: Get User's Master Resume
 ```typescript
+// Table is still named 'career_vault' in the database
 const { data: resume } = await supabase
   .from('career_vault')
   .select('*')
@@ -16,6 +20,7 @@ const { data: resume } = await supabase
 
 ### Pattern 2: Query Intelligence Tables
 ```typescript
+// Tables retain 'vault_*' prefix in database
 const { data: items } = await supabase
   .from('vault_power_phrases')
   .select('*')

@@ -37,7 +37,7 @@ These are the most frequently used components that need immediate attention:
   - `optimize-resume-with-audit`
   - **Schema**: ✅ Already exists: `OptimizeResumeSchema`
 
-### 1.3 Career Vault Core (Critical Path)
+### 1.3 Master Resume Core (Critical Path)
 - [ ] `AutoPopulateStep.tsx` (1 call) - **HIGH PRIORITY**
   - Currently uses old `executeWithRetry`
   - `auto-populate-vault-v3`
@@ -55,7 +55,7 @@ These are the most frequently used components that need immediate attention:
 
 ## 📋 Phase 2: Supporting Components
 
-### 2.1 Vault Operations
+### 2.1 Master Resume Operations
 - [ ] `VaultMigrationTool.tsx` (2 calls)
 - [ ] `ResumeManagementModal.tsx` (2 calls)
 - [ ] `VaultNuclearReset.tsx` (1 call)

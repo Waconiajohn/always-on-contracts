@@ -261,8 +261,8 @@ export const resumeBuilderSuite: TestSuite = {
     },
     {
       id: 'resume-008',
-      name: 'Vault resume milestones',
-      description: 'Resume milestones should be extracted to vault',
+      name: 'Master Resume milestones',
+      description: 'Resume milestones should be extracted to Master Resume',
       category: 'resume-builder',
       priority: 'high',
       execute: async () => {
@@ -272,24 +272,24 @@ export const resumeBuilderSuite: TestSuite = {
           const { data: session } = await supabase.auth.getSession();
           if (!session.session) throw new Error('Not authenticated');
 
-          const { data: vault } = await supabase
+          const { data: masterResume } = await supabase
             .from('career_vault')
             .select('id')
             .eq('user_id', session.session.user.id)
             .single();
 
-          if (!vault) {
+          if (!masterResume) {
             return {
               passed: true,
               duration: Date.now() - startTime,
-              metadata: { note: 'No vault' },
+              metadata: { note: 'No Master Resume' },
             };
           }
 
           const { data, error } = await supabase
             .from('vault_resume_milestones')
             .select('*')
-            .eq('vault_id', vault.id)
+            .eq('vault_id', masterResume.id)
             .limit(10);
 
           if (error) throw error;

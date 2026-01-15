@@ -5,7 +5,7 @@ Comprehensive documentation of all Supabase Edge Functions in this project, incl
 ## Table of Contents
 
 - [AI & Generation Functions](#ai--generation-functions)
-- [Career Vault Functions](#career-vault-functions)
+- [Master Resume Functions](#master-resume-functions)
 - [Resume & Job Matching Functions](#resume--job-matching-functions)
 - [Payment & Subscription Functions](#payment--subscription-functions)
 - [Research & Analysis Functions](#research--analysis-functions)
@@ -120,10 +120,12 @@ Comprehensive documentation of all Supabase Edge Functions in this project, incl
 
 ---
 
-## Career Vault Functions
+## Master Resume Functions
+
+> **Note:** Database tables retain `career_vault` and `vault_*` naming for backward compatibility.
 
 ### `auto-populate-vault-v3`
-**Purpose**: Latest version of vault auto-population using AI to extract career data
+**Purpose**: Latest version of Master Resume auto-population using AI to extract career data
 
 **Inputs**:
 ```typescript

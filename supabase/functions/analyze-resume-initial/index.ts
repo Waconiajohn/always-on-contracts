@@ -71,10 +71,9 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const body = await req.json();
-    const resumeText = body.resumeText;
-    // Support both resumeId and vaultId for backward compatibility
-    const resumeId = body.resumeId || body.vaultId;
+  const body = await req.json();
+  const resumeText = body.resumeText;
+  const resumeId = body.resumeId;
 
     if (!resumeText || resumeText.trim().length < 100) {
       throw new Error('Resume text is too short or missing');

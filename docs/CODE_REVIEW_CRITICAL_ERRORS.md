@@ -33,7 +33,7 @@ src/components/
 ├── WhyMeBuilder.tsx ❌
 ├── PersonaSelector.tsx ❌
 ├── MarketInsightsPanel.tsx ❌
-└── career-vault/
+└── master-resume/
     ├── AutoPopulateStep.tsx ❌
     ├── AddMetricsModal.tsx ❌
     ├── CareerGoalsStep.tsx ❌

@@ -47,8 +47,8 @@ export const useOnboarding = () => {
 
       const hasResume = (resumes?.length || 0) > 0;
 
-      // Check for career vault and interview responses
-      const { data: vault } = await supabase
+      // Check for master resume and interview responses
+      const { data: masterResume } = await supabase
         .from("career_vault")
         .select("id, review_completion_percentage, overall_strength_score")
         .eq("user_id", user.id)
@@ -56,11 +56,11 @@ export const useOnboarding = () => {
 
       // Check if user has completed at least 10 interview responses
       let hasCompletedInterview = false;
-      if (vault) {
+      if (masterResume) {
         const { count } = await supabase
           .from("vault_interview_responses")
           .select("*", { count: 'exact', head: true })
-          .eq("vault_id", vault.id);
+          .eq("vault_id", masterResume.id);
         
         hasCompletedInterview = (count || 0) >= 10;
       }
@@ -69,9 +69,8 @@ export const useOnboarding = () => {
       const hasReviewedResume = localStorage.getItem(`resume_reviewed_${user.id}`) === "true";
       
       // Get resume completion metrics
-      // Use review_completion_percentage for actual user review progress
-      const resumeCompletionPercentage = vault?.review_completion_percentage || 0;
-      const resumeStrengthScore = vault?.overall_strength_score || 0;
+      const resumeCompletionPercentage = masterResume?.review_completion_percentage || 0;
+      const resumeStrengthScore = masterResume?.overall_strength_score || 0;
       
       // Calculate total intelligence (would need to query actual tables for accurate count)
       const totalIntelligenceCount = 0; // Placeholder

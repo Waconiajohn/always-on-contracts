@@ -1,5 +1,6 @@
 # Edge Function Verification Report
 *Generated: 2025-01-09*
+*Updated: 2026-01-15 - Product renamed from "Career Vault" to "Master Resume" (DB tables unchanged)*
 
 ## Summary
 
