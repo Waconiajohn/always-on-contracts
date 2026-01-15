@@ -13,7 +13,7 @@ import { buildFrameworkPromptContext } from '../frameworks/framework-service.ts'
 export interface OrchestrationConfig {
   resumeText: string;
   resumeId?: string;
-  vaultId?: string; // Backward compatibility
+  vaultId?: string; // Backward compatibility - DB table still named career_vault
   userId: string;
   targetRoles?: string[];
   targetIndustries?: string[];
@@ -303,7 +303,7 @@ export async function orchestrateExtraction(
         progress: 95,
         totalCategories: 4,
         completedCategories: 4,
-        message: 'Saving results to your vault...'
+        message: 'Saving results to your Master Resume...'
       });
     }
 

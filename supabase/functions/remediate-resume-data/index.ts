@@ -16,10 +16,13 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    const { verificationId, vaultId, userId } = await req.json();
+    const body = await req.json();
+    const { verificationId, userId } = body;
+    // Support both resumeId and vaultId for backward compatibility
+    const vaultId = body.resumeId || body.vaultId;
 
     if (!verificationId || !vaultId || !userId) {
-      throw new Error('verificationId, vaultId, and userId are required');
+      throw new Error('verificationId, resumeId, and userId are required');
     }
 
     console.log(`[REMEDIATE-RESUME-DATA] Starting remediation for verification: ${verificationId}`);

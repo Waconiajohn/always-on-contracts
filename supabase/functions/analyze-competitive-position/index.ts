@@ -11,26 +11,27 @@ import { analyzeCareerContextAI } from '../_shared/career-context-analyzer-ai.ts
  * 
  * CRITICAL NAMING CONVENTIONS:
  * 
- * 1. VAULT ID REFERENCE:
- *    - When querying career_vault: Use vaultData.id
+ * 1. MASTER RESUME ID REFERENCE:
+ *    - When querying career_vault table: Use masterResumeData.id
  *    - When querying vault_* tables: Filter by vault_id column
+ *    - Note: Database tables retain 'career_vault' and 'vault_*' naming for backward compatibility
  *    - Example:
- *      const { data: vault } = await supabase.from('career_vault').select('*').single();
- *      const { data: context } = await supabase.from('vault_career_context').eq('vault_id', vault.id);
- *      // ✅ CORRECT: vault.id
- *      // ❌ WRONG: vault.vault_id (does not exist)
+ *      const { data: masterResume } = await supabase.from('career_vault').select('*').single();
+ *      const { data: context } = await supabase.from('vault_career_context').eq('vault_id', masterResume.id);
+ *      // ✅ CORRECT: masterResume.id
+ *      // ❌ WRONG: masterResume.vault_id (does not exist)
  * 
  * 2. DATABASE COLUMNS:
  *    - Always use snake_case: vault_id, user_id, created_at, role_level
  * 
  * 3. TYPESCRIPT VARIABLES:
- *    - Always use camelCase: vaultId, userId, createdAt, roleLevel
+ *    - Always use camelCase: resumeId, userId, createdAt, roleLevel
  * 
  * 4. RESPONSE STRUCTURE:
  *    - Returns: { success: true, data: { analysis: {...} } }
  *    - Frontend accesses: result.data.data.analysis
  * 
- * @see docs/VAULT_NAMING_CONVENTIONS.md for complete guide
+ * @see docs/MASTER_RESUME_NAMING_CONVENTIONS.md for complete guide
  */
 
 const corsHeaders = {
@@ -67,7 +68,7 @@ Deno.serve(async (req) => {
 
     console.log('Analyzing competitive position for:', { user_id, job_title });
 
-    // Step 1: Retrieve Career Vault data
+    // Step 1: Retrieve Master Resume data (table still named career_vault for backward compatibility)
     const { data: vaultData } = await supabase
       .from('career_vault')
       .select('*')
