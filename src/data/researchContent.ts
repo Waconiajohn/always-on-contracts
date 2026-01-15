@@ -327,7 +327,7 @@ Our methodology, documented across nearly **100,000 professionals served**, achi
 
 Don't wait until month 6 or month 10 to realize traditional approaches aren't working.
 
-**Complete your Career Vault** to activate strategic positioning that bypasses the 10.8-month crisis.`
+**Complete your Master Resume** to activate strategic positioning that bypasses the 10.8-month crisis.`
   },
   {
     id: "420k-decision",

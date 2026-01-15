@@ -38,7 +38,7 @@ serve(createAIHandler({
       .eq('vault_id', vaultId)
       .eq('phase', 'skills_translation');
 
-    if (!vault) throw new Error('Career Vault not found');
+    if (!vault) throw new Error('Master Resume not found');
 
     const prompt = `You are a career strategist identifying transferable skills with strategic precision.
 
