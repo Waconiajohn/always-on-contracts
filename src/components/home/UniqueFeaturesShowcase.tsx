@@ -56,7 +56,7 @@ const features: Feature[] = [
   },
   {
     icon: <Target className="h-6 w-6" />,
-    title: "Vault-Powered Interview Prep",
+    title: "Resume-Powered Interview Prep",
     shortDesc: "Answers from your proven track record",
     uniqueInsight: "Your interview answers come from your proven track record, not generic scripts"
   }
