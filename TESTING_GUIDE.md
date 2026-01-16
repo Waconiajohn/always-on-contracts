@@ -1,16 +1,16 @@
-# 🧪 Career Vault Enhancement - Testing Guide
+# 🧪 Master Resume Enhancement - Testing Guide
 
 ## ✅ Installation Complete!
 
-The enhanced Career Vault is now **LIVE** at `/career-vault/onboarding`
+The enhanced Master Resume is now **LIVE** at `/master-resume`
 
 ---
 
 ## 🚀 How to Test
 
-### **Step 1: Navigate to Career Vault Onboarding**
-- URL: `http://localhost:5173/career-vault/onboarding` (dev)
-- Or in Lovable: Navigate to "Career Vault" → "Build Vault"
+### **Step 1: Navigate to Master Resume**
+- URL: `http://localhost:5173/master-resume` (dev)
+- Or in Lovable: Navigate to "Master Resume" → "Build Resume"
 
 ### **Step 2: Upload a Resume**
 **What to test:**
@@ -49,7 +49,7 @@ The enhanced Career Vault is now **LIVE** at `/career-vault/onboarding`
 - Shows:
   - Total items extracted
   - Number of categories populated
-  - Vault completion percentage (85%)
+  - Resume completion percentage (85%)
   - Strength areas
   - Unique differentiators
 
@@ -89,7 +89,7 @@ The enhanced Career Vault is now **LIVE** at `/career-vault/onboarding`
 - ✅ Word count updates
 - ✅ Submit button processes voice note
 - ✅ Intelligence extracted from transcript
-- ✅ Items added to vault
+- ✅ Items added to Master Resume
 
 **Browsers to test:**
 - ✅ Chrome (best support)
@@ -99,19 +99,19 @@ The enhanced Career Vault is now **LIVE** at `/career-vault/onboarding`
 
 **Expected:**
 - Speaks into mic → Live transcription → Submit → AI extracts items
-- Toast notification: "Intelligence Added! Added X items to your vault"
+- Toast notification: "Intelligence Added! Added X items to your Master Resume"
 
 ### **Step 7: Complete**
 **What to test:**
 - ✅ Completion screen shows
 - ✅ Success animation (bouncing checkmark)
-- ✅ Can navigate to Career Vault Dashboard
+- ✅ Can navigate to Master Resume Dashboard
 - ✅ Can navigate to Command Center
 
 **Expected:**
-- Vault completion = 85-100%
+- Resume completion = 85-100%
 - All intelligence visible in dashboard
-- AI agents can now use vault data
+- AI agents can now use resume data
 
 ---
 
@@ -119,7 +119,7 @@ The enhanced Career Vault is now **LIVE** at `/career-vault/onboarding`
 
 After completing the flow, check these tables in Supabase:
 
-### **1. career_vault**
+### **1. career_vault** (DB table name retained for backward compatibility)
 ```sql
 SELECT
   interview_completion_percentage,
@@ -207,7 +207,7 @@ supabase functions deploy auto-populate-vault
 - Check browser console for errors
 - Check Supabase function logs
 - Verify `extractedData` state is populated
-- Fallback: Use old onboarding at `/career-vault/onboarding-old`
+- Fallback: Use manual entry in dashboard
 
 ---
 
@@ -223,7 +223,7 @@ Track these metrics to validate the enhancement:
 - ✅ Target: 100-200+ items
 - ❌ Old system: 80-100 items (manual)
 
-### **Vault Completion**
+### **Resume Completion**
 - ✅ Target: 85% instant (after review)
 - ❌ Old system: 40% → 100% (if they finish)
 
@@ -243,7 +243,7 @@ Track these metrics to validate the enhancement:
 - High confidence scores (85-95%)
 - Strong leadership philosophy
 - Executive presence indicators
-- Vault strength score: 85-95
+- Resume strength score: 85-95
 
 ### **Scenario 2: Mid-career professional (10 years)**
 **Resume:** Manager or Director level, growing career
@@ -253,7 +253,7 @@ Track these metrics to validate the enhancement:
 - Medium-high confidence (75-85%)
 - Good transferable skills
 - Emerging leadership
-- Vault strength score: 70-85
+- Resume strength score: 70-85
 
 ### **Scenario 3: Career changer**
 **Resume:** Switching industries or roles
@@ -263,15 +263,14 @@ Track these metrics to validate the enhancement:
 - Transferable skills highlighted
 - Cross-industry strengths
 - 80-120 items extracted
-- Vault strength score: 65-80
+- Resume strength score: 65-80
 
 ---
 
 ## 🔗 Routes Reference
 
-- **New Enhanced Onboarding**: `/career-vault/onboarding` ← **DEFAULT**
-- **Old Interview-Based**: `/career-vault/onboarding-old` ← Fallback
-- **Career Vault Dashboard**: `/career-vault`
+- **Master Resume Dashboard**: `/master-resume` ← **DEFAULT**
+- **Resume Builder**: `/resume-builder`
 - **Command Center**: `/command-center`
 
 ---
@@ -285,16 +284,15 @@ Track these metrics to validate the enhancement:
 
 ### **Fallback Plan:**
 If enhanced version fails, users can still use:
-- Old onboarding: `/career-vault/onboarding-old`
 - Manual intelligence entry in dashboard
 
 ---
 
 ## ✨ Ready to Test!
 
-1. Open `/career-vault/onboarding`
+1. Open `/master-resume`
 2. Upload a real resume (yours or a sample)
 3. Follow the flow
 4. Report any issues
 
-**Expected outcome:** Fully populated Career Vault in 10-15 minutes! 🚀
+**Expected outcome:** Fully populated Master Resume in 10-15 minutes! 🚀

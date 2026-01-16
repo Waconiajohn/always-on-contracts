@@ -14,21 +14,21 @@ The blocker is **cached gap analysis data** from BEFORE the AI extraction fix wa
 
 ## What Needs to Happen Now
 
-### Step 1: Re-run Vault Extraction
-Luke needs to trigger a **full vault re-extraction** to populate data using the NEW AI-based system.
+### Step 1: Re-run Resume Extraction
+Luke needs to trigger a **full resume re-extraction** to populate data using the NEW AI-based system.
 
 **Options:**
 1. **Nuclear Reset** (recommended for testing):
-   - Go to Career Vault Dashboard
+   - Go to Master Resume Dashboard
    - Find "VaultNuclearReset" component (might be hidden - check settings/admin)
    - Click "Nuclear Reset" button
    - This will:
-     - Delete ALL vault items from all tables
+     - Delete ALL resume items from all tables
      - Re-run `auto-populate-vault-v3` with AI extraction
      - Takes ~30-60 seconds
 
 2. **Manual Re-upload Resume**:
-   - Go to Career Vault Onboarding
+   - Go to Master Resume
    - Re-upload Luke's resume
    - Select "Full" mode (not incremental)
 
@@ -39,11 +39,12 @@ Luke needs to trigger a **full vault re-extraction** to populate data using the 
      -H "Content-Type: application/json" \
      -d '{
        "resumeText": "[Luke's resume text]",
-       "vaultId": "[vault_id]",
+       "resumeId": "[resume_id]",
        "targetRoles": ["Drilling Engineering Supervisor"],
        "mode": "full"
      }'
    ```
+   Note: `vaultId` is also accepted for backward compatibility.
 
 ### Step 2: Verify New Data
 After re-extraction, check that `vault_leadership_philosophy` table has rows:
@@ -58,7 +59,7 @@ SELECT
   extraction_metadata->>'teamSize' as team_size,
   extraction_metadata->>'budgetAmount' as budget_amount
 FROM vault_leadership_philosophy
-WHERE vault_id = '[Luke's vault_id]'
+WHERE vault_id = '[Luke's resume_id]'
 ORDER BY created_at DESC;
 ```
 
@@ -70,10 +71,10 @@ ORDER BY created_at DESC;
 - `extraction_metadata->>'aiAnalyzed'` = true
 
 ### Step 3: Re-run Gap Analysis
-Gap analysis needs to regenerate based on NEW vault data:
+Gap analysis needs to regenerate based on NEW resume data:
 
 1. **Trigger gap analysis**:
-   - Navigate to Career Vault Dashboard
+   - Navigate to Master Resume Dashboard
    - Look for "Run Gap Analysis" or "Competitive Benchmark" button
    - Click to re-run
 
@@ -83,10 +84,11 @@ Gap analysis needs to regenerate based on NEW vault data:
      -H "Authorization: Bearer [token]" \
      -H "Content-Type: application/json" \
      -d '{
-       "vaultId": "[vault_id]",
+       "resumeId": "[resume_id]",
        "targetRoles": ["Drilling Engineering Supervisor"]
      }'
    ```
+   Note: `vaultId` is also accepted for backward compatibility.
 
 ### Step 4: Verify Blocker Disappears
 After gap analysis re-runs, check:
@@ -100,7 +102,7 @@ SELECT
   percentile_ranking,
   created_at
 FROM vault_gap_analysis
-WHERE vault_id = '[Luke's vault_id]'
+WHERE vault_id = '[Luke's resume_id]'
 ORDER BY created_at DESC
 LIMIT 1;
 ```

@@ -20,7 +20,7 @@ const features: Feature[] = [
   },
   {
     icon: <Brain className="h-6 w-6" />,
-    title: "17-Category Intelligence Vault",
+    title: "17-Category Intelligence Profile",
     shortDesc: "Most comprehensive career profiling",
     uniqueInsight: "Other platforms parse your resume. We build a complete intelligence profile."
   },
