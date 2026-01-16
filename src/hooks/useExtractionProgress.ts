@@ -20,8 +20,6 @@ export const useExtractionProgress = (resumeId: string | undefined) => {
   useEffect(() => {
     if (!resumeId) return;
 
-    console.log('🔍 [ExtractionProgress] Monitoring resume:', resumeId);
-
     // Fetch current progress immediately
     const fetchCurrentProgress = async () => {
       try {
@@ -45,15 +43,8 @@ export const useExtractionProgress = (resumeId: string | undefined) => {
           setPhase(progressData.phase || 'processing');
           setItemsExtracted(progressData.items_extracted || 0);
           
-          console.log('📊 [ExtractionProgress] Current:', {
-            progress: currentProgress,
-            phase: progressData.phase,
-            items: progressData.items_extracted
-          });
-          
           if (currentProgress >= 100) {
             setIsComplete(true);
-            console.log('✅ [ExtractionProgress] Extraction complete!');
           }
         }
       } catch (err) {
@@ -79,13 +70,6 @@ export const useExtractionProgress = (resumeId: string | undefined) => {
             const update = payload.new as ProgressUpdate;
             const newProgress = update.percentage || 0;
             
-            console.log('🔄 [ExtractionProgress] Real-time update:', {
-              progress: newProgress,
-              phase: update.phase,
-              message: update.message,
-              items: update.items_extracted
-            });
-            
             setProgress(newProgress);
             setCurrentMessage(update.message || 'Processing...');
             setPhase(update.phase || 'processing');
@@ -93,17 +77,13 @@ export const useExtractionProgress = (resumeId: string | undefined) => {
             
             if (newProgress >= 100) {
               setIsComplete(true);
-              console.log('✅ [ExtractionProgress] Extraction complete (real-time)!');
             }
           }
         }
       )
-      .subscribe((status) => {
-        console.log('📡 [ExtractionProgress] Subscription status:', status);
-      });
+      .subscribe();
 
     return () => {
-      console.log('🔌 [ExtractionProgress] Unsubscribing from:', resumeId);
       supabase.removeChannel(channel);
     };
   }, [resumeId]);

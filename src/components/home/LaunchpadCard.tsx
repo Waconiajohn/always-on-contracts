@@ -44,9 +44,6 @@ export const LaunchpadCard = ({
   const isCompact = variant === 'preview' || variant === 'unlocked';
   const showLockOverlay = isLocked && variant === 'active';
   
-  // resumeCompletion used in JSX for preview badge
-  console.log('Resume completion:', resumeCompletion);
-
   return (
     <Card
       className={cn(

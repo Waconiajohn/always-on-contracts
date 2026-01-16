@@ -325,11 +325,6 @@ function LinkedInProfileBuilderContent() {
               atsKeywords={optimizationResult.headline?.atsKeywords}
               onAccept={async (text) => {
                 setCurrentHeadline(text);
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
-                  // Telemetry tracking removed - will be reimplemented with Master Resume
-                  console.log('LinkedIn profile telemetry:', { contentType: 'headline', characterLength: text.length });
-                }
                 toast({ title: "Headline accepted", description: "Applied to your profile" });
               }}
               characterLimit={220}
@@ -345,11 +340,6 @@ function LinkedInProfileBuilderContent() {
               atsKeywords={optimizationResult.about?.atsKeywords}
               onAccept={async (text) => {
                 setCurrentAbout(text);
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
-                  // Telemetry tracking removed - will be reimplemented with Master Resume
-                  console.log('LinkedIn profile telemetry:', { contentType: 'about', characterLength: text.length });
-                }
                 toast({ title: "About section accepted", description: "Applied to your profile" });
               }}
               characterLimit={2600}

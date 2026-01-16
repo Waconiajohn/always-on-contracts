@@ -111,9 +111,6 @@ function LinkedInNetworkingAgentContent() {
       if (error) throw error;
 
       setMessages(data.messages);
-      
-      // Telemetry tracking removed - will be reimplemented with Master Resume
-      console.log('LinkedIn networking telemetry:', { scenario, variantsGenerated: data.messages.length });
 
       toast({
         title: "Messages generated!",
