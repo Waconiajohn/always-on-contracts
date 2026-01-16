@@ -1,17 +1,17 @@
 // =====================================================
-// PROCESS GAP-FILLING RESPONSES - Career Vault 2.0
+// PROCESS GAP-FILLING RESPONSES - Master Resume 2.0
 // =====================================================
 // INTELLIGENT RESPONSE PROCESSING
 //
 // This function converts user responses to gap-filling
-// questions into structured vault items with gold tier
+// questions into structured Master Resume items with gold tier
 // quality (user-provided = highest confidence).
 //
 // UNIQUE VALUE:
 // - Contextualizes responses using industry research
-// - Creates properly formatted vault items
+// - Creates properly formatted resume items
 // - Assigns gold tier (user-verified)
-// - Updates vault strength in real-time
+// - Updates resume strength in real-time
 //
 // MARKETING MESSAGE:
 // "Your answers are transformed into professional-grade

@@ -371,7 +371,7 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations):
       "howToFill": "Specific, actionable 2-3 sentence guidance on what to add",
       "priority": "critical | high",
       "estimatedEffort": "15 min | 30 min | 1 hour",
-      "impact": "Concrete expected outcome (e.g., +10% vault strength, closes top 10% gap)",
+      "impact": "Concrete expected outcome (e.g., +10% resume strength, closes top 10% gap)",
       "categoryKey": "achievements | skills | leadership | education | experience"
     }
     // 3-5 gaps ONLY, prioritized by impact
