@@ -11,7 +11,7 @@ After deploying the comprehensive vault integration fixes, follow this checklist
 ### Test: Resume Upload → All 10 Vault Tables Populated
 
 **Steps:**
-1. Navigate to `/career-vault/onboarding` or `/resume-upload`
+1. Navigate to `/master-resume` or `/resume-upload`
 2. Upload a sample executive resume (PDF/DOCX)
 3. Wait for analysis to complete
 4. Open browser DevTools → Network tab
@@ -231,7 +231,7 @@ SELECT
 **Verification:**
 - Database shows updated quality tier
 - Higher quality items are prioritized in content generation
-- Vault strength score increases
+- Resume strength score increases
 
 **Expected:** Quality tier system works as designed
 
