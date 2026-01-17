@@ -14,6 +14,13 @@ import {
 } from "docx";
 import { formatResumeContent } from "../resumeFormatting";
 
+interface ExperienceEntry {
+  title: string;
+  company: string;
+  dates?: string;
+  bullets: string[];
+}
+
 interface ResumeData {
   header: {
     fullName: string;
@@ -28,6 +35,7 @@ interface ResumeData {
     type: string;
     content?: string; // For paragraph text
     bullets?: string[];
+    entries?: ExperienceEntry[];
   }[];
 }
 
@@ -203,7 +211,12 @@ export class ExecutiveDocxGenerator {
       if (section.type === "skills" || section.type === "skills_list" || section.type === "core_competencies" || section.type === "technical_skills") {
         children.push(this.createSkillsGrid(section.bullets || []));
       } else if (section.type === "experience" || section.type === "professional_experience") {
-        children.push(...this.createExperienceContent(section.bullets || []));
+        // Use structured entries if available, otherwise fall back to bullets parsing
+        if (section.entries && section.entries.length > 0) {
+          children.push(...this.createExperienceFromEntries(section.entries));
+        } else {
+          children.push(...this.createExperienceContent(section.bullets || []));
+        }
       } else {
         // Standard rendering
         if (section.content) {
@@ -390,6 +403,21 @@ export class ExecutiveDocxGenerator {
         this.renderJob(currentJob, elements);
     }
 
+    return elements;
+  }
+
+  private createExperienceFromEntries(entries: ExperienceEntry[]): any[] {
+    const elements: any[] = [];
+    
+    entries.forEach((entry) => {
+      this.renderJob({
+        title: entry.title,
+        company: entry.company,
+        dates: entry.dates,
+        bullets: entry.bullets || []
+      }, elements);
+    });
+    
     return elements;
   }
 
