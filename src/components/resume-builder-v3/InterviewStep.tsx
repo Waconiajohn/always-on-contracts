@@ -79,8 +79,64 @@ export function InterviewStep() {
     };
   }, []);
 
-  // Computed values for empty questions state
+  // Computed values - must be calculated before any conditional returns
   const hasNoQuestions = !questions || !questions.questions || questions.questions.length === 0;
+  const questionsList = questions?.questions || [];
+  const currentQuestion = questionsList[currentQuestionIndex];
+  const totalQuestions = questionsList.length;
+  
+  // Validate answer keys match question IDs to prevent unexpected keys
+  const validQuestionIds = new Set(questionsList.map(q => q.id));
+  const answeredCount = Object.keys(interviewAnswers).filter(
+    (key) => validQuestionIds.has(key) && interviewAnswers[key]?.trim().length > 0
+  ).length;
+
+  // Count unanswered high-priority questions
+  const unansweredHighPriority = questionsList.filter(
+    (q) => q.priority === "high" && !interviewAnswers[q.id]?.trim()
+  ).length;
+
+  // CRITICAL: All useCallback hooks must be called before any conditional returns (React Rules of Hooks)
+  // Debounced answer handler - updates local state immediately, debounces store update
+  const handleAnswerChange = useCallback((answer: string) => {
+    setLocalAnswer(answer);
+    
+    if (currentQuestion) {
+      // Clear existing timer
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      
+      // Debounce store update by 300ms
+      debounceTimerRef.current = setTimeout(() => {
+        setInterviewAnswer(currentQuestion.id, answer);
+      }, 300);
+    }
+  }, [currentQuestion, setInterviewAnswer]);
+
+  // Sanitize interview answers to prevent prompt injection
+  const sanitizeAnswer = useCallback((answer: string): string => {
+    return answer
+      .replace(/\[INST\]/gi, '')
+      .replace(/\[\/INST\]/gi, '')
+      .replace(/<<SYS>>/gi, '')
+      .replace(/<\|.*?\|>/gi, '')
+      .replace(/```/g, '')
+      .trim();
+  }, []);
+
+  const getPriorityColor = useCallback((priority: string) => {
+    switch (priority) {
+      case "high":
+        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
+      case "medium":
+        return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300";
+      case "low":
+        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
+      default:
+        return "";
+    }
+  }, []);
 
   // Handle empty questions case after all hooks are called
   if (hasNoQuestions) {
@@ -116,37 +172,6 @@ export function InterviewStep() {
     );
   }
 
-  const currentQuestion = questions.questions[currentQuestionIndex];
-  
-  // Validate answer keys match question IDs to prevent unexpected keys
-  const validQuestionIds = new Set(questions.questions.map(q => q.id));
-  const answeredCount = Object.keys(interviewAnswers).filter(
-    (key) => validQuestionIds.has(key) && interviewAnswers[key]?.trim().length > 0
-  ).length;
-  const totalQuestions = questions.questions.length;
-
-  // Count unanswered high-priority questions
-  const unansweredHighPriority = questions.questions.filter(
-    (q) => q.priority === "high" && !interviewAnswers[q.id]?.trim()
-  ).length;
-
-  // Debounced answer handler - updates local state immediately, debounces store update
-  const handleAnswerChange = useCallback((answer: string) => {
-    setLocalAnswer(answer);
-    
-    if (currentQuestion) {
-      // Clear existing timer
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-      
-      // Debounce store update by 300ms
-      debounceTimerRef.current = setTimeout(() => {
-        setInterviewAnswer(currentQuestion.id, answer);
-      }, 300);
-    }
-  }, [currentQuestion, setInterviewAnswer]);
-
   const handleNext = () => {
     if (currentQuestionIndex < totalQuestions - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
@@ -157,17 +182,6 @@ export function InterviewStep() {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(currentQuestionIndex - 1);
     }
-  };
-
-  // Sanitize interview answers to prevent prompt injection
-  const sanitizeAnswer = (answer: string): string => {
-    return answer
-      .replace(/\[INST\]/gi, '')
-      .replace(/\[\/INST\]/gi, '')
-      .replace(/<<SYS>>/gi, '')
-      .replace(/<\|.*?\|>/gi, '')
-      .replace(/```/g, '')
-      .trim();
   };
 
   const handleGenerate = async () => {
@@ -209,19 +223,6 @@ export function InterviewStep() {
   const handleSkipConfirm = () => {
     setShowSkipDialog(false);
     handleGenerate();
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "high":
-        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
-      case "medium":
-        return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300";
-      case "low":
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
-      default:
-        return "";
-    }
   };
 
   return (
