@@ -9,13 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Sparkles, FileText, Briefcase, Upload, AlertTriangle, BookOpen } from "lucide-react";
+import { Loader2, Sparkles, FileText, Briefcase, Upload, AlertTriangle, BookOpen, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { LoadingSkeletonV3 } from "./LoadingSkeletonV3";
 import { useResumeBuilderApi } from "./hooks/useResumeBuilderApi";
 import { HelpTooltip, HELP_CONTENT } from "./components/HelpTooltip";
 import { logger } from "@/lib/logger";
 import { useMasterResume } from "@/hooks/useMasterResume";
+import { invokeEdgeFunction } from "@/lib/edgeFunction";
 
 import { RESUME_LIMITS } from "@/types/resume-builder-v3";
 
@@ -39,6 +40,7 @@ export function UploadStep() {
   const [localResume, setLocalResume] = useState(resumeText);
   const [localJob, setLocalJob] = useState(jobDescription);
   const [useMasterResumeToggle, setUseMasterResumeToggle] = useState(false);
+  const [resumeFileName, setResumeFileName] = useState<string | null>(null);
 
   // Sync local state with store when store updates (handles session recovery)
   useEffect(() => {
@@ -55,6 +57,7 @@ export function UploadStep() {
     setUseMasterResumeToggle(checked);
     if (checked && masterResume?.content) {
       setLocalResume(masterResume.content);
+      setResumeFileName(null);
       toast.success("Master Resume loaded!");
     } else if (!checked && masterResume?.content && localResume === masterResume.content) {
       setLocalResume("");
@@ -71,35 +74,59 @@ export function UploadStep() {
     !resumeOverLimit &&
     !jobOverLimit;
 
-  // File drop handler for resume
+  // File drop handler for resume - uses parse-resume edge function (same as Quick Score)
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (!file) return;
 
-    // Check file type - only .txt is currently supported
-    const validTypes = ['text/plain'];
-    if (!validTypes.includes(file.type) && !file.name.endsWith('.txt')) {
-      toast.error("Please upload a .txt file");
-      return;
-    }
-
     setIsParsingFile(true);
+    setResumeFileName(file.name);
 
     try {
+      // Handle plain text files directly (no need for edge function)
       if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
-        // Handle plain text files directly
         const text = await file.text();
         setLocalResume(text);
-        toast.success("Resume text loaded!");
-      } else {
-        // For PDF/DOCX, we'd need server-side parsing
-        // For now, show a helpful message
-        toast.info("For best results, please copy and paste your resume text directly. PDF/DOCX parsing coming soon!");
+        toast.success(`${file.name} loaded successfully`);
+        setIsParsingFile(false);
+        return;
       }
-    } catch (error) {
-      logger.error("File parsing error:", error);
-      toast.error("Failed to read file. Please paste your resume text instead.");
-    } finally {
+
+      // For PDF/DOCX, use the parse-resume edge function (same as Quick Score)
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64 = (reader.result as string).split(',')[1];
+          
+          const { data, error } = await invokeEdgeFunction('parse-resume', {
+            fileData: base64,
+            fileName: file.name
+          });
+
+          if (error || !data?.success) {
+            throw new Error(data?.error || error?.message || 'Failed to parse resume');
+          }
+
+          setLocalResume(data.text);
+          toast.success(`${file.name} processed successfully`);
+        } catch (err: any) {
+          logger.error("File parsing error:", err);
+          toast.error(err.message || "Failed to parse file");
+          setResumeFileName(null);
+        } finally {
+          setIsParsingFile(false);
+        }
+      };
+      reader.onerror = () => {
+        toast.error("Failed to read file");
+        setResumeFileName(null);
+        setIsParsingFile(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (error: any) {
+      logger.error("File upload error:", error);
+      toast.error("Failed to upload file");
+      setResumeFileName(null);
       setIsParsingFile(false);
     }
   }, []);
@@ -107,8 +134,9 @@ export function UploadStep() {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
+      'application/pdf': ['.pdf'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
       'text/plain': ['.txt'],
-      // PDF/DOCX temporarily removed until server-side parsing is implemented
     },
     maxFiles: 1,
     disabled: isLoading || isParsingFile,
@@ -212,14 +240,20 @@ export function UploadStep() {
             {isParsingFile ? (
               <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Reading file...
+                Processing {resumeFileName}...
+              </div>
+            ) : resumeFileName && localResume ? (
+              <div className="flex items-center justify-center gap-2 text-sm text-green-600">
+                <CheckCircle2 className="h-4 w-4" />
+                <span>{resumeFileName}</span>
+                <span className="text-muted-foreground">(click to replace)</span>
               </div>
             ) : isDragActive ? (
               <p className="text-sm text-primary">Drop your resume here...</p>
             ) : (
               <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                 <Upload className="h-4 w-4" />
-                <span>Drop a .txt file or click to upload</span>
+                <span>Drop PDF, DOCX, or TXT file here, or click to upload</span>
               </div>
             )}
           </div>
