@@ -1,10 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { getCorsHeaders, handleCorsPreFlight } from '../_shared/cors.ts';
 
 // MCP Protocol Types
 interface MCPResource {
@@ -25,8 +21,11 @@ interface MCPTool {
 }
 
 serve(async (req) => {
+  const requestOrigin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(requestOrigin);
+
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPreFlight(requestOrigin);
   }
 
   try {
@@ -466,6 +465,8 @@ serve(async (req) => {
     }
   } catch (error: any) {
     console.error('MCP server error:', error);
+    const requestOrigin = req.headers.get('origin');
+    const corsHeaders = getCorsHeaders(requestOrigin);
     return new Response(JSON.stringify({
       jsonrpc: '2.0',
       error: {
