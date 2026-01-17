@@ -4,37 +4,68 @@
  * Uses ALLOWED_ORIGIN env var for production, or defaults to localhost for dev
  */
 
-const ALLOWED_ORIGINS = [
-  'https://careeriq.lovable.app',
-  'https://id-preview--063e2d87-a1fd-4f0f-a2a2-78aeab05c9f0.lovable.app',
+/**
+ * Allowed origin patterns for CORS
+ * - Explicit localhost ports for local development
+ * - Dynamic matching for Lovable preview/production domains
+ */
+const LOCALHOST_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:8080',
   'http://localhost:3000',
 ];
 
 /**
+ * Check if an origin is a valid Lovable domain
+ * Supports: *.lovable.app, *.lovableproject.com
+ */
+function isValidLovableOrigin(origin: string): boolean {
+  try {
+    const url = new URL(origin);
+    const hostname = url.hostname;
+    
+    // Allow Lovable production and preview domains
+    // e.g., careeriq.lovable.app, id-preview--xxx.lovable.app
+    // e.g., xxx.lovableproject.com
+    return (
+      hostname.endsWith('.lovable.app') ||
+      hostname.endsWith('.lovableproject.com') ||
+      hostname === 'lovable.app' ||
+      hostname === 'lovableproject.com'
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Get the allowed origin for CORS headers
- * Validates the request origin against the allowlist
+ * Validates the request origin against allowed patterns
  */
 export function getAllowedOrigin(requestOrigin?: string | null): string {
-  // Check environment variable first
+  // Check environment variable first (production override)
   const envOrigin = Deno.env.get('ALLOWED_ORIGIN');
-  if (envOrigin) {
-    // If request origin matches env origin, return it
-    if (requestOrigin === envOrigin) {
-      return envOrigin;
-    }
-    // Otherwise still use env origin (more restrictive)
+  if (envOrigin && requestOrigin === envOrigin) {
     return envOrigin;
   }
 
-  // Check against allowlist
-  if (requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin)) {
+  if (!requestOrigin) {
+    // No origin header - return production default
+    return envOrigin || 'https://careeriq.lovable.app';
+  }
+
+  // Check localhost origins for local development
+  if (LOCALHOST_ORIGINS.includes(requestOrigin)) {
     return requestOrigin;
   }
 
-  // Default to first allowed origin for development
-  return ALLOWED_ORIGINS[0];
+  // Check if it's a valid Lovable domain (preview or production)
+  if (isValidLovableOrigin(requestOrigin)) {
+    return requestOrigin;
+  }
+
+  // Fallback to production domain
+  return envOrigin || 'https://careeriq.lovable.app';
 }
 
 /**
