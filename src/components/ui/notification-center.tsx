@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { X, Sparkles, CheckCircle2, AlertTriangle, Info, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Progress } from './progress';
@@ -89,13 +89,15 @@ interface NotificationItemProps {
 const NotificationItem = ({ notification, onDismiss, stackPosition }: NotificationItemProps) => {
   const [isVisible, setIsVisible] = useState(false);
   const [progress, setProgress] = useState(100);
-  
+  const fadeInTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const dismissTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
   const Icon = notificationIcons[notification.type];
   const duration = notification.duration || 6000;
 
   useEffect(() => {
     // Fade in animation
-    setTimeout(() => setIsVisible(true), 50);
+    fadeInTimeoutRef.current = setTimeout(() => setIsVisible(true), 50);
 
     // Start progress countdown
     const startTime = Date.now();
@@ -110,12 +112,16 @@ const NotificationItem = ({ notification, onDismiss, stackPosition }: Notificati
       }
     }, 16); // ~60fps
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (fadeInTimeoutRef.current) clearTimeout(fadeInTimeoutRef.current);
+      if (dismissTimeoutRef.current) clearTimeout(dismissTimeoutRef.current);
+    };
   }, []);
 
   const handleDismiss = () => {
     setIsVisible(false);
-    setTimeout(() => onDismiss(notification.id), 300);
+    dismissTimeoutRef.current = setTimeout(() => onDismiss(notification.id), 300);
   };
 
   return (
