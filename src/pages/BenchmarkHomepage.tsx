@@ -81,35 +81,35 @@ const benchmarkPath = [
     icon: Search,
     title: "Research",
     description: "AI researches company, industry, and role requirements",
-    action: null
+    action: "/resume-builder"
   },
   {
     step: 3,
     icon: BarChart3,
     title: "Analyze",
     description: "Gap analysis: where you are vs benchmark standard",
-    action: null
+    action: "/master-resume?tab=gaps"
   },
   {
     step: 4,
     icon: Hammer,
     title: "Build",
     description: "Section-by-section with live preview and AI assistance",
-    action: null
+    action: "/resume-builder"
   },
   {
     step: 5,
     icon: Sparkles,
     title: "Polish",
     description: "ATS audit, humanize, and hiring manager simulation",
-    action: null
+    action: "/resume-builder"
   },
   {
     step: 6,
     icon: Trophy,
     title: "Win",
     description: "Export and apply with confidence—you're the benchmark",
-    action: null
+    action: "/my-resumes"
   }
 ];
 
