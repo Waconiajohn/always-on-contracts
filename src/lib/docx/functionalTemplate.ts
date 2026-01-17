@@ -13,6 +13,13 @@ import {
 } from "docx";
 import { formatResumeContent } from "../resumeFormatting";
 
+interface ExperienceEntry {
+  title: string;
+  company: string;
+  dates?: string;
+  bullets: string[];
+}
+
 interface ResumeData {
   header: {
     fullName: string;
@@ -27,6 +34,7 @@ interface ResumeData {
     type: string;
     content?: string;
     bullets?: string[];
+    entries?: ExperienceEntry[];
   }[];
 }
 
@@ -164,8 +172,13 @@ export class FunctionalDocxGenerator {
 
       if (section.type === "skills" || section.type === "skills_list" || section.type === "skills_groups" || section.type === "core_capabilities" || section.type === "technical_skills" || section.type === "core_competencies") {
         children.push(...this.createSkillGroups(section.bullets || []));
-      } else if (section.type === "employment_history") {
-        children.push(...this.createSimpleHistory(section.bullets || []));
+      } else if (section.type === "employment_history" || section.type === "experience" || section.type === "professional_experience") {
+        // Use structured entries if available, otherwise fall back to simple history
+        if (section.entries && section.entries.length > 0) {
+          children.push(...this.createExperienceFromEntries(section.entries));
+        } else {
+          children.push(...this.createSimpleHistory(section.bullets || []));
+        }
       } else {
         // Standard rendering
         if (section.content) {
@@ -328,6 +341,37 @@ export class FunctionalDocxGenerator {
              })
          );
       }
+    });
+    
+    return elements;
+  }
+
+  private createExperienceFromEntries(entries: ExperienceEntry[]): any[] {
+    const elements: any[] = [];
+    
+    entries.forEach((entry) => {
+      // Functional format: Company - Title (Dates)
+      elements.push(
+        new Paragraph({
+          children: [
+            new TextRun({ text: entry.company, bold: true }),
+            new TextRun({ text: " - " + entry.title }),
+            new TextRun({ text: entry.dates ? ` (${entry.dates})` : "", italics: true })
+          ],
+          spacing: { after: 60 }
+        })
+      );
+      
+      // Add bullets for this entry
+      (entry.bullets || []).forEach(b => {
+        elements.push(
+          new Paragraph({
+            text: b,
+            bullet: { level: 0 },
+            spacing: { after: 60 }
+          })
+        );
+      });
     });
     
     return elements;
