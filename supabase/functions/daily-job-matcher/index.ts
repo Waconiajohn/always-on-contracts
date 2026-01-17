@@ -1,17 +1,40 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// Maximum users to process per run to prevent runaway execution
+const MAX_USERS_PER_RUN = 250;
+
+// Maximum runtime in milliseconds (4 minutes to stay under 5 min timeout)
+const MAX_RUNTIME_MS = 4 * 60 * 1000;
 
 serve(async (req) => {
+  const runStartTime = Date.now();
+  
+  // This is a cron-only endpoint - no browser CORS needed
+  // Only allow POST/GET from cron triggers
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { status: 204 });
   }
 
   try {
+    // Validate CRON_SECRET header for security
+    const cronSecret = Deno.env.get('CRON_SECRET');
+    const providedSecret = req.headers.get('x-cron-secret');
+    
+    // If CRON_SECRET is configured, require it
+    if (cronSecret) {
+      if (!providedSecret || providedSecret !== cronSecret) {
+        console.error('[DAILY-JOB-MATCHER] Unauthorized: Invalid or missing cron secret');
+        return new Response(
+          JSON.stringify({ error: 'Forbidden: Invalid cron secret' }),
+          { status: 403, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+    } else {
+      // If no CRON_SECRET set, log warning but allow (for backwards compatibility during setup)
+      console.warn('[DAILY-JOB-MATCHER] WARNING: CRON_SECRET not configured. Set it for production security.');
+    }
+
     console.log('[DAILY-JOB-MATCHER] Starting daily matching run...');
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -100,9 +123,10 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           message: 'No eligible users for matching',
-          users_processed: 0
+          users_processed: 0,
+          duration_ms: Date.now() - runStartTime
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { 'Content-Type': 'application/json' } }
       );
     }
 
@@ -147,18 +171,33 @@ serve(async (req) => {
       return (bVault?.overall_strength_score || 0) - (aVault?.overall_strength_score || 0);
     });
 
-    console.log(`[DAILY-JOB-MATCHER] Processing ${eligibleUsers.length} eligible users`);
+    // Limit to MAX_USERS_PER_RUN
+    const usersToProcess = eligibleUsers.slice(0, MAX_USERS_PER_RUN);
+    
+    console.log(`[DAILY-JOB-MATCHER] Processing ${usersToProcess.length} of ${eligibleUsers.length} eligible users (max: ${MAX_USERS_PER_RUN})`);
 
-    // 5. Process each user
+    // 5. Process each user with timeout protection
     const results = {
-      total_users: eligibleUsers.length,
+      total_eligible: eligibleUsers.length,
+      total_processed: 0,
       successful: 0,
       failed: 0,
+      skipped_timeout: 0,
       total_matches_found: 0,
-      errors: [] as string[]
+      errors: [] as string[],
+      duration_ms: 0
     };
 
-    for (const user of eligibleUsers) {
+    for (const user of usersToProcess) {
+      // Check if we're approaching timeout
+      const elapsedMs = Date.now() - runStartTime;
+      if (elapsedMs > MAX_RUNTIME_MS) {
+        const remaining = eligibleUsers.length - results.total_processed;
+        console.log(`[DAILY-JOB-MATCHER] Timeout protection: ${remaining} users skipped`);
+        results.skipped_timeout = remaining;
+        break;
+      }
+
       try {
         // Call ai-job-matcher function with service role key
         const { data, error } = await supabase.functions.invoke('ai-job-matcher', {
@@ -183,25 +222,38 @@ serve(async (req) => {
         results.errors.push(`User ${user.user_id}: ${errorMsg}`);
         console.error(`[DAILY-JOB-MATCHER] Error processing user ${user.user_id}:`, error);
       }
+
+      results.total_processed++;
     }
 
-    console.log('[DAILY-JOB-MATCHER] Daily run complete:', results);
+    results.duration_ms = Date.now() - runStartTime;
+
+    console.log('[DAILY-JOB-MATCHER] Daily run complete:', {
+      processed: results.total_processed,
+      successful: results.successful,
+      failed: results.failed,
+      skipped: results.skipped_timeout,
+      matches: results.total_matches_found,
+      duration_seconds: Math.round(results.duration_ms / 1000)
+    });
 
     return new Response(
       JSON.stringify({
         success: true,
         summary: results
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
+    const duration_ms = Date.now() - runStartTime;
     console.error('[DAILY-JOB-MATCHER] Fatal error:', error);
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Internal server error' 
+        error: error instanceof Error ? error.message : 'Internal server error',
+        duration_ms
       }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
 });

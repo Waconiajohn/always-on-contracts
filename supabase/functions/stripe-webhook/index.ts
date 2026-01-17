@@ -8,20 +8,16 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
 
 const cryptoProvider = Stripe.createSubtleCryptoProvider();
 
-// CORS not needed for Stripe webhooks (server-to-server), but kept for error responses
-const getAllowedOrigin = (): string => {
-  const allowedOrigin = Deno.env.get('ALLOWED_ORIGIN');
-  return allowedOrigin || '*';
-};
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": getAllowedOrigin(),
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature",
+// Webhooks are server-to-server, no browser CORS needed
+// But we keep minimal headers for error responses
+const responseHeaders = {
+  "Content-Type": "application/json",
 };
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+  // Webhooks only accept POST
+  if (req.method !== "POST") {
+    return new Response("Method not allowed", { status: 405 });
   }
 
   const signature = req.headers.get("stripe-signature");
@@ -55,21 +51,48 @@ serve(async (req) => {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
         
-        // Get customer email
-        const customer = await stripe.customers.retrieve(customerId);
-        const email = (customer as Stripe.Customer).email;
+        // First, try to find user by stripe_customer_id in subscriptions table (scalable DB lookup)
+        let userId: string | null = null;
+        
+        const { data: existingSub } = await supabase
+          .from("subscriptions")
+          .select("user_id")
+          .eq("stripe_customer_id", customerId)
+          .limit(1)
+          .single();
+        
+        if (existingSub?.user_id) {
+          userId = existingSub.user_id;
+          console.log("[WEBHOOK] Found user by stripe_customer_id:", userId);
+        } else {
+          // Fallback: Get customer email from Stripe and look up in profiles
+          const customer = await stripe.customers.retrieve(customerId);
+          const email = (customer as Stripe.Customer).email;
 
-        if (!email) {
-          console.error("[WEBHOOK] Customer has no email");
-          break;
+          if (!email) {
+            console.error("[WEBHOOK] Customer has no email");
+            break;
+          }
+
+          // Look up user by email in profiles table (avoids listUsers)
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("user_id")
+            .eq("email", email)
+            .limit(1)
+            .single();
+
+          if (profile?.user_id) {
+            userId = profile.user_id;
+            console.log("[WEBHOOK] Found user by email in profiles:", userId);
+          } else {
+            console.error("[WEBHOOK] User not found for email:", email);
+            break;
+          }
         }
 
-        // Find user by email
-        const { data: userData } = await supabase.auth.admin.listUsers();
-        const user = userData?.users.find(u => u.email === email);
-
-        if (!user) {
-          console.error("[WEBHOOK] User not found for email:", email);
+        if (!userId) {
+          console.error("[WEBHOOK] Could not resolve user_id for customer:", customerId);
           break;
         }
 
@@ -84,7 +107,7 @@ serve(async (req) => {
 
         // Update subscription record
         await supabase.from("subscriptions").upsert({
-          user_id: user.id,
+          user_id: userId,
           stripe_customer_id: customerId,
           stripe_subscription_id: subscription.id,
           tier,
@@ -96,7 +119,7 @@ serve(async (req) => {
           onConflict: "stripe_subscription_id"
         });
 
-        console.log("[WEBHOOK] Subscription updated for user:", user.id);
+        console.log("[WEBHOOK] Subscription updated for user:", userId);
         break;
       }
 
@@ -210,7 +233,7 @@ serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ received: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: responseHeaders,
       status: 200,
     });
   } catch (error) {
@@ -218,7 +241,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: responseHeaders,
         status: 400,
       }
     );

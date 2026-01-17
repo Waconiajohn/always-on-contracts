@@ -3,11 +3,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
 import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { getCorsHeaders, handleCorsPreFlight } from '../_shared/cors.ts';
+import { checkRateLimit } from '../_shared/rate-limiter.ts';
 
 interface ScoreTier {
   tier: 'FREEZING' | 'COLD' | 'LUKEWARM' | 'WARM' | 'HOT' | 'ON_FIRE';
@@ -26,21 +23,78 @@ function getScoreTier(score: number): ScoreTier {
 }
 
 serve(async (req) => {
+  const requestOrigin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(requestOrigin);
+
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return handleCorsPreFlight(requestOrigin);
   }
 
   try {
     const startTime = Date.now();
+
+    // Authentication check
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      console.log('[instant-resume-score] No auth header provided');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    // Create client with user's auth token to validate
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claims, error: claimsError } = await userClient.auth.getClaims(token);
+    
+    if (claimsError || !claims?.claims?.sub) {
+      console.log('[instant-resume-score] Invalid token:', claimsError?.message);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid authentication token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const userId = claims.claims.sub as string;
+    console.log('[instant-resume-score] Authenticated user:', userId);
+
+    // Rate limiting check (10 requests per minute)
+    const rateCheck = await checkRateLimit(userId, 'instant-resume-score', 10);
+    if (!rateCheck.allowed) {
+      console.log('[instant-resume-score] Rate limit exceeded for user:', userId);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Rate limit exceeded. Please wait before trying again.',
+          retryAfter: rateCheck.retryAfter 
+        }),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'Retry-After': String(rateCheck.retryAfter || 60)
+          } 
+        }
+      );
+    }
+
     const { resumeText, jobDescription, targetRole, targetIndustry, targetLevel } = await req.json();
 
     if (!resumeText || !jobDescription) {
       throw new Error('Resume text and job description are required');
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Use service role client for data operations
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // STEP 1: Detect role and industry if not provided
     let detectedRole = targetRole;
@@ -85,7 +139,6 @@ Return JSON: { "role": "...", "industry": "...", "level": "..." }`;
     }
 
     // STEP 2: Comprehensive structured gap analysis
-    // Using a more concise prompt to prevent truncation
     const systemPrompt = `You are an expert resume analyst. Analyze the resume against the job description and return ONLY valid JSON.
 
 IMPORTANT: Keep your response concise. Limit arrays to 5 items max.
@@ -229,7 +282,6 @@ Analyze and return JSON. Keep arrays to 5 items max.`;
     };
 
     // Generate priorityFixes from gapAnalysis for backward compatibility
-    // Now returns ALL fixes, not just top 5
     const priorityFixes: any[] = [];
     let priority = 1;
     
@@ -266,7 +318,6 @@ Analyze and return JSON. Keep arrays to 5 items max.`;
       scores: scoreData.scores,
       breakdown,
       gapAnalysis,
-      // Return ALL priorityFixes and quickWins for comprehensive display
       priorityFixes,
       quickWins: scoreData.quickWins || [],
       detected: {

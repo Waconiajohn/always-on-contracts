@@ -398,3 +398,18 @@ verify_jwt = false
 
 [functions.micro-edit-bullet]
 verify_jwt = true
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.send-onboarding-email]
+verify_jwt = true
+
+[functions.grant-initial-admin]
+verify_jwt = false
+
+[functions.system-health]
+verify_jwt = false
+
+[functions.check-cost-alerts]
+verify_jwt = true
