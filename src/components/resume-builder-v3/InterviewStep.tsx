@@ -3,7 +3,7 @@
 // =====================================================
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { useResumeBuilderV3Store, OptimizedResume } from "@/stores/resumeBuilderV3Store";
+import { useResumeBuilderV3Store, OptimizedResume, QuestionsResult } from "@/stores/resumeBuilderV3Store";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +40,7 @@ export function InterviewStep() {
     jobDescription,
     interviewAnswers,
     setInterviewAnswer,
+    setQuestions,
     setFinalResume,
     setStep,
     setLoading,
@@ -138,6 +139,20 @@ export function InterviewStep() {
     }
   }, []);
 
+  // Regenerate questions handler
+  const handleRegenerateQuestions = useCallback(async () => {
+    setLoading(true);
+    const result = await callApi<QuestionsResult>({
+      step: "questions",
+      body: { resumeText, jobDescription, fitAnalysis, standards },
+      successMessage: "Questions generated!",
+    });
+    if (result) {
+      setQuestions(result);
+    }
+    setLoading(false);
+  }, [callApi, resumeText, jobDescription, fitAnalysis, standards, setQuestions, setLoading]);
+
   // Handle empty questions case after all hooks are called
   if (hasNoQuestions) {
     return (
@@ -145,13 +160,25 @@ export function InterviewStep() {
         <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-amber-100 dark:bg-amber-900 mb-4">
           <AlertTriangle className="h-6 w-6 text-amber-600" />
         </div>
-        <h2 className="text-lg font-semibold">No Interview Questions</h2>
+        <h2 className="text-lg font-semibold">Questions Not Loaded</h2>
         <p className="text-sm text-muted-foreground max-w-md mx-auto">
-          We couldn't generate interview questions. This might happen if your resume already matches the job description well, or there was an issue with the analysis.
+          The interview questions weren't loaded properly. This can happen if your session was interrupted. Let's regenerate them.
         </p>
-        <Button variant="outline" onClick={() => setStep(2)}>
-          Go Back to Analysis
-        </Button>
+        <div className="flex gap-3 justify-center">
+          <Button variant="outline" onClick={() => setStep(2)}>
+            Go Back
+          </Button>
+          <Button onClick={handleRegenerateQuestions} disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Regenerating...
+              </>
+            ) : (
+              "Regenerate Questions"
+            )}
+          </Button>
+        </div>
       </div>
     );
   }
