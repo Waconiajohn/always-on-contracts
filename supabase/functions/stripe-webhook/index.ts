@@ -8,8 +8,14 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
 
 const cryptoProvider = Stripe.createSubtleCryptoProvider();
 
+// CORS not needed for Stripe webhooks (server-to-server), but kept for error responses
+const getAllowedOrigin = (): string => {
+  const allowedOrigin = Deno.env.get('ALLOWED_ORIGIN');
+  return allowedOrigin || '*';
+};
+
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": getAllowedOrigin(),
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature",
 };
 

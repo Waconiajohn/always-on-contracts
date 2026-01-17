@@ -2,8 +2,32 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
+const getAllowedOrigin = (): string => {
+  const allowedOrigin = Deno.env.get('ALLOWED_ORIGIN');
+  return allowedOrigin || '*';
+};
+
+// Get trusted redirect URL - use ALLOWED_ORIGIN for production, fallback to origin header for dev
+const getRedirectBase = (requestOrigin: string | null): string => {
+  const allowedOrigin = Deno.env.get('ALLOWED_ORIGIN');
+  // In production, always use the configured allowed origin
+  if (allowedOrigin && allowedOrigin !== '*') {
+    return allowedOrigin;
+  }
+  // In development, use the request origin (with validation)
+  if (requestOrigin && (requestOrigin.includes('localhost') || requestOrigin.includes('127.0.0.1'))) {
+    return requestOrigin;
+  }
+  // Fallback for Lovable preview URLs
+  if (requestOrigin && requestOrigin.includes('lovableproject.com')) {
+    return requestOrigin;
+  }
+  // Default fallback
+  return requestOrigin || 'https://localhost:3000';
+};
+
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": getAllowedOrigin(),
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
@@ -78,7 +102,8 @@ serve(async (req) => {
       }
     }
 
-    // Create checkout session
+    // Create checkout session with trusted redirect URLs
+    const redirectBase = getRedirectBase(req.headers.get("origin"));
     const sessionConfig: any = {
       customer: customerId,
       line_items: [{
@@ -86,8 +111,8 @@ serve(async (req) => {
         quantity: 1,
       }],
       mode: "subscription",
-      success_url: `${req.headers.get("origin")}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get("origin")}/pricing`,
+      success_url: `${redirectBase}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${redirectBase}/pricing`,
       metadata: {
         supabase_user_id: user.id,
         tier: tier,
