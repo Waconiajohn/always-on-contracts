@@ -64,7 +64,10 @@ export function ResumeBuilderV3() {
   const isHydrated = useStoreHydration();
   const { 
     step, 
-    fitAnalysis, 
+    fitAnalysis,
+    standards,
+    questions,
+    finalResume,
     reset, 
     setStep, 
     setResumeText, 
@@ -126,6 +129,47 @@ export function ResumeBuilderV3() {
     }
     setHasCheckedSession(true);
   }, [isHydrated, hasCheckedSession, hasHandledNavState, fitAnalysis, step, resumeText.length, jobDescription.length]);
+
+  // Step prerequisite validation - ensure required data exists for each step
+  useEffect(() => {
+    if (!isHydrated) return;
+    
+    // Step 3 requires questions
+    if (step === 3 && (!questions || !questions.questions || questions.questions.length === 0)) {
+      console.warn('[Resume Builder] Step 3 without questions, redirecting');
+      if (standards) {
+        setStep(2);
+      } else if (fitAnalysis) {
+        setStep(1);
+      } else {
+        reset();
+      }
+      return;
+    }
+    
+    // Step 2 requires standards
+    if (step === 2 && !standards) {
+      console.warn('[Resume Builder] Step 2 without standards, redirecting');
+      if (fitAnalysis) {
+        setStep(1);
+      } else {
+        reset();
+      }
+      return;
+    }
+    
+    // Step 4 requires final resume
+    if (step === 4 && !finalResume) {
+      console.warn('[Resume Builder] Step 4 without resume, redirecting');
+      if (questions?.questions?.length) {
+        setStep(3);
+      } else if (standards) {
+        setStep(2);
+      } else {
+        reset();
+      }
+    }
+  }, [isHydrated, step, questions, standards, finalResume, fitAnalysis, setStep, reset]);
 
   const progressValue = ((step - 1) / 3) * 100;
 
