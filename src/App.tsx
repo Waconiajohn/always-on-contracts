@@ -86,7 +86,7 @@ const AppContent = () => {
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/" element={<Landing />} />
-            <Route path="/quick-score" element={<QuickScore />} />
+            <Route path="/quick-score" element={<ProtectedRoute><QuickScore /></ProtectedRoute>} />
             <Route path="/home" element={<ProtectedRoute><BenchmarkHomepage /></ProtectedRoute>} />
             <Route path="/home-legacy" element={<ProtectedRoute><UnifiedHomepage /></ProtectedRoute>} />
             <Route path="/auth" element={<Auth />} />

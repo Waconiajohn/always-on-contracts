@@ -342,7 +342,7 @@ Include the job title, requirements, responsibilities, and qualifications for th
               
               {/* Trust statement */}
               <p className="text-center text-sm text-muted-foreground mt-6">
-                No signup required • 19+ years of methodology • We don't fabricate—ever
+                19+ years of methodology • We don't fabricate—ever
               </p>
             </motion.div>
           )}
