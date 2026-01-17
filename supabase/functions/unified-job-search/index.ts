@@ -7,8 +7,13 @@ function differenceInDays(date1: Date, date2: Date): number {
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
 
+const getAllowedOrigin = (): string => {
+  const allowedOrigin = Deno.env.get('ALLOWED_ORIGIN');
+  return allowedOrigin || '*';
+};
+
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': getAllowedOrigin(),
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
@@ -850,7 +855,7 @@ async function searchGoogleJobs(query: string, location: string, filters: Search
     console.error('[Google Jobs] Available env vars:', Object.keys(Deno.env.toObject()).join(', '));
     return { jobs: [], nextPageToken: undefined };
   }
-  console.log('[Google Jobs] ✅ API key found:', searchApiKey.substring(0, 8) + '...');
+  console.log('[Google Jobs] ✅ API key configured');
 
   let searchQuery = query;
   let parsedBoolean: { titles: string[]; skills: string[]; exclusions: string[] } | null = null;
@@ -1456,12 +1461,23 @@ async function searchUSAJobs(query: string, location: string, filters: SearchFil
     //   'Authorization-Key': 'YOUR_API_KEY'
     // }
 
+    // USAJobs API requires email in User-Agent for rate limiting
+    const usajobsEmail = Deno.env.get('USAJOBS_EMAIL') || 'contact@example.com';
+    const usajobsApiKey = Deno.env.get('USAJOBS_API_KEY');
+
+    const headers: Record<string, string> = {
+      'Host': 'data.usajobs.gov',
+      'User-Agent': usajobsEmail,
+    };
+
+    // Add API key if configured (recommended for production)
+    if (usajobsApiKey) {
+      headers['Authorization-Key'] = usajobsApiKey;
+    }
+
     const response = await fetch(url, {
       signal: AbortSignal.timeout(10000),
-      headers: {
-        'Host': 'data.usajobs.gov',
-        'User-Agent': 'always-on-contracts@example.com', // Replace with actual email
-      }
+      headers
     });
 
     if (!response.ok) {

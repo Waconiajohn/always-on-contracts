@@ -1,9 +1,20 @@
 /**
  * Lovable AI Gateway Configuration
- * 
+ *
  * Provides access to OpenAI and Google Gemini models via Lovable AI Gateway
  * Used for: structured extraction, content generation, and conversational AI
  */
+
+import { AIError, retryWithBackoff, calculateBackoff } from './error-handling.ts';
+import { CircuitBreaker } from './circuit-breaker.ts';
+
+// Circuit breaker for Lovable AI Gateway
+const lovableCircuitBreaker = new CircuitBreaker({
+  failureThreshold: 5,
+  successThreshold: 2,
+  timeout: 300000, // 5 minutes
+  name: 'LovableAI'
+});
 
 export const LOVABLE_AI_MODELS = {
   // Default: Balanced performance and cost
@@ -121,8 +132,8 @@ export function calculateLovableAICost(
 }
 
 /**
- * Call Lovable AI Gateway with automatic retry logic and cost tracking
- * 
+ * Call Lovable AI Gateway with circuit breaker, retry logic, and cost tracking
+ *
  * Use this for: structured extraction, content generation, conversational AI
  */
 export async function callLovableAI(
@@ -133,120 +144,205 @@ export async function callLovableAI(
 ): Promise<{ response: LovableAIResponse; metrics: AIUsageMetrics }> {
   const apiKey = Deno.env.get('LOVABLE_API_KEY');
   if (!apiKey) {
-    throw new Error('LOVABLE_API_KEY not configured');
+    throw new AIError('LOVABLE_API_KEY not configured', 'API_ERROR', 500, false);
   }
 
   const model = request.model || LOVABLE_AI_MODELS.DEFAULT;
   const startTime = Date.now();
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  let retryCount = 0;
 
   try {
-    // Determine model type for parameter compatibility
-    const isGeminiModel = model.includes('gemini');
-    const isOpenAIModel = model.includes('openai') || model.includes('gpt');
-    const maxTokens = request.max_tokens ?? LOVABLE_AI_CONFIG.DEFAULT_MAX_TOKENS;
-    
-    // Build the request body with proper parameters for each model type
-    const requestBody: any = {
-      model,
-      messages: request.messages,
-    };
+    // Wrap in circuit breaker
+    const result = await lovableCircuitBreaker.execute(async () => {
+      // Wrap in retry logic
+      return await retryWithBackoff(
+        async () => {
+          // Create abort controller for timeout
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-    // OpenAI newer models (GPT-5+) don't support temperature or max_tokens parameters
-    if (isOpenAIModel) {
-      requestBody.max_completion_tokens = maxTokens;
-      // GPT-5 models only support temperature=1, so we omit it entirely
-    } else {
-      requestBody.max_tokens = maxTokens;
-      requestBody.temperature = request.temperature ?? LOVABLE_AI_CONFIG.DEFAULT_TEMPERATURE;
-    }
+          try {
+            console.log(`[${functionName}] Calling Lovable AI with model: ${model}, timeout: ${timeoutMs}ms`);
 
-    // Handle JSON output mode based on model type
-    if (request.response_mime_type) {
-      // Gemini-style JSON mode
-      if (isGeminiModel) {
-        requestBody.response_mime_type = request.response_mime_type;
-      } else {
-        // Convert to OpenAI format if OpenAI model
-        requestBody.response_format = { type: 'json_object' };
-      }
-    } else if (request.response_format) {
-      // OpenAI-style JSON mode (legacy)
-      if (isGeminiModel) {
-        // Convert to Gemini format
-        requestBody.response_mime_type = "application/json";
-      } else {
-        requestBody.response_format = request.response_format;
-      }
-    }
+            // Determine model type for parameter compatibility
+            const isGeminiModel = model.includes('gemini');
+            const isOpenAIModel = model.includes('openai') || model.includes('gpt');
+            const maxTokens = request.max_tokens ?? LOVABLE_AI_CONFIG.DEFAULT_MAX_TOKENS;
 
-    // Add tools if provided
-    if (request.tools) {
-      requestBody.tools = request.tools;
-    }
-    if (request.tool_choice) {
-      requestBody.tool_choice = request.tool_choice;
-    }
+            // Build the request body with proper parameters for each model type
+            const requestBody: any = {
+              model,
+              messages: request.messages,
+            };
 
-    const response = await fetch(LOVABLE_AI_CONFIG.API_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-      signal: controller.signal,
+            // OpenAI newer models (GPT-5+) don't support temperature or max_tokens parameters
+            if (isOpenAIModel) {
+              requestBody.max_completion_tokens = maxTokens;
+              // GPT-5 models only support temperature=1, so we omit it entirely
+            } else {
+              requestBody.max_tokens = maxTokens;
+              requestBody.temperature = request.temperature ?? LOVABLE_AI_CONFIG.DEFAULT_TEMPERATURE;
+            }
+
+            // Handle JSON output mode based on model type
+            if (request.response_mime_type) {
+              // Gemini-style JSON mode
+              if (isGeminiModel) {
+                requestBody.response_mime_type = request.response_mime_type;
+              } else {
+                // Convert to OpenAI format if OpenAI model
+                requestBody.response_format = { type: 'json_object' };
+              }
+            } else if (request.response_format) {
+              // OpenAI-style JSON mode (legacy)
+              if (isGeminiModel) {
+                // Convert to Gemini format
+                requestBody.response_mime_type = "application/json";
+              } else {
+                requestBody.response_format = request.response_format;
+              }
+            }
+
+            // Add tools if provided
+            if (request.tools) {
+              requestBody.tools = request.tools;
+            }
+            if (request.tool_choice) {
+              requestBody.tool_choice = request.tool_choice;
+            }
+
+            const response = await fetch(LOVABLE_AI_CONFIG.API_URL, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(requestBody),
+              signal: controller.signal,
+            });
+
+            if (!response.ok) {
+              const errorText = await response.text();
+
+              // Handle rate limits (retryable)
+              if (response.status === 429) {
+                throw new AIError(
+                  'Rate limit exceeded',
+                  'RATE_LIMIT',
+                  429,
+                  true,
+                  'Too many requests. Please wait a moment and try again.',
+                  60
+                );
+              }
+
+              // Handle payment required (not retryable)
+              if (response.status === 402) {
+                throw new AIError(
+                  'AI credits depleted',
+                  'PAYMENT_REQUIRED',
+                  402,
+                  false,
+                  'AI credits depleted. Please add credits to your Lovable workspace.'
+                );
+              }
+
+              // Server errors (retryable)
+              if (response.status >= 500) {
+                throw new AIError(
+                  `Server error: ${errorText}`,
+                  'API_ERROR',
+                  response.status,
+                  true,
+                  'The AI service is temporarily unavailable. Please try again.'
+                );
+              }
+
+              throw new AIError(
+                `Lovable AI error (${response.status}): ${errorText}`,
+                'API_ERROR',
+                response.status,
+                false
+              );
+            }
+
+            const data: LovableAIResponse = await response.json();
+            return data;
+
+          } catch (error) {
+            // Handle abort/timeout
+            if (error instanceof Error && error.name === 'AbortError') {
+              throw new AIError(
+                `Request timed out after ${timeoutMs}ms`,
+                'TIMEOUT',
+                408,
+                true,
+                `AI request took longer than ${timeoutMs}ms`
+              );
+            }
+            throw error;
+          } finally {
+            clearTimeout(timeoutId);
+          }
+        },
+        LOVABLE_AI_CONFIG.MAX_RETRIES,
+        (attempt, error) => {
+          retryCount = attempt;
+          console.warn(`[${functionName}] Retry ${attempt}/${LOVABLE_AI_CONFIG.MAX_RETRIES}:`, error.message);
+        }
+      );
     });
 
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      
-      // Handle rate limits
-      if (response.status === 429) {
-        throw new Error('Rate limit exceeded. Please try again in a few moments.');
-      }
-      
-      // Handle payment required
-      if (response.status === 402) {
-        throw new Error('AI credits depleted. Please add credits to your Lovable workspace.');
-      }
-      
-      throw new Error(`Lovable AI error (${response.status}): ${errorText}`);
-    }
-
-    const data: LovableAIResponse = await response.json();
     const executionTime = Date.now() - startTime;
+
+    // Calculate cost and create metrics
+    const cost = calculateLovableAICost(
+      model,
+      result.usage.prompt_tokens,
+      result.usage.completion_tokens
+    );
 
     const metrics: AIUsageMetrics = {
       function_name: functionName,
       model,
-      input_tokens: data.usage.prompt_tokens,
-      output_tokens: data.usage.completion_tokens,
-      cost_usd: calculateLovableAICost(model, data.usage.prompt_tokens, data.usage.completion_tokens),
-      request_id: data.id,
+      input_tokens: result.usage.prompt_tokens,
+      output_tokens: result.usage.completion_tokens,
+      cost_usd: cost,
+      request_id: result.id,
       user_id: userId,
       created_at: new Date().toISOString(),
       execution_time_ms: executionTime,
     };
 
-    return { response: data, metrics };
+    console.log(`[${functionName}] Success - Tokens: ${result.usage.total_tokens}, Cost: $${cost.toFixed(6)}, Time: ${executionTime}ms`);
+
+    return { response: result, metrics };
 
   } catch (error) {
-    clearTimeout(timeoutId);
-    
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        throw new Error(`Request timeout after ${timeoutMs}ms`);
-      }
-      throw error;
-    }
-    throw new Error('Unknown error calling Lovable AI');
+    const executionTime = Date.now() - startTime;
+    const aiError = error instanceof AIError ? error : new AIError(
+      error instanceof Error ? error.message : 'Unknown error',
+      'API_ERROR',
+      500,
+      true
+    );
+
+    // Log failed metrics
+    console.error(`[${functionName}] Failed after ${executionTime}ms:`, {
+      error: aiError.code,
+      message: aiError.message,
+      retries: retryCount
+    });
+
+    throw aiError;
   }
 }
+
+/**
+ * Clean up citations and markdown from AI responses
+ */
+// Export circuit breaker for monitoring
+export { lovableCircuitBreaker };
 
 /**
  * Clean up citations and markdown from AI responses
