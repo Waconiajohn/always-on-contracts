@@ -7,16 +7,16 @@ import { useDropzone } from "react-dropzone";
 import { useResumeBuilderV3Store, FitAnalysisResult } from "@/stores/resumeBuilderV3Store";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Sparkles, FileText, Briefcase, Upload, AlertTriangle, BookOpen, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { LoadingSkeletonV3 } from "./LoadingSkeletonV3";
 import { useResumeBuilderApi } from "./hooks/useResumeBuilderApi";
-import { HelpTooltip, HELP_CONTENT } from "./components/HelpTooltip";
 import { logger } from "@/lib/logger";
 import { useMasterResume } from "@/hooks/useMasterResume";
 import { invokeEdgeFunction } from "@/lib/edgeFunction";
+import { cn } from "@/lib/utils";
 
 import { RESUME_LIMITS } from "@/types/resume-builder-v3";
 
@@ -189,140 +189,174 @@ export function UploadStep() {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <div className="text-center mb-4 sm:mb-8">
-        <h2 className="text-lg sm:text-xl font-semibold mb-2">Let's Optimize Your Resume</h2>
-        <p className="text-sm sm:text-base text-muted-foreground">
+    <div className="space-y-6">
+      <div className="text-center mb-8">
+        <h2 className="text-xl sm:text-2xl font-semibold mb-2">Let's Optimize Your Resume</h2>
+        <p className="text-muted-foreground">
           Paste your resume and the job description. We'll analyze the fit and help you improve it.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        {/* Resume input with dropzone */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Your Resume
-              <HelpTooltip content={HELP_CONTENT.resumeInput} />
-            </Label>
-            
-            {/* Master Resume Toggle */}
-            {masterResume && (
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="use-master-resume"
-                  checked={useMasterResumeToggle}
-                  onCheckedChange={handleUseMasterResumeToggle}
-                  disabled={isMasterLoading}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Resume Upload Card */}
+        <Card className="border-2 hover:border-primary/50 transition-colors">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <FileText className="h-5 w-5" />
+                  Your Resume
+                </CardTitle>
+                <CardDescription>
+                  Upload your resume (PDF, DOCX, or TXT)
+                </CardDescription>
+              </div>
+              
+              {/* Master Resume Toggle */}
+              {masterResume && (
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="use-master-resume"
+                    checked={useMasterResumeToggle}
+                    onCheckedChange={handleUseMasterResumeToggle}
+                    disabled={isMasterLoading}
+                  />
+                  <label 
+                    htmlFor="use-master-resume" 
+                    className="text-xs text-muted-foreground cursor-pointer flex items-center gap-1"
+                  >
+                    <BookOpen className="h-3 w-3" />
+                    Master
+                  </label>
+                </div>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Drop zone */}
+            <div
+              {...getRootProps()}
+              className={cn(
+                'border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all',
+                isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary/50',
+                isParsingFile && 'opacity-50 cursor-wait'
+              )}
+            >
+              <input {...getInputProps()} />
+              {isParsingFile ? (
+                <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                  <span className="text-sm">Processing {resumeFileName}...</span>
+                </div>
+              ) : resumeFileName && localResume ? (
+                <div className="flex flex-col items-center gap-2 text-green-600">
+                  <CheckCircle2 className="h-8 w-8" />
+                  <span className="font-medium">{resumeFileName}</span>
+                  <span className="text-xs text-muted-foreground">(click to replace)</span>
+                </div>
+              ) : isDragActive ? (
+                <div className="flex flex-col items-center gap-2 text-primary">
+                  <Upload className="h-8 w-8" />
+                  <span className="font-medium">Drop your resume here...</span>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                  <Upload className="h-8 w-8" />
+                  <span className="font-medium">Drop PDF, DOCX, or TXT here</span>
+                  <span className="text-xs">or click to upload</span>
+                </div>
+              )}
+            </div>
+
+            {/* Divider and textarea - hide when file uploaded */}
+            {!resumeFileName && (
+              <>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="text-xs text-muted-foreground">or paste text</span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+                <Textarea
+                  placeholder="Paste your resume text here..."
+                  value={localResume}
+                  onChange={(e) => setLocalResume(e.target.value)}
+                  className={cn(
+                    'min-h-[200px] font-mono text-sm resize-none',
+                    resumeOverLimit && 'border-destructive'
+                  )}
+                  aria-describedby="resume-char-count"
                 />
-                <Label 
-                  htmlFor="use-master-resume" 
-                  className="text-xs text-muted-foreground cursor-pointer flex items-center gap-1"
-                >
-                  <BookOpen className="h-3 w-3" />
-                  Use Master Resume
-                </Label>
-              </div>
+              </>
             )}
-          </div>
-          
-          {/* Drop zone */}
-          <div
-            {...getRootProps()}
-            className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
-              isDragActive 
-                ? "border-primary bg-primary/5" 
-                : "border-muted-foreground/30 hover:border-primary/50"
-            } ${isParsingFile ? "opacity-50 cursor-wait" : ""}`}
-          >
-            <input {...getInputProps()} />
-            {isParsingFile ? (
-              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Processing {resumeFileName}...
-              </div>
-            ) : resumeFileName && localResume ? (
-              <div className="flex items-center justify-center gap-2 text-sm text-green-600">
-                <CheckCircle2 className="h-4 w-4" />
-                <span>{resumeFileName}</span>
-                <span className="text-muted-foreground">(click to replace)</span>
-              </div>
-            ) : isDragActive ? (
-              <p className="text-sm text-primary">Drop your resume here...</p>
-            ) : (
-              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                <Upload className="h-4 w-4" />
-                <span>Drop PDF, DOCX, or TXT file here, or click to upload</span>
-              </div>
-            )}
-          </div>
 
-          <Textarea
-            placeholder="Or paste your resume text here..."
-            value={localResume}
-            onChange={(e) => setLocalResume(e.target.value)}
-            className={`min-h-[200px] sm:min-h-[260px] font-mono text-sm ${resumeOverLimit ? "border-destructive" : ""}`}
-            aria-describedby="resume-char-count"
-          />
-          <div id="resume-char-count" className="flex items-center justify-between text-xs">
-            <span className={getCharacterStatus(localResume.length, MIN_RESUME_CHARS, MAX_RESUME_CHARS)}>
-              {localResume.length.toLocaleString()} / {MAX_RESUME_CHARS.toLocaleString()} characters
-              {localResume.length < MIN_RESUME_CHARS && ` (need at least ${MIN_RESUME_CHARS})`}
-            </span>
-            {resumeOverLimit && (
-              <span className="flex items-center gap-1 text-destructive">
-                <AlertTriangle className="h-3 w-3" />
-                Too long
+            <div id="resume-char-count" className="flex items-center justify-between text-xs">
+              <span className={getCharacterStatus(localResume.length, MIN_RESUME_CHARS, MAX_RESUME_CHARS)}>
+                {localResume.length.toLocaleString()} / {MAX_RESUME_CHARS.toLocaleString()} characters
+                {localResume.length < MIN_RESUME_CHARS && ` (need at least ${MIN_RESUME_CHARS})`}
               </span>
-            )}
-          </div>
-        </div>
+              {resumeOverLimit && (
+                <span className="flex items-center gap-1 text-destructive">
+                  <AlertTriangle className="h-3 w-3" />
+                  Too long
+                </span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Job description input */}
-        <div className="space-y-2">
-          <Label className="flex items-center gap-2">
-            <Briefcase className="h-4 w-4" />
-            Job Description
-            <HelpTooltip content={HELP_CONTENT.jobDescription} />
-          </Label>
-          <Textarea
-            placeholder="Paste the job description here..."
-            value={localJob}
-            onChange={(e) => setLocalJob(e.target.value)}
-            className={`min-h-[200px] sm:min-h-[300px] font-mono text-sm ${jobOverLimit ? "border-destructive" : ""}`}
-            aria-describedby="job-char-count"
-          />
-          <div id="job-char-count" className="flex items-center justify-between text-xs">
-            <span className={getCharacterStatus(localJob.length, MIN_JOB_CHARS, MAX_JOB_CHARS)}>
-              {localJob.length.toLocaleString()} / {MAX_JOB_CHARS.toLocaleString()} characters
-              {localJob.length < MIN_JOB_CHARS && ` (need at least ${MIN_JOB_CHARS})`}
-            </span>
-            {jobOverLimit && (
-              <span className="flex items-center gap-1 text-destructive">
-                <AlertTriangle className="h-3 w-3" />
-                Too long
+        {/* Job Description Card */}
+        <Card className="border-2 hover:border-primary/50 transition-colors">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Briefcase className="h-5 w-5" />
+              Job Description
+            </CardTitle>
+            <CardDescription>
+              Paste the job description you're applying for
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Textarea
+              placeholder="Paste the job description here..."
+              value={localJob}
+              onChange={(e) => setLocalJob(e.target.value)}
+              className={cn(
+                'min-h-[280px] font-mono text-sm resize-none',
+                jobOverLimit && 'border-destructive'
+              )}
+              aria-describedby="job-char-count"
+            />
+            <div id="job-char-count" className="flex items-center justify-between text-xs">
+              <span className={getCharacterStatus(localJob.length, MIN_JOB_CHARS, MAX_JOB_CHARS)}>
+                {localJob.length.toLocaleString()} / {MAX_JOB_CHARS.toLocaleString()} characters
+                {localJob.length < MIN_JOB_CHARS && ` (need at least ${MIN_JOB_CHARS})`}
               </span>
-            )}
-          </div>
-        </div>
+              {jobOverLimit && (
+                <span className="flex items-center gap-1 text-destructive">
+                  <AlertTriangle className="h-3 w-3" />
+                  Too long
+                </span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="flex justify-center pt-4">
+      <div className="flex justify-center pt-6">
         <Button
           size="lg"
           onClick={handleAnalyze}
           disabled={!canAnalyze || isLoading}
-          className="min-w-[200px]"
+          className="gap-2 px-8 py-6 text-lg"
         >
           {isLoading ? (
             <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Loader2 className="h-5 w-5 animate-spin" />
               Analyzing...
             </>
           ) : (
             <>
-              <Sparkles className="h-4 w-4 mr-2" />
+              <Sparkles className="h-5 w-5" />
               Analyze Fit
             </>
           )}
