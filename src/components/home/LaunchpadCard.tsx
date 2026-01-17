@@ -20,7 +20,7 @@ interface LaunchpadCardProps {
   isPlatinum?: boolean;
   order?: number;
   variant?: 'active' | 'preview' | 'unlocked';
-  resumeCompletion?: number;
+  
 }
 
 export const LaunchpadCard = ({
@@ -35,7 +35,7 @@ export const LaunchpadCard = ({
   isPlatinum,
   order,
   variant = 'active',
-  resumeCompletion = 0,
+  
 }: LaunchpadCardProps) => {
   const navigate = useNavigate();
   const iconColor = getSeasonalIconColor(order || 0);
