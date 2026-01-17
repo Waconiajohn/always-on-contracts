@@ -10,19 +10,19 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.get-refinement-suggestions]
-verify_jwt = false
+verify_jwt = true
 
 [functions.further-enhance-bullet]
 verify_jwt = true
 
 [functions.generate-elite-resume]
-verify_jwt = false
+verify_jwt = true
 
 [functions.regenerate-bullet]
-verify_jwt = false
+verify_jwt = true
 
 [functions.analyze-resume-match]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-gap-suggestions]
 verify_jwt = true
@@ -148,13 +148,13 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.optimize-linkedin-profile]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-series-posts]
-verify_jwt = false
+verify_jwt = true
 
 [functions.linkedin-networking-messages]
-verify_jwt = false
+verify_jwt = true
 
 [functions.scrape-career-trends]
 verify_jwt = true
@@ -379,22 +379,22 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.hiring-manager-review]
-verify_jwt = false
+verify_jwt = true
 
 [functions.quick-glance-optimize]
 verify_jwt = true
 
 [functions.resume-builder-v3]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-bullet-options]
-verify_jwt = false
+verify_jwt = true
 
 [functions.dispute-gap]
-verify_jwt = false
+verify_jwt = true
 
 [functions.instant-resume-score]
 verify_jwt = false
 
 [functions.micro-edit-bullet]
-verify_jwt = false
+verify_jwt = true

@@ -5,8 +5,21 @@
 
 import { formatErrorResponse, AIError } from './error-handling.ts';
 
+/**
+ * CORS Configuration
+ *
+ * For production, set ALLOWED_ORIGIN environment variable to your domain:
+ *   e.g., "https://yourdomain.com"
+ *
+ * For development, leave unset to allow all origins.
+ */
+const getAllowedOrigin = (): string => {
+  const allowedOrigin = Deno.env.get('ALLOWED_ORIGIN');
+  return allowedOrigin || '*';
+};
+
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': getAllowedOrigin(),
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 

@@ -1,8 +1,14 @@
 /**
- * Centralized AI Configuration - Perplexity Only
- * 
- * CRITICAL: This project uses Perplexity exclusively for all AI operations.
- * Using any other provider (Lovable AI, Gemini, OpenAI direct) is prohibited.
+ * Centralized AI Configuration - Perplexity
+ *
+ * This project uses TWO AI providers:
+ * - Perplexity: For web search, research, and real-time information
+ * - Lovable AI Gateway: For structured output and content generation (see lovable-ai-config.ts)
+ *
+ * Use Perplexity when you need:
+ * - Real-time web search results
+ * - Research tasks with citations
+ * - Market/industry research
  */
 
 import { AIError, handlePerplexityError, retryWithBackoff } from './error-handling.ts';
