@@ -86,6 +86,15 @@ export function InterviewStep() {
   const currentQuestion = questionsList[currentQuestionIndex];
   const totalQuestions = questionsList.length;
   
+  // Debug logging
+  console.log('[InterviewStep] Render state:', {
+    hasNoQuestions,
+    questionsCount: questionsList.length,
+    currentQuestionIndex,
+    currentQuestion: currentQuestion ? 'exists' : 'missing',
+    isLoading
+  });
+  
   // Validate answer keys match question IDs to prevent unexpected keys
   const validQuestionIds = new Set(questionsList.map(q => q.id));
   const answeredCount = Object.keys(interviewAnswers).filter(
