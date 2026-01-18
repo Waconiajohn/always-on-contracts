@@ -132,20 +132,42 @@ Return a JSON object with this exact structure:
   "recommendation": "Which option is best for this specific requirement and why"
 }`;
 
+    // Use MINI for more reliable responses - GPT-5 has issues with empty content
     const { response, metrics } = await callLovableAI({
       messages: [{ role: 'user', content: prompt }],
-      model: LOVABLE_AI_MODELS.PREMIUM, // GPT-5 for highest quality
-      temperature: 0.7,
-      max_tokens: 1000,
+      model: LOVABLE_AI_MODELS.MINI,
+      max_tokens: 1200,
+      response_format: { type: 'json_object' },
     }, 'generate-bullet-options', undefined);
 
     await logAIUsage(metrics);
 
-    const content = cleanCitations(response.choices?.[0]?.message?.content || '').trim();
+    // Debug log the full response structure
+    console.log('[generate-bullet-options] Response structure:', JSON.stringify({
+      hasChoices: !!response.choices,
+      choicesLength: response.choices?.length,
+      firstChoice: response.choices?.[0] ? {
+        hasMessage: !!response.choices[0].message,
+        contentType: typeof response.choices[0].message?.content,
+        contentLength: response.choices[0].message?.content?.length,
+        finishReason: response.choices[0].finish_reason,
+      } : null
+    }));
 
-    if (!content) {
+    const rawContent = response.choices?.[0]?.message?.content;
+    
+    if (!rawContent) {
+      // Check if there's a refusal
+      const refusal = (response.choices?.[0]?.message as any)?.refusal;
+      if (refusal) {
+        console.error('[generate-bullet-options] AI refusal:', refusal);
+        throw new Error(`AI refused request: ${refusal}`);
+      }
+      console.error('[generate-bullet-options] No content in response:', JSON.stringify(response.choices?.[0]));
       throw new Error('AI returned empty response');
     }
+
+    const content = cleanCitations(rawContent).trim();
 
     // Parse the JSON response
     let parsedOptions;

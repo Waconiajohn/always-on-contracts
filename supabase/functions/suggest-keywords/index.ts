@@ -67,7 +67,7 @@ TASK: Provide 10-15 keywords across all categories that:
 
 Return your analysis in the required JSON format.`;
 
-    console.log('[suggest-keywords] Calling Lovable AI with PREMIUM model');
+    console.log('[suggest-keywords] Calling Lovable AI with MINI model');
 
     const { response, metrics } = await callLovableAI(
       {
@@ -75,8 +75,7 @@ Return your analysis in the required JSON format.`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        model: LOVABLE_AI_MODELS.PREMIUM,
-        temperature: 0.7,
+        model: LOVABLE_AI_MODELS.MINI, // Use MINI for reliability
         max_tokens: 1000,
         response_format: { type: 'json_object' }
       },
@@ -86,7 +85,13 @@ Return your analysis in the required JSON format.`;
 
     await logAIUsage(metrics);
 
-    const rawContent = response.choices[0].message.content;
+    const rawContent = response.choices?.[0]?.message?.content;
+    
+    if (!rawContent) {
+      console.error('[suggest-keywords] Empty content from AI');
+      throw new Error('AI returned empty response');
+    }
+    
     console.log('[suggest-keywords] Raw AI response:', rawContent.substring(0, 500));
     
     const parseResult = extractJSON(rawContent);
@@ -194,7 +199,6 @@ Focus on skills that would improve ATS matching and interview chances.`;
         { role: "user", content: userPrompt }
       ],
       model: LOVABLE_AI_MODELS.FAST,
-      temperature: 0.3,
       max_tokens: 800,
       response_format: { type: 'json_object' }
     },
@@ -204,7 +208,13 @@ Focus on skills that would improve ATS matching and interview chances.`;
 
   await logAIUsage(metrics);
 
-  const rawContent = response.choices[0].message.content;
+  const rawContent = response.choices?.[0]?.message?.content;
+  
+  if (!rawContent) {
+    console.error('[suggest-keywords] Skills: Empty content from AI');
+    throw new Error('AI returned empty response');
+  }
+  
   console.log('[suggest-keywords] Skills analysis response:', rawContent.substring(0, 500));
   
   const parseResult = extractJSON(rawContent);

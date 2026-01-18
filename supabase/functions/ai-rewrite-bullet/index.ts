@@ -77,22 +77,32 @@ Return ONLY valid JSON in this exact format:
 }`;
 
     const prompt = mode === 'deep' ? deepPrompt : quickPrompt;
-    const model = mode === 'deep' ? LOVABLE_AI_MODELS.PREMIUM : LOVABLE_AI_MODELS.DEFAULT;
+    // Use MINI instead of PREMIUM for faster, more reliable responses
+    const model = mode === 'deep' ? LOVABLE_AI_MODELS.MINI : LOVABLE_AI_MODELS.DEFAULT;
 
     const { response, metrics } = await callLovableAI({
       messages: [{ role: 'user', content: prompt }],
       model,
-      temperature: mode === 'deep' ? 0.7 : 0.5,
       max_tokens: 500,
+      response_format: { type: 'json_object' },
     }, 'ai-rewrite-bullet', undefined);
 
     await logAIUsage(metrics);
 
-    const content = cleanCitations(response.choices?.[0]?.message?.content || '').trim();
+    // Debug log the response structure
+    console.log('[ai-rewrite-bullet] Response check:', {
+      hasContent: !!response.choices?.[0]?.message?.content,
+      contentLength: response.choices?.[0]?.message?.content?.length,
+    });
 
-    if (!content) {
+    const rawContent = response.choices?.[0]?.message?.content;
+    
+    if (!rawContent) {
+      console.error('[ai-rewrite-bullet] Empty content, full response:', JSON.stringify(response.choices?.[0]));
       throw new Error('AI returned empty response');
     }
+
+    const content = cleanCitations(rawContent).trim();
 
     // Parse the JSON response
     let parsedResult;
