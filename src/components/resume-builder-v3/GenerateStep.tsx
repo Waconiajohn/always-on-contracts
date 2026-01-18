@@ -26,6 +26,8 @@ import { formatResumeAsText } from "./utils/formatters";
 import { HelpTooltip, HELP_CONTENT } from "./components/HelpTooltip";
 import { VersionHistory, safeParseVersions } from "./components/VersionHistory";
 import { BulletEditor } from "./components/BulletEditor";
+import { SummaryEditor } from "./components/SummaryEditor";
+import { SkillsSuggester } from "./components/SkillsSuggester";
 import { MAX_VERSION_HISTORY } from "./constants";
 import { logger } from "@/lib/logger";
 import type { ResumeVersion, OptimizedResume } from "@/types/resume-builder-v3";
@@ -116,6 +118,43 @@ export function GenerateStep() {
       improvements_made: [
         ...finalResume.improvements_made,
         `Refined bullet point in ${finalResume.experience[experienceIndex]?.title || 'experience'}`,
+      ],
+    };
+    
+    setFinalResume(updatedResume);
+  }, [finalResume, setFinalResume]);
+
+  // Handler for summary updates from SummaryEditor
+  const handleSummaryUpdate = useCallback((newSummary: string) => {
+    if (!finalResume) return;
+    
+    const updatedResume: OptimizedResume = {
+      ...finalResume,
+      summary: newSummary,
+      improvements_made: [
+        ...finalResume.improvements_made,
+        'Refined professional summary with AI',
+      ],
+    };
+    
+    setFinalResume(updatedResume);
+  }, [finalResume, setFinalResume]);
+
+  // Handler for skill additions from SkillsSuggester
+  const handleSkillAdd = useCallback((skill: string) => {
+    if (!finalResume) return;
+    
+    // Avoid duplicates
+    if (finalResume.skills.some(s => s.toLowerCase() === skill.toLowerCase())) {
+      return;
+    }
+    
+    const updatedResume: OptimizedResume = {
+      ...finalResume,
+      skills: [...finalResume.skills, skill],
+      improvements_made: [
+        ...finalResume.improvements_made,
+        `Added missing skill: ${skill}`,
       ],
     };
     
@@ -381,7 +420,11 @@ export function GenerateStep() {
             <h4 className="font-semibold text-sm uppercase tracking-wide mb-2">
               Professional Summary
             </h4>
-            <p className="text-sm leading-relaxed">{finalResume.summary}</p>
+            <SummaryEditor
+              summary={finalResume.summary}
+              jobDescription={jobDescription}
+              onSummaryUpdate={handleSummaryUpdate}
+            />
           </div>
 
           <Separator />
@@ -436,6 +479,11 @@ export function GenerateStep() {
             ) : (
               <p className="text-sm text-muted-foreground italic">No skills listed</p>
             )}
+            <SkillsSuggester
+              currentSkills={finalResume.skills}
+              jobDescription={jobDescription}
+              onSkillAdd={handleSkillAdd}
+            />
           </div>
 
           {/* Education */}
