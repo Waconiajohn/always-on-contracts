@@ -1,6 +1,7 @@
-import { Loader2, TrendingUp, Zap, Target, Users, FileCheck } from 'lucide-react';
+import { Loader2, TrendingUp, Zap, Target, Users, FileCheck, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -10,6 +11,7 @@ import { KeywordBreakdown } from './KeywordBreakdown';
 import { ATSCompliancePanel } from './ATSCompliancePanel';
 import { ExportReportButton } from './ExportReportButton';
 import { ScoreTooltip } from './ScoreTooltip';
+import { PriorityFixesPanel, PriorityFix } from './PriorityFixesPanel';
 
 interface ResultsPanelProps {
   result: ResumeMatchResult | null;
@@ -17,6 +19,10 @@ interface ResultsPanelProps {
   error: string | null;
   resumeText: string;
   hasContent: boolean;
+  onRefreshScore?: () => void;
+  onAddSkill?: (skill: string) => void;
+  onGenerateBullet?: (keyword: string) => void;
+  onFixClick?: (fix: PriorityFix) => void;
 }
 
 export function ResultsPanel({ 
@@ -24,7 +30,11 @@ export function ResultsPanel({
   isAnalyzing, 
   error,
   resumeText,
-  hasContent 
+  hasContent,
+  onRefreshScore,
+  onAddSkill,
+  onGenerateBullet,
+  onFixClick,
 }: ResultsPanelProps) {
   // Empty state
   if (!hasContent) {
@@ -134,7 +144,21 @@ export function ResultsPanel({
             <Target className="h-4 w-4 text-primary" />
             Match Results
           </CardTitle>
-          <ExportReportButton result={result} />
+          <div className="flex items-center gap-2">
+            {onRefreshScore && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onRefreshScore}
+                disabled={isAnalyzing}
+                className="h-7 px-2 text-xs gap-1"
+              >
+                <RefreshCw className={cn("h-3 w-3", isAnalyzing && "animate-spin")} />
+                Refresh
+              </Button>
+            )}
+            <ExportReportButton result={result} />
+          </div>
         </div>
       </CardHeader>
       
@@ -221,7 +245,26 @@ export function ResultsPanel({
             gapAnalysis={result.gapAnalysis}
             skillsMatch={result.breakdown?.jdMatch?.skillsMatch}
             experienceMatch={result.breakdown?.jdMatch?.experienceMatch}
+            onAddSkill={onAddSkill}
+            onGenerateBullet={onGenerateBullet}
           />
+
+          {/* Priority Fixes */}
+          {result.priorityFixes && result.priorityFixes.length > 0 && (
+            <PriorityFixesPanel
+              fixes={result.priorityFixes.map((fix: any) => ({
+                issue: fix.issue || fix.gapType || 'Issue',
+                recommendation: fix.fix || fix.recommendation || 'Address this gap',
+                severity: fix.priority <= 1 ? 'critical' as const : 
+                          fix.priority <= 2 ? 'high' as const : 
+                          fix.priority <= 3 ? 'medium' as const : 'low' as const,
+                category: fix.category,
+                fixType: fix.gapType === 'skill' ? 'add_skill' as const : 
+                         fix.gapType === 'experience' ? 'add_bullet' as const : 'other' as const,
+              }))}
+              onFixClick={onFixClick}
+            />
+          )}
 
           {/* ATS Compliance */}
           <ATSCompliancePanel 
