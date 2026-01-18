@@ -2,7 +2,7 @@
 // STEP 1B: Display Fit Analysis Results
 // =====================================================
 
-import { useResumeBuilderV3Store, StandardsResult } from "@/stores/resumeBuilderV3Store";
+import { useResumeBuilderV3Store, StandardsResult, QuestionsResult } from "@/stores/resumeBuilderV3Store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +23,7 @@ export function FitAnalysisStep() {
     resumeText,
     jobDescription,
     setStandards,
+    setQuestions,
     setStep,
     setLoading,
     isLoading,
@@ -39,7 +40,7 @@ export function FitAnalysisStep() {
       <div aria-busy="true" aria-label="Loading industry standards">
         <LoadingSkeletonV3 
           type="standards" 
-          message={isRetrying ? `Retrying... (Attempt ${currentAttempt}/${maxAttempts})` : "Researching industry standards and benchmarks..."} 
+          message={isRetrying ? `Retrying... (Attempt ${currentAttempt}/${maxAttempts})` : "Researching industry standards and preparing interview questions..."} 
           onCancel={() => {
             cancel();
             setLoading(false);
@@ -52,7 +53,8 @@ export function FitAnalysisStep() {
   const handleContinue = async () => {
     setLoading(true);
 
-    const result = await callApi<StandardsResult>({
+    // Step 1: Fetch standards
+    const standardsResult = await callApi<StandardsResult>({
       step: "standards",
       body: {
         resumeText,
@@ -62,8 +64,27 @@ export function FitAnalysisStep() {
       successMessage: "Standards analysis complete!",
     });
 
-    if (result) {
-      setStandards(result);
+    if (!standardsResult) {
+      setLoading(false);
+      return;
+    }
+    
+    setStandards(standardsResult);
+
+    // Step 2: Generate questions (required for Interview step)
+    const questionsResult = await callApi<QuestionsResult>({
+      step: "questions",
+      body: {
+        resumeText,
+        jobDescription,
+        fitAnalysis,
+        standards: standardsResult,
+      },
+      successMessage: "Interview questions ready!",
+    });
+
+    if (questionsResult) {
+      setQuestions(questionsResult);
       // Go to Interview step (step 2 in new 3-step flow)
       setStep(2);
     }
