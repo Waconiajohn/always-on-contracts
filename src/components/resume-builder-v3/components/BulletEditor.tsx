@@ -1,9 +1,9 @@
 /**
  * BulletEditor - Interactive bullet point editor with AI refinement
- * Allows users to strengthen, add metrics, regenerate, or view alternative versions
+ * Shows job requirement context and allows users to strengthen, add metrics, regenerate, or view alternatives
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -21,21 +21,22 @@ import {
   Undo2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { BulletEditActionType } from "@/types/resume-builder-v3";
+import type { BulletEditActionType, FitAnalysisResult } from "@/types/resume-builder-v3";
 import { useRefinementSuggestions } from "@/hooks/useRefinementSuggestions";
 import { useMultipleBulletOptions } from "@/hooks/useMultipleBulletOptions";
 import { AlternativeVersionsPanel } from "./AlternativeVersionsPanel";
 import { BulletOptionsPanel } from "./BulletOptionsPanel";
+import { RequirementContext } from "./RequirementContext";
+import { getBulletContext } from "../utils/requirementMatcher";
 
 interface BulletEditorProps {
   bullet: string;
   experienceIndex: number;
   bulletIndex: number;
   jobDescription: string;
+  fitAnalysis?: FitAnalysisResult | null;
   onBulletUpdate: (experienceIndex: number, bulletIndex: number, newBullet: string) => void;
 }
-
-
 
 const ACTION_CONFIG = {
   strengthen: {
@@ -60,6 +61,7 @@ export function BulletEditor({
   experienceIndex,
   bulletIndex,
   jobDescription,
+  fitAnalysis,
   onBulletUpdate,
 }: BulletEditorProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -72,6 +74,12 @@ export function BulletEditor({
   const [showActions, setShowActions] = useState(false);
   const [viewMode, setViewMode] = useState<'default' | 'alternatives' | 'options'>('default');
   const [editHistory, setEditHistory] = useState<string[]>([]);
+
+  // Get requirement context for this bullet
+  const bulletContext = useMemo(
+    () => getBulletContext(bullet, fitAnalysis || null),
+    [bullet, fitAnalysis]
+  );
 
   // Hooks for advanced suggestions
   const { 
@@ -103,6 +111,9 @@ export function BulletEditor({
           jobDescription,
           currentText: bullet,
           action,
+          // Include requirement context to improve AI suggestions
+          targetRequirement: bulletContext.matchedRequirement?.requirement,
+          missingKeywords: bulletContext.relevantKeywords.missing,
         },
       });
 
@@ -134,7 +145,7 @@ export function BulletEditor({
   const handleShowOptions = async () => {
     setViewMode('options');
     await generateOptions({
-      requirementText: bullet,
+      requirementText: bulletContext.matchedRequirement?.requirement || bullet,
       currentBullet: bullet,
       jobDescription,
     });
@@ -300,9 +311,18 @@ export function BulletEditor({
             )}
           </div>
           
-          {/* Action buttons */}
+          {/* Action buttons with requirement context */}
           {showActions && (
             <div className="space-y-2 pt-1 animate-in fade-in slide-in-from-top-1 duration-200">
+              {/* Requirement Context - Shows what this bullet is addressing */}
+              {fitAnalysis && (
+                <RequirementContext
+                  matchedRequirement={bulletContext.matchedRequirement}
+                  relevantKeywords={bulletContext.relevantKeywords}
+                  alignmentScore={bulletContext.alignmentScore}
+                />
+              )}
+              
               {/* Quick actions row */}
               <div className="flex flex-wrap gap-1.5">
                 {(Object.entries(ACTION_CONFIG) as [BulletEditActionType, typeof ACTION_CONFIG[BulletEditActionType]][]).map(

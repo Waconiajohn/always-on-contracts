@@ -34,9 +34,12 @@ export const BENCHMARK_WEIGHTS = {
 } as const;
 
 // Step labels for navigation (single source of truth)
+// Consolidated 3-step flow: Upload -> Interview -> Edit & Optimize
 export const STEP_LABELS: Record<number, string> = {
   1: "Upload & Analyze",
-  2: "Industry Standards",
-  3: "Interview",
-  4: "Generate Resume",
+  2: "Interview",
+  3: "Edit & Optimize",
 };
+
+// Total number of steps
+export const TOTAL_STEPS = 3;

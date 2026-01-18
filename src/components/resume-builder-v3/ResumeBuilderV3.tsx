@@ -1,11 +1,10 @@
 // =====================================================
 // RESUME BUILDER V3 - MAIN CONTAINER
 // =====================================================
-// Simple 4-step flow:
+// Consolidated 3-step flow:
 // 1. Upload & Analyze (Fit Analysis)
-// 2. Industry Standards Review
-// 3. Candidate Interview (Fill Gaps)
-// 4. Generate & Review Resume
+// 2. Candidate Interview (Fill Gaps)
+// 3. Edit & Optimize (Side-by-side editing + analysis)
 // =====================================================
 
 import { useState, useEffect, useCallback, useRef, useSyncExternalStore } from "react";
@@ -22,9 +21,8 @@ const useStoreHydration = () => {
 };
 import { UploadStep } from "./UploadStep";
 import { FitAnalysisStep } from "./FitAnalysisStep";
-import { StandardsStep } from "./StandardsStep";
 import { InterviewStep } from "./InterviewStep";
-import { GenerateStep } from "./GenerateStep";
+import { EditAndOptimizeStep } from "./EditAndOptimizeStep";
 import { SessionRecoveryDialogV3 } from "./SessionRecoveryDialogV3";
 import { StepTransition } from "./StepTransition";
 import { Progress } from "@/components/ui/progress";
@@ -43,7 +41,7 @@ import {
 import { ArrowLeft, RotateCcw, CheckCircle2 } from "lucide-react";
 import { ResumeBuilderErrorBoundary } from "./components/ErrorBoundary";
 import { StepErrorBoundary } from "./components/StepErrorBoundary";
-import { SESSION_RECOVERY_MIN_CHARS, SESSION_RECOVERY_MIN_JOB_CHARS, STEP_LABELS } from "./constants";
+import { SESSION_RECOVERY_MIN_CHARS, SESSION_RECOVERY_MIN_JOB_CHARS, STEP_LABELS, TOTAL_STEPS } from "./constants";
 
 // Navigation state types from other pages
 interface NavigationState {
@@ -55,7 +53,7 @@ interface NavigationState {
 }
 
 // Map step numbers to display labels
-const STEP_DISPLAY_LABELS = [STEP_LABELS[1], STEP_LABELS[2], STEP_LABELS[3], STEP_LABELS[4]].map(label => 
+const STEP_DISPLAY_LABELS = Object.values(STEP_LABELS).map(label => 
   label.split(' ')[0] // Just use first word for brevity in progress bar
 );
 
@@ -65,7 +63,6 @@ export function ResumeBuilderV3() {
   const { 
     step, 
     fitAnalysis,
-    standards,
     questions,
     finalResume,
     reset, 
@@ -88,37 +85,30 @@ export function ResumeBuilderV3() {
     const state = location.state as NavigationState | null;
     
     if (state?.fromQuickScore && state.resumeText) {
-      // Coming from QuickScore - pre-fill the form
-      reset(); // Start fresh
+      reset();
       setResumeText(state.resumeText);
       if (state.jobDescription) {
         setJobDescription(state.jobDescription);
       }
-      // Clear the navigation state to prevent re-triggering on refresh
       window.history.replaceState({}, document.title);
       setHasHandledNavState(true);
-      setHasCheckedSession(true); // Skip recovery dialog since we just reset
+      setHasCheckedSession(true);
       return;
     }
     
     if (state?.savedResumeId && state?.savedContent) {
-      // Coming from MyResumes - TODO: Hydrate store with saved content
       window.history.replaceState({}, document.title);
       setHasHandledNavState(true);
     }
   }, [location.state, hasHandledNavState, reset, setResumeText, setJobDescription]);
 
-  // Get resumeText and jobDescription from store
   const resumeText = useResumeBuilderV3Store((state) => state.resumeText);
   const jobDescription = useResumeBuilderV3Store((state) => state.jobDescription);
 
-  // Check for existing session on mount - ONLY after store is hydrated
-  // Show recovery if they have analysis results, or substantial typed text
+  // Check for existing session on mount
   useEffect(() => {
-    // Wait for hydration before checking session to avoid race condition
     if (!isHydrated || hasCheckedSession || hasHandledNavState) return;
     
-    // Recover if: analysis exists OR step > 1 OR both fields have substantial content
     const hasRealProgress = 
       fitAnalysis !== null || 
       step > 1 ||
@@ -130,26 +120,13 @@ export function ResumeBuilderV3() {
     setHasCheckedSession(true);
   }, [isHydrated, hasCheckedSession, hasHandledNavState, fitAnalysis, step, resumeText.length, jobDescription.length]);
 
-  // Step prerequisite validation - ensure required data exists for each step
+  // Step prerequisite validation for 3-step flow
   useEffect(() => {
     if (!isHydrated) return;
     
-    // Step 3 requires questions
-    if (step === 3 && (!questions || !questions.questions || questions.questions.length === 0)) {
-      console.warn('[Resume Builder] Step 3 without questions, redirecting');
-      if (standards) {
-        setStep(2);
-      } else if (fitAnalysis) {
-        setStep(1);
-      } else {
-        reset();
-      }
-      return;
-    }
-    
-    // Step 2 requires standards
-    if (step === 2 && !standards) {
-      console.warn('[Resume Builder] Step 2 without standards, redirecting');
+    // Step 2 requires questions
+    if (step === 2 && (!questions || !questions.questions || questions.questions.length === 0)) {
+      console.warn('[Resume Builder] Step 2 without questions, redirecting');
       if (fitAnalysis) {
         setStep(1);
       } else {
@@ -158,22 +135,19 @@ export function ResumeBuilderV3() {
       return;
     }
     
-    // Step 4 requires final resume
-    if (step === 4 && !finalResume) {
-      console.warn('[Resume Builder] Step 4 without resume, redirecting');
+    // Step 3 requires final resume
+    if (step === 3 && !finalResume) {
+      console.warn('[Resume Builder] Step 3 without resume, redirecting');
       if (questions?.questions?.length) {
-        setStep(3);
-      } else if (standards) {
         setStep(2);
       } else {
         reset();
       }
     }
-  }, [isHydrated, step, questions, standards, finalResume, fitAnalysis, setStep, reset]);
+  }, [isHydrated, step, questions, finalResume, fitAnalysis, setStep, reset]);
 
-  const progressValue = ((step - 1) / 3) * 100;
+  const progressValue = ((step - 1) / (TOTAL_STEPS - 1)) * 100;
 
-  // Track step changes for animation direction
   useEffect(() => {
     if (step !== previousStepRef.current) {
       setTransitionDirection(step > previousStepRef.current ? "forward" : "backward");
@@ -188,7 +162,6 @@ export function ResumeBuilderV3() {
     }
   }, [step, setStep]);
 
-  // Keyboard navigation - Escape to go back
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && step > 1 && !showRecoveryDialog && !showResetDialog) {
@@ -220,21 +193,19 @@ export function ResumeBuilderV3() {
 
   return (
     <ResumeBuilderErrorBoundary onReset={reset}>
-      <div className="max-w-4xl mx-auto p-3 sm:p-6">
-        {/* Session Recovery Dialog */}
+      <div className="max-w-6xl mx-auto p-3 sm:p-6">
         <SessionRecoveryDialogV3
           open={showRecoveryDialog}
           onContinue={handleContinueSession}
           onStartFresh={handleStartFresh}
         />
 
-        {/* Reset Confirmation Dialog */}
         <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Start Over?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will clear all your progress including your resume text, job description, and any answers you've provided. This action cannot be undone.
+                This will clear all your progress. This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -249,7 +220,6 @@ export function ResumeBuilderV3() {
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* Header with progress */}
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-2 sm:gap-4">
@@ -262,7 +232,6 @@ export function ResumeBuilderV3() {
               <h1 className="text-xl sm:text-2xl font-bold text-foreground">Resume Builder</h1>
             </div>
             <div className="flex items-center gap-2 self-end sm:self-auto">
-              {/* Auto-save indicator */}
               {lastUpdated && (
                 <Badge variant="outline" className="text-xs text-muted-foreground gap-1">
                   <CheckCircle2 className="h-3 w-3 text-green-500" />
@@ -278,7 +247,6 @@ export function ResumeBuilderV3() {
             </div>
           </div>
 
-          {/* Step indicator */}
           <div className="space-y-2" role="navigation" aria-label="Resume builder progress">
             <div className="flex justify-between text-xs sm:text-sm text-muted-foreground">
               {STEP_DISPLAY_LABELS.map((label, index) => (
@@ -301,12 +269,11 @@ export function ResumeBuilderV3() {
             <Progress 
               value={progressValue} 
               className="h-2" 
-              aria-label={`Step ${step} of 4: ${STEP_LABELS[step]}`}
+              aria-label={`Step ${step} of ${TOTAL_STEPS}: ${STEP_LABELS[step]}`}
             />
           </div>
         </div>
 
-        {/* Step content */}
         <main 
           className="bg-card rounded-lg border p-4 sm:p-6"
           role="main"
@@ -315,24 +282,20 @@ export function ResumeBuilderV3() {
         >
           <StepTransition step={step} direction={transitionDirection}>
             {step === 1 && !fitAnalysis && (
-              <StepErrorBoundary key={`upload-${step}`} stepName="Upload"><UploadStep /></StepErrorBoundary>
+              <StepErrorBoundary key="upload" stepName="Upload"><UploadStep /></StepErrorBoundary>
             )}
             {step === 1 && fitAnalysis && (
-              <StepErrorBoundary key={`fit-${step}`} stepName="Fit Analysis"><FitAnalysisStep /></StepErrorBoundary>
+              <StepErrorBoundary key="fit" stepName="Fit Analysis"><FitAnalysisStep /></StepErrorBoundary>
             )}
             {step === 2 && (
-              <StepErrorBoundary key={`standards-${step}`} stepName="Standards"><StandardsStep /></StepErrorBoundary>
+              <StepErrorBoundary key="interview" stepName="Interview"><InterviewStep /></StepErrorBoundary>
             )}
             {step === 3 && (
-              <StepErrorBoundary key={`interview-${step}`} stepName="Interview"><InterviewStep /></StepErrorBoundary>
-            )}
-            {step === 4 && (
-              <StepErrorBoundary key={`generate-${step}`} stepName="Generate"><GenerateStep /></StepErrorBoundary>
+              <StepErrorBoundary key="edit" stepName="Edit & Optimize"><EditAndOptimizeStep /></StepErrorBoundary>
             )}
           </StepTransition>
         </main>
 
-        {/* Keyboard shortcuts hint */}
         {step > 1 && (
           <p className="text-xs text-muted-foreground text-center mt-4" aria-hidden="true">
             Press <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">Esc</kbd> to go back
