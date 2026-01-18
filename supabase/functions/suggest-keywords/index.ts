@@ -14,7 +14,15 @@ serve(async (req) => {
   }
 
   try {
-    const { content, itemType, industry, targetRole } = await req.json();
+    const body = await req.json();
+    
+    // Check if this is the new skills suggestion format
+    if (body.type === 'skills' && body.currentSkills && body.jobDescription) {
+      return await handleSkillsSuggestion(body);
+    }
+    
+    // Original keyword suggestion flow
+    const { content, itemType, industry, targetRole } = body;
 
     console.log('Generating AI keyword suggestions for:', itemType);
 
@@ -141,3 +149,91 @@ Return your analysis in the required JSON format.`;
     );
   }
 });
+
+// New handler for skills gap analysis
+async function handleSkillsSuggestion(body: { currentSkills: string[]; jobDescription: string }) {
+  const { currentSkills, jobDescription } = body;
+  
+  console.log('[suggest-keywords] Analyzing skills gap');
+  
+  const systemPrompt = `You are an expert resume analyst and ATS specialist.
+Analyze the job description and identify skills that are mentioned but missing from the candidate's current skills list.
+
+Return your analysis as a JSON object with this exact structure:
+{
+  "suggestions": [
+    {
+      "skill": "Skill Name",
+      "relevance": "critical" | "high" | "medium",
+      "reason": "Brief explanation of why this skill matters for this role"
+    }
+  ]
+}
+
+Guidelines:
+- "critical" = Explicitly required or mentioned multiple times in the job posting
+- "high" = Strongly preferred or commonly expected for this type of role
+- "medium" = Nice to have or would strengthen the application
+- Only suggest skills the candidate could realistically claim (no fake certifications)
+- Focus on skills, tools, technologies, and methodologies
+- Maximum 10 suggestions, prioritize by relevance`;
+
+  const userPrompt = `CANDIDATE'S CURRENT SKILLS:
+${currentSkills.join(', ')}
+
+JOB DESCRIPTION:
+${jobDescription.substring(0, 3000)}
+
+Identify skills mentioned in the job description that are NOT in the candidate's current skills list.
+Focus on skills that would improve ATS matching and interview chances.`;
+
+  const { response, metrics } = await callLovableAI(
+    {
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      model: LOVABLE_AI_MODELS.FAST,
+      temperature: 0.3,
+      max_tokens: 800,
+      response_format: { type: 'json_object' }
+    },
+    "suggest-keywords-skills",
+    undefined
+  );
+
+  await logAIUsage(metrics);
+
+  const rawContent = response.choices[0].message.content;
+  console.log('[suggest-keywords] Skills analysis response:', rawContent.substring(0, 500));
+  
+  const parseResult = extractJSON(rawContent);
+  
+  if (!parseResult.success || !parseResult.data) {
+    console.error('[suggest-keywords] Skills JSON parse failed:', parseResult.error);
+    throw new Error(`Failed to parse skills response: ${parseResult.error}`);
+  }
+
+  const result = parseResult.data;
+  
+  if (!result.suggestions || !Array.isArray(result.suggestions)) {
+    console.error('[suggest-keywords] Missing suggestions array:', result);
+    throw new Error('AI response missing required field: suggestions array');
+  }
+
+  // Filter out any skills already in the list (case-insensitive)
+  const currentSkillsLower = new Set(currentSkills.map(s => s.toLowerCase()));
+  const filteredSuggestions = result.suggestions.filter(
+    (s: { skill: string }) => !currentSkillsLower.has(s.skill.toLowerCase())
+  );
+
+  console.log('[suggest-keywords] Found skill suggestions:', filteredSuggestions.length);
+
+  return new Response(
+    JSON.stringify({
+      success: true,
+      suggestions: filteredSuggestions
+    }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}

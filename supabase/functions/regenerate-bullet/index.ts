@@ -12,12 +12,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-type ActionType = 'strengthen' | 'add_metrics' | 'regenerate';
+type ActionType = 'strengthen' | 'add_metrics' | 'regenerate' | 'polish' | 'add_keywords' | 'modernize';
 
-function getPromptForAction(action: ActionType, currentText: string, jobDescription: string, requirementText?: string): string {
+function getPromptForAction(action: ActionType, currentText: string, jobDescription: string, sectionType: string, requirementText?: string): string {
   const jobContext = jobDescription.substring(0, 1500);
+  const isSummary = sectionType === 'summary';
+  const sectionLabel = isSummary ? 'SUMMARY' : 'BULLET';
   
-  const baseContext = `CURRENT BULLET:
+  const baseContext = `CURRENT ${sectionLabel}:
 ${currentText}
 
 JOB CONTEXT:
@@ -25,8 +27,78 @@ ${jobContext}
 
 ${requirementText ? `REQUIREMENT BEING ADDRESSED:\n${requirementText}\n` : ''}`;
 
+  // Summary-specific actions
+  if (isSummary) {
+    switch (action) {
+      case 'polish':
+        return `You are an elite executive resume writer. Polish this professional summary for impact and clarity.
+
+${baseContext}
+
+INSTRUCTIONS:
+- Refine the wording for maximum executive presence
+- Ensure it flows smoothly and sounds natural
+- Remove any redundancy or filler words
+- Make every word count
+- Keep the same length (3-4 sentences)
+- Maintain professional, confident tone
+
+Respond in JSON format:
+{"improvedBullet": "the polished summary", "changes": "brief description of refinements"}`;
+
+      case 'add_keywords':
+        return `You are an elite executive resume writer. Enhance this summary with job-specific keywords.
+
+${baseContext}
+
+INSTRUCTIONS:
+- Identify the top 5-7 keywords from the job description
+- Naturally weave them into the summary
+- Don't keyword-stuff - keep it readable and professional
+- Ensure the summary aligns with the target role's language
+- Keep it to 3-4 sentences
+
+Respond in JSON format:
+{"improvedBullet": "the keyword-enhanced summary", "changes": "keywords added: [list them]"}`;
+
+      case 'modernize':
+        return `You are an elite executive resume writer. Modernize this summary with current industry language.
+
+${baseContext}
+
+INSTRUCTIONS:
+- Update dated terminology to current industry standards
+- Use modern business language and frameworks
+- Add contemporary leadership concepts where appropriate
+- Make it sound current and forward-thinking
+- Keep it to 3-4 sentences
+
+Respond in JSON format:
+{"improvedBullet": "the modernized summary", "changes": "brief description of updates"}`;
+
+      case 'regenerate':
+      default:
+        return `You are an elite executive resume writer. Completely rewrite this professional summary.
+
+${baseContext}
+
+INSTRUCTIONS:
+- Create a fresh, compelling executive summary
+- Lead with your strongest value proposition
+- Include scope of leadership (team sizes, budgets, P&L if inferable)
+- Align language with the target job description
+- Keep it to 3-4 sentences maximum
+- Sound human, not AI-generated
+
+Respond in JSON format:
+{"improvedBullet": "the rewritten summary", "changes": "brief description of changes"}`;
+    }
+  }
+
+  // Bullet-specific actions (original behavior)
   switch (action) {
     case 'strengthen':
+    case 'polish':
       return `You are an elite resume writer. Make this bullet more powerful and impactful.
 
 ${baseContext}
@@ -42,6 +114,7 @@ Respond in JSON format:
 {"improvedBullet": "the improved bullet text", "changes": "brief description of what was improved"}`;
 
     case 'add_metrics':
+    case 'add_keywords':
       return `You are an elite resume writer. Add quantifiable metrics and measurable outcomes to this bullet.
 
 ${baseContext}
@@ -55,6 +128,21 @@ INSTRUCTIONS:
 
 Respond in JSON format:
 {"improvedBullet": "the bullet with metrics added", "changes": "brief description of metrics added"}`;
+
+    case 'modernize':
+      return `You are an elite resume writer. Modernize this bullet with current industry language.
+
+${baseContext}
+
+INSTRUCTIONS:
+- Update dated terminology to current industry standards
+- Use modern action verbs and business language
+- Add contemporary frameworks or methodologies if relevant
+- Make it sound current and forward-thinking
+- Keep it to 1-2 lines maximum
+
+Respond in JSON format:
+{"improvedBullet": "the modernized bullet", "changes": "brief description of updates"}`;
 
     case 'regenerate':
     default:
@@ -101,7 +189,7 @@ serve(async (req) => {
 
     console.log('🔄 Refining bullet', { bulletId, sectionType, action });
 
-    const prompt = getPromptForAction(action as ActionType, currentText, jobDescription, requirementText);
+    const prompt = getPromptForAction(action as ActionType, currentText, jobDescription, sectionType, requirementText);
 
     const { response, metrics } = await callLovableAI({
       messages: [{ role: 'user', content: prompt }],
