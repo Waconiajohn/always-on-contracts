@@ -3,7 +3,7 @@
  * Allows users to strengthen, add metrics, regenerate, or view alternative versions
  */
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -17,7 +17,8 @@ import {
   ChevronDown,
   ChevronUp,
   Layers,
-  Wand2
+  Wand2,
+  Undo2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { BulletEditActionType } from "@/types/resume-builder-v3";
@@ -70,6 +71,7 @@ export function BulletEditor({
   } | null>(null);
   const [showActions, setShowActions] = useState(false);
   const [viewMode, setViewMode] = useState<'default' | 'alternatives' | 'options'>('default');
+  const [editHistory, setEditHistory] = useState<string[]>([]);
 
   // Hooks for advanced suggestions
   const { 
@@ -160,18 +162,29 @@ export function BulletEditor({
     clearOptions();
   };
 
-  const handleAccept = () => {
+  const handleAccept = useCallback(() => {
     if (preview) {
+      // Save current bullet to history before updating
+      setEditHistory(prev => [...prev, bullet].slice(-5)); // Keep last 5 versions
       onBulletUpdate(experienceIndex, bulletIndex, preview.improvedBullet);
       toast.success('Bullet updated!');
       setPreview(null);
       setShowActions(false);
     }
-  };
+  }, [preview, bullet, experienceIndex, bulletIndex, onBulletUpdate]);
 
-  const handleReject = () => {
+  const handleReject = useCallback(() => {
     setPreview(null);
-  };
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    if (editHistory.length > 0) {
+      const lastVersion = editHistory[editHistory.length - 1];
+      onBulletUpdate(experienceIndex, bulletIndex, lastVersion);
+      setEditHistory(prev => prev.slice(0, -1));
+      toast.success('Reverted to previous version');
+    }
+  }, [editHistory, experienceIndex, bulletIndex, onBulletUpdate]);
 
   // If showing alternative versions panel
   if (viewMode === 'alternatives') {
@@ -348,6 +361,18 @@ export function BulletEditor({
                   )}
                   3 Options
                 </Button>
+                {editHistory.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleUndo}
+                    className="h-7 px-2.5 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
+                    title="Undo last AI edit"
+                  >
+                    <Undo2 className="h-3 w-3" />
+                    Undo
+                  </Button>
+                )}
               </div>
             </div>
           )}
