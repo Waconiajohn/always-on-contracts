@@ -37,16 +37,16 @@ export function SkillsSuggester({
 }: SkillsSuggesterProps) {
   const [suggestions, setSuggestions] = useState<SuggestedSkill[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true); // AUTO-EXPAND by default
   const [addedSkills, setAddedSkills] = useState<Set<string>>(new Set());
   const [hasFetched, setHasFetched] = useState(false);
 
-  // Fetch suggestions when expanded for the first time
+  // AUTO-FETCH on mount when job description is present
   useEffect(() => {
-    if (isExpanded && !hasFetched && !isLoading) {
+    if (jobDescription && !hasFetched && !isLoading) {
       fetchSuggestions();
     }
-  }, [isExpanded, hasFetched]);
+  }, [jobDescription, hasFetched]);
 
   const fetchSuggestions = async () => {
     setIsLoading(true);
@@ -91,42 +91,49 @@ export function SkillsSuggester({
   if (!jobDescription) return null;
 
   return (
-    <div className="mt-3">
+    <div className="mt-4 p-3 rounded-lg border border-primary/20 bg-primary/5">
       <Button
         variant="ghost"
         size="sm"
         onClick={() => setIsExpanded(!isExpanded)}
         className={cn(
-          "h-7 px-2 text-xs gap-1.5",
-          criticalCount > 0 ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"
+          "h-8 px-3 text-xs gap-2 w-full justify-between",
+          criticalCount > 0 ? "text-amber-600 dark:text-amber-400" : "text-primary"
         )}
       >
-        <Lightbulb className="h-3.5 w-3.5" />
-        {isLoading ? (
-          <>
-            <Loader2 className="h-3 w-3 animate-spin" />
-            Finding suggestions...
-          </>
-        ) : hasFetched ? (
-          pendingSuggestions.length > 0 ? (
+        <div className="flex items-center gap-2">
+          <Lightbulb className="h-4 w-4" />
+          {isLoading ? (
             <>
-              {pendingSuggestions.length} skill suggestion{pendingSuggestions.length !== 1 ? 's' : ''}
-              {criticalCount > 0 && (
-                <Badge variant="destructive" className="h-4 text-[10px] px-1.5 ml-1">
-                  {criticalCount} critical
-                </Badge>
-              )}
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span className="font-medium">Analyzing job description...</span>
             </>
+          ) : hasFetched ? (
+            pendingSuggestions.length > 0 ? (
+              <>
+                <span className="font-medium">
+                  {pendingSuggestions.length} Missing Skill{pendingSuggestions.length !== 1 ? 's' : ''} Detected
+                </span>
+                {criticalCount > 0 && (
+                  <Badge variant="destructive" className="h-5 text-[10px] px-2">
+                    {criticalCount} Critical
+                  </Badge>
+                )}
+              </>
+            ) : (
+              <span className="font-medium text-green-600 dark:text-green-400 flex items-center gap-1">
+                <Check className="h-3.5 w-3.5" />
+                Skills Fully Aligned!
+              </span>
+            )
           ) : (
-            "Skills look complete!"
-          )
-        ) : (
-          "Find missing skills"
-        )}
+            <span className="font-medium">AI Skill Suggestions</span>
+          )}
+        </div>
         {isExpanded ? (
-          <ChevronUp className="h-3 w-3" />
+          <ChevronUp className="h-4 w-4" />
         ) : (
-          <ChevronDown className="h-3 w-3" />
+          <ChevronDown className="h-4 w-4" />
         )}
       </Button>
 

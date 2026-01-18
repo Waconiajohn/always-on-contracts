@@ -275,26 +275,29 @@ export function BulletEditor({
         <div className="flex-1 space-y-1.5">
           <span>{bullet}</span>
           
-          {/* Toggle button - visible on hover or when expanded */}
-          <div className={cn(
-            "transition-opacity duration-200",
-            showActions ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-          )}>
+          {/* Toggle button - ALWAYS VISIBLE with sparkle indicator */}
+          <div className="flex items-center gap-1.5">
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={() => setShowActions(!showActions)}
-              className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
+              className={cn(
+                "h-7 px-2.5 text-xs gap-1.5 border-primary/30 hover:border-primary hover:bg-primary/5",
+                showActions && "bg-primary/10 border-primary"
+              )}
               disabled={isLoading}
             >
-              <Sparkles className="h-3 w-3" />
-              Improve with AI
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              <span className="text-primary font-medium">Improve with AI</span>
               {showActions ? (
-                <ChevronUp className="h-3 w-3" />
+                <ChevronUp className="h-3 w-3 text-primary" />
               ) : (
-                <ChevronDown className="h-3 w-3" />
+                <ChevronDown className="h-3 w-3 text-primary" />
               )}
             </Button>
+            {editHistory.length > 0 && (
+              <span className="text-[10px] text-muted-foreground">({editHistory.length} edits)</span>
+            )}
           </div>
           
           {/* Action buttons */}

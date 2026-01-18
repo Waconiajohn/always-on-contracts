@@ -169,24 +169,24 @@ export function SummaryEditor({
     <div className="space-y-2 group">
       <p className="text-sm leading-relaxed">{summary}</p>
       
-      {/* Toggle button - visible on hover or when expanded */}
-      <div className={cn(
-        "transition-opacity duration-200",
-        showActions ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-      )}>
+      {/* Toggle button - ALWAYS VISIBLE with prominent styling */}
+      <div className="mt-2">
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={() => setShowActions(!showActions)}
-          className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
+          className={cn(
+            "h-7 px-3 text-xs gap-1.5 border-primary/30 hover:border-primary hover:bg-primary/5",
+            showActions && "bg-primary/10 border-primary"
+          )}
           disabled={isLoading}
         >
-          <Sparkles className="h-3 w-3" />
-          Improve Summary with AI
+          <Sparkles className="h-3.5 w-3.5 text-primary" />
+          <span className="text-primary font-medium">Enhance Summary with AI</span>
           {showActions ? (
-            <ChevronUp className="h-3 w-3" />
+            <ChevronUp className="h-3 w-3 text-primary" />
           ) : (
-            <ChevronDown className="h-3 w-3" />
+            <ChevronDown className="h-3 w-3 text-primary" />
           )}
         </Button>
       </div>
