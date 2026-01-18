@@ -25,8 +25,17 @@ serve(async (req) => {
       resumeContext,
       confidence,
       originalText,
-      userId
+      userId,
+      sectionType, // 'experience' | 'summary' | 'skills'
+      requirement, // The specific job requirement being addressed
+      userExperience // Additional context about the user's background
     } = await req.json();
+
+    const sectionContext = sectionType === 'summary' 
+      ? 'This is a professional summary - focus on overall positioning and value proposition.'
+      : sectionType === 'skills'
+      ? 'This is a skills section - focus on keyword optimization and categorization.'
+      : 'This is an experience bullet - focus on impact, metrics, and action verbs.';
 
     console.log('🔍 Getting refinement suggestions for bullet');
 
@@ -38,8 +47,15 @@ CURRENT BULLET:
 CONFIDENCE LEVEL: ${confidence}
 ${originalText ? `ORIGINAL RESUME TEXT: "${originalText}"` : ''}
 
+SECTION TYPE: ${sectionType || 'experience'}
+${sectionContext}
+
+${requirement ? `SPECIFIC REQUIREMENT TO ADDRESS:\n${requirement}\n` : ''}
+
 JOB DESCRIPTION (key requirements):
-${jobDescription.substring(0, 1500)}
+${jobDescription?.substring(0, 1500) || 'Not provided'}
+
+${userExperience ? `USER'S RELEVANT EXPERIENCE:\n${JSON.stringify(userExperience).substring(0, 500)}\n` : ''}
 
 ${resumeContext ? `CANDIDATE'S FULL BACKGROUND:
 ${resumeContext.substring(0, 1000)}` : ''}
@@ -80,7 +96,17 @@ Return JSON:
     "differences": ["Added metrics", "Stronger action verb", "Included keywords"]
   },
   "gapFillingGuidance": "If invented: How to personalize this with real details...",
-  "metricsToAdd": ["Specific numbers to strengthen impact"]
+  "metricsToAdd": ["Specific numbers to strengthen impact"],
+  "atsOptimization": {
+    "score": 85,
+    "improvements": ["Add specific keyword", "Strengthen action verb"],
+    "warnings": ["Avoid jargon that may confuse ATS"]
+  },
+  "toneAnalysis": {
+    "current": "Professional but generic",
+    "recommended": "Executive with industry-specific language",
+    "adjustments": ["Replace 'managed' with 'orchestrated'", "Add strategic context"]
+  }
 }`;
 
     const { response, metrics } = await callLovableAI({

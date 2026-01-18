@@ -33,8 +33,42 @@ serve(async (req) => {
       jobDescription, 
       evidenceContext,
       gapExplanation,
-      bridgingStrategy 
+      bridgingStrategy,
+      sectionType, // 'experience' | 'summary' | 'skills'
+      targetTone, // 'executive' | 'technical' | 'creative'
+      industryContext
     } = await req.json();
+
+    // Determine strategic angles based on section type
+    const getStrategicAngles = () => {
+      if (sectionType === 'summary') {
+        return {
+          A: { label: 'Value-Driven', instruction: 'Lead with the unique value proposition and career impact' },
+          B: { label: 'Achievement-Focused', instruction: 'Emphasize quantified career achievements and milestones' },
+          C: { label: 'Vision-Oriented', instruction: 'Focus on leadership philosophy and future direction' }
+        };
+      }
+      if (sectionType === 'skills') {
+        return {
+          A: { label: 'Expertise-Level', instruction: 'Group by proficiency level (Expert, Advanced, Proficient)' },
+          B: { label: 'Category-Based', instruction: 'Organize by functional area (Technical, Leadership, Tools)' },
+          C: { label: 'Impact-Driven', instruction: 'Lead with skills that drove the biggest outcomes' }
+        };
+      }
+      // Default for experience bullets
+      return {
+        A: { label: 'Metrics-Focused', instruction: 'Lead with quantifiable impact, numbers, percentages, dollar amounts' },
+        B: { label: 'Scope-Focused', instruction: 'Emphasize breadth of responsibility, team size, geographic reach' },
+        C: { label: 'Narrative-Focused', instruction: 'Tell a compelling story of challenge → action → transformation' }
+      };
+    };
+
+    const angles = getStrategicAngles();
+    const toneGuidance = targetTone === 'executive' 
+      ? 'Use C-suite language with strategic focus'
+      : targetTone === 'technical'
+      ? 'Include specific technologies and methodologies'
+      : 'Balance professionalism with authentic voice';
 
     console.log('🔄 Generating 3 bullet options for requirement');
 
@@ -53,14 +87,17 @@ ${evidenceContext ? `SUPPORTING EVIDENCE:\n${evidenceContext}\n` : ''}
 JOB CONTEXT:
 ${jobDescription?.substring(0, 2000) || 'Not provided'}
 
+TONE GUIDANCE: ${toneGuidance}
+${industryContext ? `INDUSTRY CONTEXT: ${industryContext}` : ''}
+
 INSTRUCTIONS:
-Generate exactly 3 DISTINCT bullet point options, each with a different strategic angle:
+Generate exactly 3 DISTINCT ${sectionType || 'bullet point'} options, each with a different strategic angle:
 
-Option A - METRICS-FOCUSED: Lead with quantifiable impact, numbers, percentages, dollar amounts
-Option B - SCOPE-FOCUSED: Emphasize breadth of responsibility, team size, geographic reach, stakeholders
-Option C - NARRATIVE-FOCUSED: Tell a compelling story of challenge → action → transformation
+Option A - ${angles.A.label.toUpperCase()}: ${angles.A.instruction}
+Option B - ${angles.B.label.toUpperCase()}: ${angles.B.instruction}
+Option C - ${angles.C.label.toUpperCase()}: ${angles.C.instruction}
 
-Each bullet must:
+Each option must:
 - Be 1-2 lines maximum (under 25 words ideal)
 - Start with a powerful action verb
 - Directly address the job requirement
@@ -72,23 +109,27 @@ Return a JSON object with this exact structure:
   "options": [
     {
       "id": "A",
-      "label": "Metrics-Focused",
+      "label": "${angles.A.label}",
       "bullet": "The bullet text here",
-      "emphasis": "Brief explanation of what makes this option strong"
+      "emphasis": "Brief explanation of what makes this option strong",
+      "keywordsUsed": ["keyword1", "keyword2"]
     },
     {
       "id": "B", 
-      "label": "Scope-Focused",
+      "label": "${angles.B.label}",
       "bullet": "The bullet text here",
-      "emphasis": "Brief explanation of what makes this option strong"
+      "emphasis": "Brief explanation of what makes this option strong",
+      "keywordsUsed": ["keyword1", "keyword2"]
     },
     {
       "id": "C",
-      "label": "Narrative-Focused", 
+      "label": "${angles.C.label}", 
       "bullet": "The bullet text here",
-      "emphasis": "Brief explanation of what makes this option strong"
+      "emphasis": "Brief explanation of what makes this option strong",
+      "keywordsUsed": ["keyword1", "keyword2"]
     }
-  ]
+  ],
+  "recommendation": "Which option is best for this specific requirement and why"
 }`;
 
     const { response, metrics } = await callLovableAI({
