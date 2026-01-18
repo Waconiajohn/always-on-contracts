@@ -64,6 +64,7 @@ export function FitAnalysisStep() {
 
     if (result) {
       setStandards(result);
+      // Go to Interview step (step 2 in new 3-step flow)
       setStep(2);
     }
     
