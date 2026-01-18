@@ -1,6 +1,6 @@
 /**
  * BulletEditor - Interactive bullet point editor with AI refinement
- * Allows users to strengthen, add metrics, or regenerate individual bullets
+ * Allows users to strengthen, add metrics, regenerate, or view alternative versions
  */
 
 import { useState } from "react";
@@ -15,10 +15,16 @@ import {
   X, 
   Loader2,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Layers,
+  Wand2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { BulletEditActionType } from "@/types/resume-builder-v3";
+import { useRefinementSuggestions } from "@/hooks/useRefinementSuggestions";
+import { useMultipleBulletOptions } from "@/hooks/useMultipleBulletOptions";
+import { AlternativeVersionsPanel } from "./AlternativeVersionsPanel";
+import { BulletOptionsPanel } from "./BulletOptionsPanel";
 
 interface BulletEditorProps {
   bullet: string;
@@ -27,6 +33,8 @@ interface BulletEditorProps {
   jobDescription: string;
   onBulletUpdate: (experienceIndex: number, bulletIndex: number, newBullet: string) => void;
 }
+
+
 
 const ACTION_CONFIG = {
   strengthen: {
@@ -61,6 +69,25 @@ export function BulletEditor({
     action: BulletEditActionType;
   } | null>(null);
   const [showActions, setShowActions] = useState(false);
+  const [viewMode, setViewMode] = useState<'default' | 'alternatives' | 'options'>('default');
+
+  // Hooks for advanced suggestions
+  const { 
+    suggestions: refinementSuggestions, 
+    isLoading: isLoadingAlternatives, 
+    fetchSuggestions: fetchAlternatives,
+    clearSuggestions: clearAlternatives
+  } = useRefinementSuggestions({
+    bulletText: bullet,
+    jobDescription,
+  });
+
+  const {
+    options: bulletOptions,
+    isLoading: isLoadingOptions,
+    generateOptions,
+    clearOptions
+  } = useMultipleBulletOptions();
 
   const handleAction = async (action: BulletEditActionType) => {
     setIsLoading(true);
@@ -97,6 +124,42 @@ export function BulletEditor({
     }
   };
 
+  const handleShowAlternatives = async () => {
+    setViewMode('alternatives');
+    await fetchAlternatives();
+  };
+
+  const handleShowOptions = async () => {
+    setViewMode('options');
+    await generateOptions({
+      requirementText: bullet,
+      currentBullet: bullet,
+      jobDescription,
+    });
+  };
+
+  const handleSelectAlternative = (selectedBullet: string) => {
+    onBulletUpdate(experienceIndex, bulletIndex, selectedBullet);
+    toast.success('Bullet updated!');
+    setViewMode('default');
+    clearAlternatives();
+    setShowActions(false);
+  };
+
+  const handleSelectOption = (selectedBullet: string) => {
+    onBulletUpdate(experienceIndex, bulletIndex, selectedBullet);
+    toast.success('Bullet updated!');
+    setViewMode('default');
+    clearOptions();
+    setShowActions(false);
+  };
+
+  const handleCancelAdvanced = () => {
+    setViewMode('default');
+    clearAlternatives();
+    clearOptions();
+  };
+
   const handleAccept = () => {
     if (preview) {
       onBulletUpdate(experienceIndex, bulletIndex, preview.improvedBullet);
@@ -109,6 +172,36 @@ export function BulletEditor({
   const handleReject = () => {
     setPreview(null);
   };
+
+  // If showing alternative versions panel
+  if (viewMode === 'alternatives') {
+    return (
+      <li className="text-sm">
+        <AlternativeVersionsPanel
+          versions={refinementSuggestions?.alternativeVersions || { conservative: '', moderate: '', aggressive: '' }}
+          isLoading={isLoadingAlternatives}
+          onSelect={handleSelectAlternative}
+          onCancel={handleCancelAdvanced}
+          currentBullet={bullet}
+        />
+      </li>
+    );
+  }
+
+  // If showing multiple options panel
+  if (viewMode === 'options') {
+    return (
+      <li className="text-sm">
+        <BulletOptionsPanel
+          options={bulletOptions}
+          isLoading={isLoadingOptions}
+          onSelect={handleSelectOption}
+          onCancel={handleCancelAdvanced}
+          currentBullet={bullet}
+        />
+      </li>
+    );
+  }
 
   // If showing preview, render the comparison view
   if (preview) {
@@ -193,32 +286,69 @@ export function BulletEditor({
           
           {/* Action buttons */}
           {showActions && (
-            <div className="flex flex-wrap gap-1.5 pt-1 animate-in fade-in slide-in-from-top-1 duration-200">
-              {(Object.entries(ACTION_CONFIG) as [BulletEditActionType, typeof ACTION_CONFIG[BulletEditActionType]][]).map(
-                ([action, config]) => {
-                  const Icon = config.icon;
-                  const isThisLoading = isLoading && loadingAction === action;
-                  
-                  return (
-                    <Button
-                      key={action}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleAction(action)}
-                      disabled={isLoading}
-                      className="h-7 px-2.5 text-xs gap-1.5"
-                      title={config.description}
-                    >
-                      {isThisLoading ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <Icon className="h-3 w-3" />
-                      )}
-                      {config.label}
-                    </Button>
-                  );
-                }
-              )}
+            <div className="space-y-2 pt-1 animate-in fade-in slide-in-from-top-1 duration-200">
+              {/* Quick actions row */}
+              <div className="flex flex-wrap gap-1.5">
+                {(Object.entries(ACTION_CONFIG) as [BulletEditActionType, typeof ACTION_CONFIG[BulletEditActionType]][]).map(
+                  ([action, config]) => {
+                    const Icon = config.icon;
+                    const isThisLoading = isLoading && loadingAction === action;
+                    
+                    return (
+                      <Button
+                        key={action}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleAction(action)}
+                        disabled={isLoading || isLoadingAlternatives || isLoadingOptions}
+                        className="h-7 px-2.5 text-xs gap-1.5"
+                        title={config.description}
+                      >
+                        {isThisLoading ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Icon className="h-3 w-3" />
+                        )}
+                        {config.label}
+                      </Button>
+                    );
+                  }
+                )}
+              </div>
+              
+              {/* Advanced options row */}
+              <div className="flex flex-wrap gap-1.5 border-t border-border pt-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleShowAlternatives}
+                  disabled={isLoading || isLoadingAlternatives || isLoadingOptions}
+                  className="h-7 px-2.5 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
+                  title="View conservative, moderate, and aggressive rewrites"
+                >
+                  {isLoadingAlternatives ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Layers className="h-3 w-3" />
+                  )}
+                  View Alternatives
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleShowOptions}
+                  disabled={isLoading || isLoadingAlternatives || isLoadingOptions}
+                  className="h-7 px-2.5 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
+                  title="Generate 3 different strategic angles"
+                >
+                  {isLoadingOptions ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Wand2 className="h-3 w-3" />
+                  )}
+                  3 Options
+                </Button>
+              </div>
             </div>
           )}
         </div>
