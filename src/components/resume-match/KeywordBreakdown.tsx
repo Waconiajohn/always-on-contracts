@@ -1,10 +1,11 @@
-import { Check, X, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, X, AlertTriangle, ChevronDown, ChevronUp, Plus, Wand2, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { KeywordMatch, GapAnalysis } from './types';
 
@@ -14,6 +15,10 @@ interface KeywordBreakdownProps {
   gapAnalysis?: GapAnalysis;
   skillsMatch?: number;
   experienceMatch?: number;
+  onAddSkill?: (skill: string) => void;
+  onGenerateBullet?: (keyword: string) => void;
+  isAddingSkill?: boolean;
+  isGeneratingBullet?: boolean;
 }
 
 export function KeywordBreakdown({
@@ -21,9 +26,16 @@ export function KeywordBreakdown({
   missingKeywords,
   gapAnalysis,
   skillsMatch = 0,
-  experienceMatch = 0
+  experienceMatch = 0,
+  onAddSkill,
+  onGenerateBullet,
+  isAddingSkill = false,
+  isGeneratingBullet = false,
 }: KeywordBreakdownProps) {
   const [showAllMissing, setShowAllMissing] = useState(false);
+  const [addingKeyword, setAddingKeyword] = useState<string | null>(null);
+  const [generatingKeyword, setGeneratingKeyword] = useState<string | null>(null);
+  const [addedKeywords, setAddedKeywords] = useState<Set<string>>(new Set());
 
   // Group keywords by priority
   const criticalMissing = missingKeywords.filter(k => k.priority === 'critical');
@@ -35,6 +47,128 @@ export function KeywordBreakdown({
   const matchPercentage = totalMatch + totalMissing > 0 
     ? Math.round((totalMatch / (totalMatch + totalMissing)) * 100) 
     : 0;
+
+  const handleAddSkill = async (keyword: string) => {
+    if (!onAddSkill) return;
+    setAddingKeyword(keyword);
+    try {
+      await onAddSkill(keyword);
+      setAddedKeywords(prev => new Set([...prev, keyword]));
+    } finally {
+      setAddingKeyword(null);
+    }
+  };
+
+  const handleGenerateBullet = async (keyword: string) => {
+    if (!onGenerateBullet) return;
+    setGeneratingKeyword(keyword);
+    try {
+      await onGenerateBullet(keyword);
+      setAddedKeywords(prev => new Set([...prev, keyword]));
+    } finally {
+      setGeneratingKeyword(null);
+    }
+  };
+
+  const renderKeywordBadge = (kw: KeywordMatch, variant: 'critical' | 'important' | 'nice') => {
+    const isAdded = addedKeywords.has(kw.keyword);
+    const isAddingThis = addingKeyword === kw.keyword;
+    const isGeneratingThis = generatingKeyword === kw.keyword;
+    const hasActions = onAddSkill || onGenerateBullet;
+
+    const badgeClasses = {
+      critical: "border-red-300 bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300",
+      important: "border-amber-300 bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300",
+      nice: "border-border",
+    };
+
+    if (isAdded) {
+      return (
+        <Badge 
+          variant="outline" 
+          className="text-xs border-green-300 bg-green-50 dark:bg-green-950/50 text-green-700 dark:text-green-300"
+        >
+          <Check className="h-3 w-3 mr-1" />
+          {kw.keyword}
+        </Badge>
+      );
+    }
+
+    return (
+      <TooltipProvider key={kw.keyword} delayDuration={300}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge 
+              variant="outline" 
+              className={cn(
+                "text-xs group/badge cursor-default transition-all",
+                badgeClasses[variant],
+                hasActions && "hover:pr-1"
+              )}
+            >
+              {variant === 'critical' && <X className="h-3 w-3 mr-1" />}
+              {kw.keyword}
+              {kw.prevalence && (
+                <span className="ml-1 opacity-70">({kw.prevalence})</span>
+              )}
+              
+              {/* Action buttons - show on hover */}
+              {hasActions && (
+                <span className="hidden group-hover/badge:inline-flex items-center gap-0.5 ml-1.5">
+                  {onAddSkill && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-4 w-4 p-0 hover:bg-primary/20"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddSkill(kw.keyword);
+                      }}
+                      disabled={isAddingSkill || isAddingThis}
+                      title="Add to Skills"
+                    >
+                      {isAddingThis ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Plus className="h-3 w-3" />
+                      )}
+                    </Button>
+                  )}
+                  {onGenerateBullet && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-4 w-4 p-0 hover:bg-primary/20"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleGenerateBullet(kw.keyword);
+                      }}
+                      disabled={isGeneratingBullet || isGeneratingThis}
+                      title="Generate bullet point"
+                    >
+                      {isGeneratingThis ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Wand2 className="h-3 w-3" />
+                      )}
+                    </Button>
+                  )}
+                </span>
+              )}
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-xs">
+            <p className="text-xs font-medium">{kw.keyword}</p>
+            {hasActions && (
+              <p className="text-xs text-primary mt-1">
+                Click + to add to skills, or ✨ to generate a bullet
+              </p>
+            )}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  };
 
   return (
     <Card className="bg-card/50">
@@ -104,25 +238,22 @@ export function KeywordBreakdown({
         {/* Missing Keywords - Critical */}
         {criticalMissing.length > 0 && (
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm">
-              <X className="h-4 w-4 text-red-500" />
-              <span className="font-medium text-red-700 dark:text-red-400">
-                Critical Missing ({criticalMissing.length})
-              </span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm">
+                <X className="h-4 w-4 text-red-500" />
+                <span className="font-medium text-red-700 dark:text-red-400">
+                  Critical Missing ({criticalMissing.length})
+                </span>
+              </div>
+              {(onAddSkill || onGenerateBullet) && (
+                <span className="text-[10px] text-muted-foreground">
+                  Hover for actions
+                </span>
+              )}
             </div>
             <div className="flex flex-wrap gap-1.5">
               {criticalMissing.slice(0, showAllMissing ? undefined : 10).map((kw, i) => (
-                <Badge 
-                  key={i} 
-                  variant="outline" 
-                  className="text-xs border-red-300 bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300"
-                >
-                  <X className="h-3 w-3 mr-1" />
-                  {kw.keyword}
-                  {kw.prevalence && (
-                    <span className="ml-1 opacity-70">({kw.prevalence})</span>
-                  )}
-                </Badge>
+                <span key={i}>{renderKeywordBadge(kw, 'critical')}</span>
               ))}
             </div>
           </div>
@@ -139,13 +270,7 @@ export function KeywordBreakdown({
             </div>
             <div className="flex flex-wrap gap-1.5">
               {importantMissing.slice(0, showAllMissing ? undefined : 8).map((kw, i) => (
-                <Badge 
-                  key={i} 
-                  variant="outline" 
-                  className="text-xs border-amber-300 bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
-                >
-                  {kw.keyword}
-                </Badge>
+                <span key={i}>{renderKeywordBadge(kw, 'important')}</span>
               ))}
             </div>
           </div>
@@ -159,9 +284,7 @@ export function KeywordBreakdown({
             </div>
             <div className="flex flex-wrap gap-1.5">
               {niceToHaveMissing.map((kw, i) => (
-                <Badge key={i} variant="outline" className="text-xs">
-                  {kw.keyword}
-                </Badge>
+                <span key={i}>{renderKeywordBadge(kw, 'nice')}</span>
               ))}
             </div>
           </div>
@@ -187,6 +310,15 @@ export function KeywordBreakdown({
               </>
             )}
           </Button>
+        )}
+
+        {/* Added keywords summary */}
+        {addedKeywords.size > 0 && (
+          <div className="pt-2 border-t border-border">
+            <p className="text-xs text-green-600 dark:text-green-400 font-medium">
+              ✓ {addedKeywords.size} keyword{addedKeywords.size > 1 ? 's' : ''} addressed
+            </p>
+          </div>
         )}
 
         {/* Gap Summary */}
