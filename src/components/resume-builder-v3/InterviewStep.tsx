@@ -165,7 +165,7 @@ export function InterviewStep() {
           The interview questions weren't loaded properly. This can happen if your session was interrupted. Let's regenerate them.
         </p>
         <div className="flex gap-3 justify-center">
-          <Button variant="outline" onClick={() => setStep(2)}>
+          <Button variant="outline" onClick={() => setStep(1)}>
             Go Back
           </Button>
           <Button onClick={handleRegenerateQuestions} disabled={isLoading}>
@@ -233,7 +233,8 @@ export function InterviewStep() {
 
     if (result) {
       setFinalResume(result);
-      setStep(4);
+      // Go to Edit & Optimize step (step 3 in new 3-step flow)
+      setStep(3);
     }
     
     setLoading(false);
