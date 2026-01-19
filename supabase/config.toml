@@ -12,6 +12,9 @@ verify_jwt = true
 [functions.score-vs-benchmark]
 verify_jwt = true
 
+[functions.generate-gap-checklist]
+verify_jwt = true
+
 [functions.generate-strategic-language]
 verify_jwt = true
 

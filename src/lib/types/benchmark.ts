@@ -223,3 +223,63 @@ export interface ScoreVsBenchmarkResponse {
     executionTimeMs: number;
   };
 }
+
+// ============================================================================
+// GAP CHECKLIST (v2) - Actionable improvement recommendations
+// ============================================================================
+
+export type GapType = 'keyword' | 'accomplishment' | 'experience' | 'format';
+export type GapSeverity = 'high' | 'medium' | 'low';
+export type GapActionType = 'add' | 'strengthen' | 'reorganize' | 'remove' | 'add-new-bullet';
+export type ResumeSection = 'summary' | 'experience' | 'skills' | 'education';
+
+/**
+ * A single actionable gap that the user can address to improve their resume score.
+ */
+export interface GapAction {
+  id: string;
+  gapType: GapType;
+  severity: GapSeverity;
+  issue: string;
+  impact: string;
+  action: GapActionType;
+  actionDescription: string;
+  suggestedKeyword?: string;
+  section?: ResumeSection;
+  affectedBulletIndices?: number[];
+  improvementType?: string;
+  suggestedBullet?: string;
+  alternatives?: {
+    type: string;
+    description: string;
+  }[];
+  uiOrder: number;
+}
+
+/**
+ * A prioritized list of gaps for the user to address.
+ */
+export type GapChecklist = GapAction[];
+
+/**
+ * Request payload for generate-gap-checklist edge function
+ */
+export interface GenerateGapChecklistRequest {
+  scoreBreakdown: MatchScoreBreakdown;
+  benchmark: BenchmarkCandidate;
+  resumeText?: string; // Optional, for bullet-level analysis
+}
+
+/**
+ * Response from generate-gap-checklist edge function
+ */
+export interface GenerateGapChecklistResponse {
+  success: boolean;
+  checklist: GapChecklist | null;
+  totalGaps: number;
+  highPriorityCount: number;
+  error?: string;
+  metrics?: {
+    executionTimeMs: number;
+  };
+}
