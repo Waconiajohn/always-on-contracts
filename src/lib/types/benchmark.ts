@@ -107,7 +107,7 @@ export interface BenchmarkGap {
 }
 
 /**
- * Result of comparing a resume to a benchmark
+ * Result of comparing a resume to a benchmark (legacy)
  */
 export interface BenchmarkComparison {
   overallScore: number; // 0-100
@@ -120,4 +120,106 @@ export interface BenchmarkComparison {
   gaps: BenchmarkGap[];
   strengths: string[];
   recommendations: string[];
+}
+
+// ============================================================================
+// MATCH SCORE BREAKDOWN (v2) - Detailed scoring against benchmark
+// ============================================================================
+
+export type ExperienceLevelMatch = 'below' | 'aligned' | 'above';
+
+export interface KeywordMatchCategory {
+  score: number;
+  matched: string[];
+  missing: string[];
+  missingByPriority: {
+    keyword: string;
+    criticality: SkillCriticality;
+  }[];
+  summary: string;
+}
+
+export interface ExperienceMatchCategory {
+  score: number;
+  userYearsOfExperience: number;
+  benchmarkYearsOfExperience: BenchmarkExperience;
+  levelMatch: ExperienceLevelMatch;
+  gaps: string[];
+  summary: string;
+}
+
+export interface AccomplishmentMatchCategory {
+  score: number;
+  userHasMetrics: boolean;
+  userMetrics: string[];
+  benchmarkMetrics: string[];
+  missingMetrics: string[];
+  accomplishmentTypes: {
+    type: string;
+    found: boolean;
+    evidence?: string;
+  }[];
+  summary: string;
+}
+
+export interface ATSComplianceCategory {
+  score: number;
+  issues: string[];
+  warnings: string[];
+  sectionsFound: string[];
+  sectionsMissing: string[];
+  summary: string;
+}
+
+export interface MatchScoreCategories {
+  keywords: KeywordMatchCategory;
+  experience: ExperienceMatchCategory;
+  accomplishments: AccomplishmentMatchCategory;
+  atsCompliance: ATSComplianceCategory;
+}
+
+/**
+ * Detailed breakdown of how a resume scores against a benchmark candidate.
+ * This is the primary output of the score-vs-benchmark function.
+ */
+export interface MatchScoreBreakdown {
+  overallScore: number; // 0-100 weighted score
+  scoreExplanation: string; // Human-readable explanation of the score
+
+  categories: MatchScoreCategories;
+
+  strengths: string[]; // What the resume does well
+  gaps: string[]; // Priority areas for improvement
+
+  // Weights used in calculation (for transparency)
+  weights: {
+    keywords: number;
+    experience: number;
+    accomplishments: number;
+    atsCompliance: number;
+  };
+}
+
+/**
+ * Request payload for score-vs-benchmark edge function
+ */
+export interface ScoreVsBenchmarkRequest {
+  resumeText: string;
+  benchmark: BenchmarkCandidate;
+  jobDescription?: string; // Optional, for additional context
+}
+
+/**
+ * Response from score-vs-benchmark edge function
+ */
+export interface ScoreVsBenchmarkResponse {
+  success: boolean;
+  score: MatchScoreBreakdown | null;
+  error?: string;
+  metrics?: {
+    inputTokens: number;
+    outputTokens: number;
+    costUsd: number;
+    executionTimeMs: number;
+  };
 }
