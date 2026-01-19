@@ -55,6 +55,7 @@ const ExperimentalLab = lazy(() => import("./pages/ExperimentalLab"));
 const QuickScore = lazy(() => import("./pages/QuickScore"));
 const ResumeBuilderV3 = lazy(() => import("./components/resume-builder-v3/ResumeBuilderV3").then(m => ({ default: m.ResumeBuilderV3 })));
 const ResumeOptimizerMarketing = lazy(() => import("./pages/ResumeOptimizerMarketing"));
+const ResumeTailorV2 = lazy(() => import("./components/v2/V2Page"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -163,6 +164,8 @@ const AppContent = () => {
             } />
             {/* Resume Optimizer Marketing Page */}
             <Route path="/resume-optimizer-info" element={<ResumeOptimizerMarketing />} />
+            {/* V2 Resume Tailoring - Benchmark-based scoring */}
+            <Route path="/resume-tailor" element={<ProtectedRoute><ResumeTailorV2 /></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
