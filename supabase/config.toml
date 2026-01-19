@@ -6,6 +6,9 @@ verify_jwt = false
 [functions.benchmark-resume]
 verify_jwt = false
 
+[functions.analyze-benchmark]
+verify_jwt = true
+
 [functions.generate-strategic-language]
 verify_jwt = true
 
