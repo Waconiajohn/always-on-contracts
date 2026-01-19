@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type {
-  BenchmarkCandidate,
   MatchScoreBreakdown,
   ScoreVsBenchmarkRequest,
   ScoreVsBenchmarkResponse

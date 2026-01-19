@@ -1,18 +1,15 @@
-import React from "react";
-import { BenchmarkCandidate, MatchScoreBreakdown } from "@/lib/types/benchmark";
+import { MatchScoreBreakdown } from "@/lib/types/benchmark";
 import { Copy, Download } from "lucide-react";
 
 interface ResumeInlineEditorProps {
   resumeText: string;
   onChange: (text: string) => void;
-  benchmark?: BenchmarkCandidate;
   scoreBreakdown?: MatchScoreBreakdown;
 }
 
 export function ResumeInlineEditor({
   resumeText,
   onChange,
-  benchmark,
   scoreBreakdown,
 }: ResumeInlineEditorProps) {
   const handleCopy = () => {

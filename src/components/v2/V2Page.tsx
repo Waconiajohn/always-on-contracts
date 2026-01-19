@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { BenchmarkPanel } from "./BenchmarkPanel";
 import { MatchScoreDisplay } from "./MatchScoreDisplay";
 import { GapChecklist } from "./GapChecklist";
@@ -168,7 +168,6 @@ export default function V2Page() {
               <ResumeInlineEditor
                 resumeText={state.resume}
                 onChange={handleResumeChange}
-                benchmark={state.benchmark}
                 scoreBreakdown={state.scoreBreakdown || undefined}
               />
 

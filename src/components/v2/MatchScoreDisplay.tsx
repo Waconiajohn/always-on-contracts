@@ -1,4 +1,3 @@
-import React from "react";
 import { MatchScoreBreakdown } from "@/lib/types/benchmark";
 
 interface MatchScoreDisplayProps {
