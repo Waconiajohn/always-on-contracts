@@ -1,4 +1,3 @@
-import React from "react";
 import { BenchmarkCandidate } from "@/lib/types/benchmark";
 
 interface BenchmarkPanelProps {

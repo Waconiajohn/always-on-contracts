@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { GapAction, GapChecklist as GapChecklistType } from "@/lib/types/benchmark";
+import { useState } from "react";
+import { GapChecklist as GapChecklistType } from "@/lib/types/benchmark";
 import { AlertCircle, Zap, BookOpen, CheckCircle2 } from "lucide-react";
 
 interface GapChecklistProps {
