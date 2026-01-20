@@ -191,33 +191,60 @@ serve(async (req) => {
 
     const prompt = getPromptForAction(action as ActionType, currentText, jobDescription, sectionType, requirementText);
 
-    const { response, metrics } = await callLovableAI({
-      messages: [{ role: 'user', content: prompt }],
-      model: LOVABLE_AI_MODELS.PREMIUM,
-      temperature: 0.7,
-      max_tokens: 400,
-    }, 'regenerate-bullet', undefined);
+    // GPT-5 can sometimes spend the entire output budget on reasoning tokens and return empty content.
+    // To make this endpoint reliable, we use a fast default model and fall back if needed.
+    const callAIForRewrite = async (model: string) => {
+      const isOpenAI = model.startsWith('openai/');
+      const isGemini = model.startsWith('google/');
 
-    await logAIUsage(metrics);
+      const { response, metrics } = await callLovableAI({
+        messages: [{ role: 'user', content: prompt }],
+        model,
+        temperature: 0.6,
+        // Give enough room for the *final* answer to appear.
+        max_tokens: 900,
+        // Encourage structured JSON output when supported by the provider.
+        ...(isOpenAI ? { response_format: { type: 'json_object' } } : {}),
+        ...(isGemini ? { response_mime_type: 'application/json' } : {}),
+      } as any, 'regenerate-bullet', undefined);
+
+      await logAIUsage(metrics);
+      return response;
+    };
+
+    // Primary: reliable + inexpensive
+    let response = await callAIForRewrite(LOVABLE_AI_MODELS.DEFAULT);
 
     // Extract content from response - handle different response formats
-    const choice = response.choices?.[0];
+    let choice = response.choices?.[0];
     let rawContent = '';
-    
-    // Try standard content first
+
     if (choice?.message?.content) {
       rawContent = choice.message.content;
-    }
-    // Check for tool_calls response format (sometimes GPT-5 uses this)
-    else if (choice?.message?.tool_calls?.[0]?.function?.arguments) {
+    } else if (choice?.message?.tool_calls?.[0]?.function?.arguments) {
       rawContent = choice.message.tool_calls[0].function.arguments;
-    }
-    // Check if there's any text we can salvage
-    else if (typeof choice?.message === 'string') {
+    } else if (typeof choice?.message === 'string') {
       rawContent = choice.message;
     }
-    
+
     rawContent = cleanCitations(rawContent).trim();
+
+    // Fallback: if we still got empty content, retry with a premium model once.
+    if (!rawContent) {
+      console.warn('[regenerate-bullet] Empty AI response from default model; retrying with premium...');
+      response = await callAIForRewrite(LOVABLE_AI_MODELS.PREMIUM);
+
+      choice = response.choices?.[0];
+      rawContent = '';
+      if (choice?.message?.content) {
+        rawContent = choice.message.content;
+      } else if (choice?.message?.tool_calls?.[0]?.function?.arguments) {
+        rawContent = choice.message.tool_calls[0].function.arguments;
+      } else if (typeof choice?.message === 'string') {
+        rawContent = choice.message;
+      }
+      rawContent = cleanCitations(rawContent).trim();
+    }
 
     if (!rawContent) {
       console.error('Empty AI response. Full response:', JSON.stringify(response, null, 2));
@@ -239,7 +266,7 @@ serve(async (req) => {
       // If JSON parsing fails, use the raw text
       result = { improvedBullet: rawContent, changes: 'Improved bullet' };
     }
-    
+
     // Validate result has the required field
     if (!result.improvedBullet || result.improvedBullet.trim() === '') {
       throw new Error('AI generated empty bullet. Please try again.');
