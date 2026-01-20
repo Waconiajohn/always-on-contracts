@@ -28,8 +28,6 @@ import { VersionHistory, safeParseVersions } from "./components/VersionHistory";
 import { BulletEditor } from "./components/BulletEditor";
 import { SummaryEditor } from "./components/SummaryEditor";
 import { SkillsSuggester } from "./components/SkillsSuggester";
-import { AIEnhancementsSidebar } from "./components/AIEnhancementsSidebar";
-import { SectionHealthBadge, getSectionStatus } from "./components/SectionHealthBadge";
 // HighlightedTextSimple available for future use in bullet display
 import { MAX_VERSION_HISTORY } from "./constants";
 import { logger } from "@/lib/logger";
@@ -90,11 +88,11 @@ const createFingerprintSync = (resume: Record<string, unknown>): string => {
 };
 
 export function GenerateStep() {
-  const { finalResume, fitAnalysis, standards, jobDescription, resumeText, setFinalResume } = useResumeBuilderV3Store();
+  const { finalResume, fitAnalysis, standards, jobDescription, setFinalResume } = useResumeBuilderV3Store();
   const printRef = useRef<HTMLDivElement>(null);
   const [versions, setVersions] = useState<ResumeVersion[]>([]);
   const [isSaving, setIsSaving] = useState(false);
-  const [aiEnhancementsCount, setAiEnhancementsCount] = useState(0);
+  
   
   // Master Resume enrichment
   const { masterResume, enrichMasterResume, isEnriching } = useMasterResume();
@@ -126,7 +124,6 @@ export function GenerateStep() {
     };
     
     setFinalResume(updatedResume);
-    setAiEnhancementsCount(prev => prev + 1);
   }, [finalResume, setFinalResume]);
 
   // Handler for summary updates from SummaryEditor
@@ -143,7 +140,6 @@ export function GenerateStep() {
     };
     
     setFinalResume(updatedResume);
-    setAiEnhancementsCount(prev => prev + 1);
   }, [finalResume, setFinalResume]);
 
   // Handler for skill additions from SkillsSuggester
@@ -165,7 +161,6 @@ export function GenerateStep() {
     };
     
     setFinalResume(updatedResume);
-    setAiEnhancementsCount(prev => prev + 1);
   }, [finalResume, setFinalResume]);
   
   // Track saved fingerprints to prevent race conditions
@@ -325,12 +320,6 @@ export function GenerateStep() {
     }
   };
 
-  // Calculate section health
-  const missingKeywordsCount = fitAnalysis?.keywords_missing?.length || 0;
-  const fitScore = fitAnalysis?.fit_score || 0;
-  const summaryStatus = getSectionStatus('summary', fitScore, missingKeywordsCount, aiEnhancementsCount > 0);
-  const experienceStatus = getSectionStatus('experience', fitScore, missingKeywordsCount, aiEnhancementsCount > 0);
-  const skillsStatus = getSectionStatus('skills', fitScore, missingKeywordsCount, aiEnhancementsCount > 0);
   const matchedKeywords = fitAnalysis?.keywords_found || [];
 
   return (
@@ -353,16 +342,6 @@ export function GenerateStep() {
         </div>
       </SuccessAnimation>
 
-      {/* AI Enhancement Sidebar - Always visible */}
-      <FadeIn delay={0.05}>
-        <AIEnhancementsSidebar
-          fitAnalysis={fitAnalysis}
-          finalResume={finalResume}
-          resumeText={resumeText}
-          jobDescription={jobDescription}
-          onSkillAdd={handleSkillAdd}
-        />
-      </FadeIn>
 
       {/* Before/After Comparison */}
       <FadeIn delay={0.1}>
@@ -441,13 +420,12 @@ export function GenerateStep() {
             )}
           </div>
 
-          {/* Summary with health badge */}
+          {/* Summary */}
           <div>
             <div className="flex items-center gap-2 mb-2">
               <h4 className="font-semibold text-sm uppercase tracking-wide">
                 Professional Summary
               </h4>
-              <SectionHealthBadge status={summaryStatus} />
             </div>
             <SummaryEditor
               summary={finalResume.summary}
@@ -458,13 +436,12 @@ export function GenerateStep() {
 
           <Separator />
 
-          {/* Experience with health badge */}
+          {/* Experience */}
           <div>
             <div className="flex items-center gap-2 mb-3">
               <h4 className="font-semibold text-sm uppercase tracking-wide">
                 Experience
               </h4>
-              <SectionHealthBadge status={experienceStatus} />
             </div>
             <div className="space-y-4">
               {finalResume.experience.map((exp, index) => (
@@ -495,13 +472,12 @@ export function GenerateStep() {
 
           <Separator />
 
-          {/* Skills with health badge and keyword highlighting */}
+          {/* Skills */}
           <div>
             <div className="flex items-center gap-2 mb-2">
               <h4 className="font-semibold text-sm uppercase tracking-wide">
                 Skills
               </h4>
-              <SectionHealthBadge status={skillsStatus} />
             </div>
             {finalResume.skills.length > 0 ? (
               <div className="flex flex-wrap gap-2" role="list" aria-label="Skills">
