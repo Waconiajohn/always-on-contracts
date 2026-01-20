@@ -103,12 +103,16 @@ export function MatchCard({
         });
         setEditValue(data.improvedBullet);
       }
-    } catch (error) {
-      console.error("Failed to generate improvement:", error);
-      toast.error("Failed to generate improvement. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
+      } catch (error) {
+        console.error("Failed to generate improvement:", error);
+        const message =
+          (error as any)?.message ||
+          (typeof error === "string" ? error : null) ||
+          "Failed to generate improvement. Please try again.";
+        toast.error(message);
+      } finally {
+        setIsLoading(false);
+      }
   };
 
   const handleAccept = () => {
