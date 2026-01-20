@@ -205,7 +205,7 @@ Analyze and return JSON. Keep arrays to 5 items max.`;
       ],
       model: LOVABLE_AI_MODELS.DEFAULT,
       temperature: 0.1,
-      max_tokens: 4000,
+      max_tokens: 6000,
       response_format: { type: 'json_object' }
     }, 'instant-resume-score');
 
