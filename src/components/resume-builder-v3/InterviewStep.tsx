@@ -22,9 +22,11 @@ import {
   Check,
   Loader2,
   AlertTriangle,
+  Sparkles,
 } from "lucide-react";
 import { LoadingSkeletonV3 } from "./LoadingSkeletonV3";
 import { useResumeBuilderApi } from "./hooks/useResumeBuilderApi";
+import { useInterviewAIAssist } from "./hooks/useInterviewAIAssist";
 import { HelpTooltip, HELP_CONTENT } from "./components/HelpTooltip";
 import { MAX_ANSWER_LENGTH } from "./constants";
 
@@ -49,6 +51,7 @@ export function InterviewStep() {
   const [localAnswer, setLocalAnswer] = useState("");
   
   const { callApi, isRetrying, currentAttempt, cancel, maxAttempts } = useResumeBuilderApi();
+  const { generateAnswer, isGenerating } = useInterviewAIAssist();
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
@@ -213,6 +216,29 @@ export function InterviewStep() {
     }
   };
 
+  const handleAIAssist = async () => {
+    if (!currentQuestion) return;
+    
+    const result = await generateAnswer({
+      question: currentQuestion.question,
+      purpose: currentQuestion.purpose,
+      gapAddressed: currentQuestion.gap_addressed,
+      resumeText,
+      jobDescription,
+    });
+
+    if (result?.suggestedAnswer) {
+      // If there's existing text, append; otherwise replace
+      const newAnswer = localAnswer.trim() 
+        ? `${localAnswer}\n\n${result.suggestedAnswer}`
+        : result.suggestedAnswer;
+      
+      // Truncate if too long
+      const truncated = newAnswer.slice(0, MAX_ANSWER_LENGTH);
+      handleAnswerChange(truncated);
+    }
+  };
+
   const handleSkipConfirm = () => {
     setShowSkipDialog(false);
     handleGenerate();
@@ -319,6 +345,32 @@ export function InterviewStep() {
                 <p className="text-sm text-muted-foreground italic">"{currentQuestion.example_answer}"</p>
               </div>
             )}
+          </div>
+
+          {/* AI Assist Button */}
+          <div className="px-4 sm:px-6 py-3 border-t border-border/50">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAIAssist}
+              disabled={isGenerating || !resumeText}
+              className="w-full gap-2 text-muted-foreground hover:text-foreground"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Generating suggestion...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  Help me answer
+                </>
+              )}
+            </Button>
+            <p className="text-xs text-muted-foreground text-center mt-1.5">
+              Generate a draft based on your resume
+            </p>
           </div>
 
           {/* Answer input */}
