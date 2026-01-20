@@ -186,9 +186,9 @@ export default function Landing() {
               </Button>
             </div>
             
-            <p className="text-sm text-muted-foreground">
-              No credit card required. See results in 60 seconds.
-            </p>
+              <p className="text-sm text-muted-foreground">
+                Create a free account · No credit card required
+              </p>
           </div>
         </div>
       </section>
@@ -339,9 +339,9 @@ export default function Landing() {
               </Button>
             </div>
             
-            <p className="text-sm text-muted-foreground">
-              No signup required. Just honest insights.
-            </p>
+              <p className="text-sm text-muted-foreground">
+                Create a free account to get started. No credit card required.
+              </p>
           </div>
         </div>
       </section>
