@@ -1,6 +1,6 @@
 /**
- * MatchCard - Actionable card for partial matches
- * Shows what JD wants, what you have, and an AI-improved version ready to accept
+ * MatchCard - Clean, minimal actionable card for partial matches
+ * Modern design with subtle borders and clear hierarchy
  */
 
 import { useState } from "react";
@@ -11,11 +11,9 @@ import { toast } from "sonner";
 import {
   Sparkles,
   Check,
-  X,
+  RotateCcw,
   Loader2,
   Pencil,
-  ChevronDown,
-  ChevronUp,
 } from "lucide-react";
 import type { FitAnalysisResult, OptimizedResume } from "@/types/resume-builder-v3";
 
@@ -38,7 +36,6 @@ export function MatchCard({
   onActionApplied,
   onActionSkipped,
 }: MatchCardProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [improvement, setImprovement] = useState<{
     original: string;
@@ -49,26 +46,21 @@ export function MatchCard({
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
 
-  // Find the related content in resume
   const findRelatedContent = (): { type: "bullet" | "summary"; text: string; experienceIndex?: number; bulletIndex?: number } | null => {
-    // Check if evidence is from summary
     if (resume.summary.toLowerCase().includes(match.evidence.toLowerCase().slice(0, 30))) {
       return { type: "summary", text: resume.summary };
     }
     
-    // Search through experience bullets
     for (let expIdx = 0; expIdx < resume.experience.length; expIdx++) {
       const exp = resume.experience[expIdx];
       for (let bulletIdx = 0; bulletIdx < exp.bullets.length; bulletIdx++) {
         const bullet = exp.bullets[bulletIdx];
-        // Check for overlap with evidence
         if (bullet.toLowerCase().includes(match.evidence.toLowerCase().slice(0, 20))) {
           return { type: "bullet", text: bullet, experienceIndex: expIdx, bulletIndex: bulletIdx };
         }
       }
     }
     
-    // Default to first experience first bullet if we can't find match
     if (resume.experience.length > 0 && resume.experience[0].bullets.length > 0) {
       return { type: "bullet", text: resume.experience[0].bullets[0], experienceIndex: 0, bulletIndex: 0 };
     }
@@ -134,150 +126,123 @@ export function MatchCard({
     onActionApplied();
   };
 
-  const handleSkip = () => {
-    onActionSkipped();
-  };
-
   return (
-    <div className="rounded-lg border border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/20 overflow-hidden">
-      {/* Header - Always visible */}
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-start justify-between p-4 text-left hover:bg-amber-100/50 dark:hover:bg-amber-900/20 transition-colors"
-      >
-        <div className="flex-1 min-w-0">
-          <p className="font-medium text-sm text-foreground">{match.requirement}</p>
-          <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-            You have: "{match.evidence}"
-          </p>
-        </div>
-        <div className="flex items-center gap-2 ml-4">
-          {isExpanded ? (
-            <ChevronUp className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          )}
-        </div>
-      </button>
+    <div className="border border-border rounded-lg hover:border-primary/30 transition-colors">
+      {/* Header */}
+      <div className="p-4">
+        <h4 className="font-medium text-foreground">{match.requirement}</h4>
+        <p className="text-sm text-muted-foreground mt-1">
+          Current: "{match.evidence}"
+        </p>
+      </div>
 
-      {/* Expanded content */}
-      {isExpanded && (
-        <div className="px-4 pb-4 space-y-3 border-t border-amber-200/50 dark:border-amber-800/50 pt-3">
-          {/* Before generating improvement */}
-          {!improvement && !isLoading && (
-            <div className="space-y-3">
-              <div className="bg-white dark:bg-gray-900 rounded-lg p-3">
-                <p className="text-xs font-medium text-muted-foreground mb-1">Current evidence:</p>
-                <p className="text-sm text-foreground">{match.evidence}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  onClick={handleGenerateImprovement}
-                  size="sm"
-                  className="gap-1.5"
-                >
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Suggest Improvement
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleSkip}
-                  className="text-muted-foreground"
-                >
-                  Skip
-                </Button>
-              </div>
-            </div>
-          )}
+      {/* Content */}
+      <div className="px-4 pb-4">
+        {/* Initial state - show button */}
+        {!improvement && !isLoading && (
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={handleGenerateImprovement}
+              size="sm"
+              variant="outline"
+              className="gap-2"
+            >
+              <Sparkles className="h-4 w-4" />
+              Suggest Improvement
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onActionSkipped}
+              className="text-muted-foreground"
+            >
+              Skip
+            </Button>
+          </div>
+        )}
 
-          {/* Loading state */}
-          {isLoading && (
-            <div className="flex items-center gap-2 p-3 bg-white dark:bg-gray-900 rounded-lg">
-              <Loader2 className="h-4 w-4 animate-spin text-primary" />
-              <span className="text-sm text-muted-foreground">Generating improvement...</span>
-            </div>
-          )}
+        {/* Loading */}
+        {isLoading && (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="text-sm">Generating improvement...</span>
+          </div>
+        )}
 
-          {/* Show improvement with before/after */}
-          {improvement && (
-            <div className="space-y-3">
-              {/* Before */}
-              <div className="bg-muted/50 rounded-lg p-3">
-                <p className="text-xs font-medium text-muted-foreground mb-1">Before:</p>
-                <p className="text-sm text-muted-foreground line-through">
+        {/* Show improvement */}
+        {improvement && (
+          <div className="space-y-4">
+            {/* Before/After */}
+            <div className="grid gap-3">
+              <div>
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Before</span>
+                <p className="text-sm text-muted-foreground mt-1 line-through decoration-muted-foreground/30">
                   {improvement.original}
                 </p>
               </div>
-
-              {/* After (editable) */}
-              <div className="bg-primary/5 rounded-lg p-3 border border-primary/20">
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-xs font-medium text-primary">After:</p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
+              
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-primary uppercase tracking-wide">After</span>
+                  <button
                     onClick={() => setIsEditing(!isEditing)}
-                    className="h-6 text-xs gap-1 text-muted-foreground"
+                    className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
                   >
                     <Pencil className="h-3 w-3" />
                     {isEditing ? "Preview" : "Edit"}
-                  </Button>
+                  </button>
                 </div>
                 {isEditing ? (
                   <Textarea
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
-                    className="min-h-[80px] text-sm"
+                    className="mt-1 min-h-[80px] text-sm"
                   />
                 ) : (
-                  <p className="text-sm font-medium text-foreground">
+                  <p className="text-sm font-medium text-foreground mt-1">
                     {editValue || improvement.improved}
                   </p>
                 )}
               </div>
-
-              {/* Explanation */}
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <Sparkles className="h-3 w-3 text-primary" />
-                {improvement.explanation}
-              </p>
-
-              {/* Actions */}
-              <div className="flex items-center gap-2 pt-1">
-                <Button
-                  size="sm"
-                  onClick={handleAccept}
-                  className="gap-1.5"
-                >
-                  <Check className="h-3.5 w-3.5" />
-                  Accept
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setImprovement(null);
-                    setIsEditing(false);
-                  }}
-                  className="gap-1.5"
-                >
-                  <X className="h-3.5 w-3.5" />
-                  Regenerate
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleSkip}
-                  className="text-muted-foreground"
-                >
-                  Skip
-                </Button>
-              </div>
             </div>
-          )}
-        </div>
-      )}
+
+            {/* Why this change */}
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Sparkles className="h-3 w-3 text-primary" />
+              {improvement.explanation}
+            </p>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2 pt-2 border-t border-border">
+              <Button size="sm" onClick={handleAccept} className="gap-2">
+                <Check className="h-4 w-4" />
+                Accept
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setImprovement(null);
+                  setIsEditing(false);
+                  handleGenerateImprovement();
+                }}
+                className="gap-2"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Regenerate
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onActionSkipped}
+                className="text-muted-foreground ml-auto"
+              >
+                Skip
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
