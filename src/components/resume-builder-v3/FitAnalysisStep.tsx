@@ -5,17 +5,32 @@
 import { useResumeBuilderV3Store, StandardsResult, QuestionsResult } from "@/stores/resumeBuilderV3Store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   CheckCircle2, 
-  AlertTriangle, 
+  AlertCircle, 
   ArrowRight, 
-  TrendingUp,
-  Tag,
+  XCircle,
+  ChevronRight,
   Loader2
 } from "lucide-react";
 import { LoadingSkeletonV3 } from "./LoadingSkeletonV3";
 import { useResumeBuilderApi } from "./hooks/useResumeBuilderApi";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+
+const TIER_LABELS: Record<string, string> = {
+  excellent: "Excellent Match",
+  good: "Good Match",
+  partial: "Partial Match",
+  needs_work: "Needs Work"
+};
+
+const getTier = (score: number): string => {
+  if (score >= 80) return "excellent";
+  if (score >= 60) return "good";
+  if (score >= 40) return "partial";
+  return "needs_work";
+};
 
 export function FitAnalysisStep() {
   const {
@@ -29,12 +44,12 @@ export function FitAnalysisStep() {
     isLoading,
   } = useResumeBuilderV3Store();
 
-  // CRITICAL: All hooks must be called before any conditional returns
   const { callApi, isRetrying, currentAttempt, cancel, maxAttempts } = useResumeBuilderApi();
+  const [showAllStrengths, setShowAllStrengths] = useState(false);
+  const [showAllGaps, setShowAllGaps] = useState(false);
 
   if (!fitAnalysis) return null;
 
-  // Show loading skeleton when fetching standards
   if (isLoading) {
     return (
       <div aria-busy="true" aria-label="Loading industry standards">
@@ -53,7 +68,6 @@ export function FitAnalysisStep() {
   const handleContinue = async () => {
     setLoading(true);
 
-    // Step 1: Fetch standards
     const standardsResult = await callApi<StandardsResult>({
       step: "standards",
       body: {
@@ -71,7 +85,6 @@ export function FitAnalysisStep() {
     
     setStandards(standardsResult);
 
-    // Step 2: Generate questions (required for Interview step)
     const questionsResult = await callApi<QuestionsResult>({
       step: "questions",
       body: {
@@ -85,153 +98,179 @@ export function FitAnalysisStep() {
 
     if (questionsResult) {
       setQuestions(questionsResult);
-      // Go to Interview step (step 2 in new 3-step flow)
       setStep(2);
     }
     
     setLoading(false);
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-600";
-    if (score >= 60) return "text-yellow-600";
-    return "text-red-600";
-  };
-
-  const getScoreLabel = (score: number) => {
-    if (score >= 80) return "Excellent match";
-    if (score >= 60) return "Good match";
-    if (score >= 40) return "Partial match";
-    return "Needs improvement";
-  };
+  const score = fitAnalysis.fit_score;
+  const tier = getTier(score);
 
   return (
-    <div className="space-y-6">
-      {/* Fit Score - with aria-live for screen readers */}
-      <div className="text-center" aria-live="polite" aria-atomic="true">
-        <div className="inline-flex items-center gap-2 mb-2">
-          <TrendingUp className="h-5 w-5 text-primary" />
-          <span className="text-sm font-medium text-muted-foreground">Fit Score</span>
+    <div className="space-y-8">
+      {/* Score Display - Minimalist */}
+      <div className="text-center py-6" aria-live="polite" aria-atomic="true">
+        <div className="inline-flex flex-col items-center">
+          <div className="text-6xl font-light tracking-tight text-foreground">
+            {score}
+            <span className="text-3xl text-muted-foreground">%</span>
+          </div>
+          <div className="text-lg font-medium text-foreground mt-1">
+            {TIER_LABELS[tier]}
+          </div>
         </div>
-        <div className={`text-5xl font-bold ${getScoreColor(fitAnalysis.fit_score)}`}>
-          {fitAnalysis.fit_score}%
-        </div>
-        <p className="text-sm font-medium mt-1">
-          <span className={getScoreColor(fitAnalysis.fit_score)}>
-            {getScoreLabel(fitAnalysis.fit_score)}
-          </span>
-        </p>
-        <p className="mt-2 text-muted-foreground max-w-lg mx-auto">
+        
+        <p className="mt-4 text-muted-foreground max-w-lg mx-auto">
           {fitAnalysis.executive_summary}
         </p>
+
+        {/* Quick stats row */}
+        <div className="flex items-center justify-center gap-8 text-sm pt-4">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-primary" />
+            <span><strong>{fitAnalysis.strengths.length}</strong> strengths</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-muted-foreground" />
+            <span><strong>{fitAnalysis.gaps.length}</strong> gaps</span>
+          </div>
+        </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Strengths */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
-              Strengths ({fitAnalysis.strengths.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {fitAnalysis.strengths.length === 0 ? (
-              <p className="text-sm text-muted-foreground italic">
-                No strong matches identified yet. The interview step will help us find your strengths.
-              </p>
-            ) : (
-              fitAnalysis.strengths.map((strength, index) => (
-                <div key={index} className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="font-medium text-sm">{strength.requirement}</p>
-                    <Badge variant={strength.strength_level === "strong" ? "default" : "secondary"}>
-                      {strength.strength_level}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">{strength.evidence}</p>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
+      {/* Strengths Section */}
+      <div className="space-y-3">
+        <button
+          onClick={() => setShowAllStrengths(!showAllStrengths)}
+          className="w-full flex items-center justify-between group"
+        >
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            What's Working ({fitAnalysis.strengths.length})
+          </h3>
+          <ChevronRight className={cn(
+            "h-4 w-4 text-muted-foreground transition-transform",
+            showAllStrengths && "rotate-90"
+          )} />
+        </button>
 
-        {/* Gaps */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <AlertTriangle className="h-5 w-5 text-amber-600" />
-              Gaps to Address ({fitAnalysis.gaps.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {fitAnalysis.gaps.length === 0 ? (
-              <p className="text-sm text-green-600 italic flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4" />
-                Great news! No significant gaps identified.
-              </p>
-            ) : (
-              fitAnalysis.gaps.map((gap, index) => (
-                <div key={index} className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="font-medium text-sm">{gap.requirement}</p>
-                    <Badge
-                      variant={
-                        gap.severity === "critical"
-                          ? "destructive"
-                          : gap.severity === "moderate"
-                          ? "default"
-                          : "secondary"
-                      }
-                    >
-                      {gap.severity}
-                    </Badge>
+        {fitAnalysis.strengths.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-2">
+            No strong matches identified yet. The interview step will help us find your strengths.
+          </p>
+        ) : (
+          <div className="space-y-0">
+            {(showAllStrengths ? fitAnalysis.strengths : fitAnalysis.strengths.slice(0, 3)).map((strength, index) => (
+              <div
+                key={index}
+                className="flex items-start gap-3 py-3 border-b border-border/50 last:border-0"
+              >
+                <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-foreground">{strength.requirement}</p>
+                    {strength.strength_level === "strong" && (
+                      <span className="text-xs text-muted-foreground">(Strong)</span>
+                    )}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">{gap.suggestion}</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">{strength.evidence}</p>
                 </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Keywords */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Tag className="h-5 w-5 text-primary" />
-            ATS Keywords
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm font-medium text-green-600 mb-2">
-                ✓ Found ({fitAnalysis.keywords_found.length})
-              </p>
-              <div className="flex flex-wrap gap-1">
-                {fitAnalysis.keywords_found.map((keyword, index) => (
-                  <Badge key={index} variant="outline" className="text-xs">
-                    {keyword}
-                  </Badge>
-                ))}
               </div>
+            ))}
+            {!showAllStrengths && fitAnalysis.strengths.length > 3 && (
+              <button
+                onClick={() => setShowAllStrengths(true)}
+                className="text-sm text-primary hover:underline pt-2"
+              >
+                Show {fitAnalysis.strengths.length - 3} more...
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Gaps Section */}
+      <div className="space-y-3">
+        <button
+          onClick={() => setShowAllGaps(!showAllGaps)}
+          className="w-full flex items-center justify-between group"
+        >
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Gaps to Address ({fitAnalysis.gaps.length})
+          </h3>
+          <ChevronRight className={cn(
+            "h-4 w-4 text-muted-foreground transition-transform",
+            showAllGaps && "rotate-90"
+          )} />
+        </button>
+
+        {fitAnalysis.gaps.length === 0 ? (
+          <div className="flex items-center gap-2 text-sm text-primary py-2">
+            <CheckCircle2 className="h-4 w-4" />
+            Great news! No significant gaps identified.
+          </div>
+        ) : (
+          <div className="space-y-0">
+            {(showAllGaps ? fitAnalysis.gaps : fitAnalysis.gaps.slice(0, 3)).map((gap, index) => (
+              <div
+                key={index}
+                className="flex items-start gap-3 py-3 border-b border-border/50 last:border-0"
+              >
+                <XCircle className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-foreground">{gap.requirement}</p>
+                    <span className="text-xs text-muted-foreground capitalize">({gap.severity})</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-0.5">{gap.suggestion}</p>
+                </div>
+              </div>
+            ))}
+            {!showAllGaps && fitAnalysis.gaps.length > 3 && (
+              <button
+                onClick={() => setShowAllGaps(true)}
+                className="text-sm text-primary hover:underline pt-2"
+              >
+                Show {fitAnalysis.gaps.length - 3} more...
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ATS Keywords Section */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          ATS Keywords
+        </h3>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm">
+              <CheckCircle2 className="h-4 w-4 text-primary" />
+              <span className="font-medium">Found ({fitAnalysis.keywords_found.length})</span>
             </div>
-            <div>
-              <p className="text-sm font-medium text-amber-600 mb-2">
-                ✗ Missing ({fitAnalysis.keywords_missing.length})
-              </p>
-              <div className="flex flex-wrap gap-1">
-                {fitAnalysis.keywords_missing.map((keyword, index) => (
-                  <Badge key={index} variant="secondary" className="text-xs">
-                    {keyword}
-                  </Badge>
-                ))}
-              </div>
+            <div className="flex flex-wrap gap-1.5">
+              {fitAnalysis.keywords_found.map((keyword, index) => (
+                <Badge key={index} variant="outline" className="text-xs font-normal">
+                  {keyword}
+                </Badge>
+              ))}
             </div>
           </div>
-        </CardContent>
-      </Card>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm">
+              <XCircle className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">Missing ({fitAnalysis.keywords_missing.length})</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {fitAnalysis.keywords_missing.map((keyword, index) => (
+                <Badge key={index} variant="secondary" className="text-xs font-normal">
+                  {keyword}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Continue button */}
       <div className="flex justify-center pt-4">

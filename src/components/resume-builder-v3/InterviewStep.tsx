@@ -6,8 +6,6 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useResumeBuilderV3Store, OptimizedResume, QuestionsResult } from "@/stores/resumeBuilderV3Store";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,7 +19,6 @@ import {
 import {
   ArrowRight,
   MessageCircle,
-  Lightbulb,
   Check,
   Loader2,
   AlertTriangle,
@@ -51,15 +48,10 @@ export function InterviewStep() {
   const [showSkipDialog, setShowSkipDialog] = useState(false);
   const [localAnswer, setLocalAnswer] = useState("");
   
-  // CRITICAL: All hooks must be called before any conditional returns (React Rules of Hooks)
   const { callApi, isRetrying, currentAttempt, cancel, maxAttempts } = useResumeBuilderApi();
-  
-  // Debounce timer ref for store updates
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Sync local answer when question changes and clear pending timer
   useEffect(() => {
-    // Clear any pending debounce timer when question changes
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = null;
@@ -71,7 +63,6 @@ export function InterviewStep() {
     }
   }, [currentQuestionIndex, questions?.questions, interviewAnswers]);
   
-  // Cleanup debounce timer on unmount
   useEffect(() => {
     return () => {
       if (debounceTimerRef.current) {
@@ -80,51 +71,34 @@ export function InterviewStep() {
     };
   }, []);
 
-  // Computed values - must be calculated before any conditional returns
   const hasNoQuestions = !questions || !questions.questions || questions.questions.length === 0;
   const questionsList = questions?.questions || [];
   const currentQuestion = questionsList[currentQuestionIndex];
   const totalQuestions = questionsList.length;
   
-  // Debug logging
-  console.log('[InterviewStep] Render state:', {
-    hasNoQuestions,
-    questionsCount: questionsList.length,
-    currentQuestionIndex,
-    currentQuestion: currentQuestion ? 'exists' : 'missing',
-    isLoading
-  });
-  
-  // Validate answer keys match question IDs to prevent unexpected keys
   const validQuestionIds = new Set(questionsList.map(q => q.id));
   const answeredCount = Object.keys(interviewAnswers).filter(
     (key) => validQuestionIds.has(key) && interviewAnswers[key]?.trim().length > 0
   ).length;
 
-  // Count unanswered high-priority questions
   const unansweredHighPriority = questionsList.filter(
     (q) => q.priority === "high" && !interviewAnswers[q.id]?.trim()
   ).length;
 
-  // CRITICAL: All useCallback hooks must be called before any conditional returns (React Rules of Hooks)
-  // Debounced answer handler - updates local state immediately, debounces store update
   const handleAnswerChange = useCallback((answer: string) => {
     setLocalAnswer(answer);
     
     if (currentQuestion) {
-      // Clear existing timer
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
       
-      // Debounce store update by 300ms
       debounceTimerRef.current = setTimeout(() => {
         setInterviewAnswer(currentQuestion.id, answer);
       }, 300);
     }
   }, [currentQuestion, setInterviewAnswer]);
 
-  // Sanitize interview answers to prevent prompt injection
   const sanitizeAnswer = useCallback((answer: string): string => {
     return answer
       .replace(/\[INST\]/gi, '')
@@ -135,20 +109,6 @@ export function InterviewStep() {
       .trim();
   }, []);
 
-  const getPriorityColor = useCallback((priority: string) => {
-    switch (priority) {
-      case "high":
-        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
-      case "medium":
-        return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300";
-      case "low":
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
-      default:
-        return "";
-    }
-  }, []);
-
-  // Regenerate questions handler
   const handleRegenerateQuestions = useCallback(async () => {
     setLoading(true);
     const result = await callApi<QuestionsResult>({
@@ -162,12 +122,11 @@ export function InterviewStep() {
     setLoading(false);
   }, [callApi, resumeText, jobDescription, fitAnalysis, standards, setQuestions, setLoading]);
 
-  // Handle empty questions case after all hooks are called
   if (hasNoQuestions) {
     return (
       <div className="text-center py-12 space-y-4">
-        <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-amber-100 dark:bg-amber-900 mb-4">
-          <AlertTriangle className="h-6 w-6 text-amber-600" />
+        <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-muted mb-4">
+          <AlertTriangle className="h-6 w-6 text-muted-foreground" />
         </div>
         <h2 className="text-lg font-semibold">Questions Not Loaded</h2>
         <p className="text-sm text-muted-foreground max-w-md mx-auto">
@@ -192,7 +151,6 @@ export function InterviewStep() {
     );
   }
 
-  // Show loading skeleton when generating resume
   if (isLoading) {
     return (
       <div aria-busy="true" aria-label="Generating your optimized resume">
@@ -223,7 +181,6 @@ export function InterviewStep() {
   const handleGenerate = async () => {
     setLoading(true);
 
-    // Sanitize all answers before sending to AI
     const sanitizedAnswers = Object.fromEntries(
       Object.entries(interviewAnswers).map(([key, value]) => [key, sanitizeAnswer(value)])
     );
@@ -242,7 +199,6 @@ export function InterviewStep() {
 
     if (result) {
       setFinalResume(result);
-      // Go to Edit & Optimize step (step 3 in new 3-step flow)
       setStep(3);
     }
     
@@ -263,13 +219,13 @@ export function InterviewStep() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Skip Confirmation Dialog */}
       <AlertDialog open={showSkipDialog} onOpenChange={setShowSkipDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              <AlertTriangle className="h-5 w-5 text-muted-foreground" />
               Skip Remaining Questions?
             </AlertDialogTitle>
             <AlertDialogDescription>
@@ -287,17 +243,17 @@ export function InterviewStep() {
       </AlertDialog>
 
       {/* Header */}
-      <div className="text-center">
-        <h2 className="text-lg sm:text-xl font-semibold mb-2">Let's Fill the Gaps</h2>
-        <p className="text-sm sm:text-base text-muted-foreground">
+      <div className="text-center py-4">
+        <h2 className="text-2xl font-semibold text-foreground mb-2">Let's Fill the Gaps</h2>
+        <p className="text-muted-foreground">
           Answer a few questions to help us create the best possible resume for you.
         </p>
-        <div className="mt-3 sm:mt-4 flex flex-wrap items-center justify-center gap-2">
-          <span className="text-xs sm:text-sm text-muted-foreground">
+        <div className="mt-4 flex items-center justify-center gap-4 text-sm">
+          <span className="text-muted-foreground">
             Question {currentQuestionIndex + 1} of {totalQuestions}
           </span>
-          <span className="text-xs sm:text-sm text-muted-foreground hidden xs:inline">•</span>
-          <span className="text-xs sm:text-sm text-green-600">
+          <span className="text-muted-foreground">•</span>
+          <span className="text-primary">
             {answeredCount}/{totalQuestions} answered
           </span>
         </div>
@@ -316,7 +272,7 @@ export function InterviewStep() {
                 isCurrent
                   ? "bg-primary"
                   : isAnswered
-                  ? "bg-green-500"
+                  ? "bg-primary/50"
                   : "bg-muted-foreground/30"
               }`}
               aria-label={`Question ${index + 1}${isAnswered ? ' (answered)' : ''}${isCurrent ? ' (current)' : ''}`}
@@ -328,67 +284,69 @@ export function InterviewStep() {
 
       {/* Current question */}
       {currentQuestion && (
-        <Card>
-          <CardHeader className="pb-3 px-3 sm:px-6">
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-4">
-              <CardTitle className="text-base sm:text-lg flex items-start gap-2">
-                <MessageCircle className="h-5 w-5 mt-0.5 text-primary flex-shrink-0" />
-                {currentQuestion.question}
-              </CardTitle>
-              <div className="flex items-center gap-2 self-start">
-                <Badge className={getPriorityColor(currentQuestion.priority)}>
-                  {currentQuestion.priority}
-                </Badge>
-                <HelpTooltip content={HELP_CONTENT.questionPriority} />
+        <div className="border border-border rounded-lg">
+          {/* Question header */}
+          <div className="p-4 sm:p-6 border-b border-border/50">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3 flex-1">
+                <MessageCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="font-medium text-foreground">{currentQuestion.question}</h3>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-xs text-muted-foreground capitalize">
+                      {currentQuestion.priority} priority
+                    </span>
+                    <HelpTooltip content={HELP_CONTENT.questionPriority} />
+                  </div>
+                </div>
               </div>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-3 sm:space-y-4 px-3 sm:px-6">
-            <div className="flex items-start gap-2 text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
-              <Lightbulb className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-500" />
-              <div>
-                <p className="font-medium">Why we're asking:</p>
-                <p>{currentQuestion.purpose}</p>
-                <p className="mt-1 text-xs">
-                  Addresses: {currentQuestion.gap_addressed}
-                </p>
-              </div>
+          </div>
+
+          {/* Purpose and example */}
+          <div className="p-4 sm:p-6 space-y-4 bg-muted/30">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-foreground">Why we're asking:</p>
+              <p className="text-sm text-muted-foreground">{currentQuestion.purpose}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Addresses: {currentQuestion.gap_addressed}
+              </p>
             </div>
 
             {currentQuestion.example_answer && (
-              <div className="text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
-                <p className="font-medium">Example answer:</p>
-                <p className="italic">"{currentQuestion.example_answer}"</p>
+              <div className="space-y-1 pt-2 border-t border-border/50">
+                <p className="text-sm font-medium text-foreground">Example answer:</p>
+                <p className="text-sm text-muted-foreground italic">"{currentQuestion.example_answer}"</p>
               </div>
             )}
+          </div>
 
-            <div className="space-y-1">
-              <Textarea
-                placeholder="Type your answer here... Be specific with numbers and details!"
-                value={localAnswer}
-                onChange={(e) => {
-                  // Enforce character limit
-                  if (e.target.value.length <= MAX_ANSWER_LENGTH) {
-                    handleAnswerChange(e.target.value);
-                  }
-                }}
-                className="min-h-[120px]"
-                maxLength={MAX_ANSWER_LENGTH}
-              />
-              <div className="flex items-center justify-between text-xs">
-                <span className={localAnswer.length > MAX_ANSWER_LENGTH * 0.9 ? "text-amber-600" : "text-muted-foreground"}>
-                  {localAnswer.length}/{MAX_ANSWER_LENGTH} characters
-                </span>
-                {localAnswer.trim() && (
-                  <div className="flex items-center gap-1 text-green-600">
-                    <Check className="h-3 w-3" />
-                    Saved
-                  </div>
-                )}
-              </div>
+          {/* Answer input */}
+          <div className="p-4 sm:p-6 space-y-2">
+            <Textarea
+              placeholder="Type your answer here... Be specific with numbers and details!"
+              value={localAnswer}
+              onChange={(e) => {
+                if (e.target.value.length <= MAX_ANSWER_LENGTH) {
+                  handleAnswerChange(e.target.value);
+                }
+              }}
+              className="min-h-[120px] border-border"
+              maxLength={MAX_ANSWER_LENGTH}
+            />
+            <div className="flex items-center justify-between text-xs">
+              <span className={localAnswer.length > MAX_ANSWER_LENGTH * 0.9 ? "text-destructive" : "text-muted-foreground"}>
+                {localAnswer.length}/{MAX_ANSWER_LENGTH} characters
+              </span>
+              {localAnswer.trim() && (
+                <div className="flex items-center gap-1 text-primary">
+                  <Check className="h-3 w-3" />
+                  Saved
+                </div>
+              )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Navigation */}
@@ -412,7 +370,7 @@ export function InterviewStep() {
             <Button
               onClick={handleGenerate}
               disabled={isLoading}
-              className="flex-1 xs:flex-none bg-green-600 hover:bg-green-700"
+              className="flex-1 xs:flex-none"
             >
               {isLoading ? (
                 <>
@@ -443,7 +401,7 @@ export function InterviewStep() {
           <span className="hidden sm:inline">Skip remaining questions and generate resume</span>
           <span className="sm:hidden">Skip & generate</span>
           {unansweredHighPriority > 0 && (
-            <span className="ml-1 text-amber-600">
+            <span className="ml-1 text-muted-foreground">
               ({unansweredHighPriority} high-priority)
             </span>
           )}
