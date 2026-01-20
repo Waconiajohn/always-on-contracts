@@ -152,9 +152,10 @@ export const QUESTIONS_SCHEMA = {
             purpose: { type: "string", description: "Why this question helps the resume" },
             gap_addressed: { type: "string", description: "Which gap or enhancement this addresses" },
             example_answer: { type: "string", description: "Example of a good answer to guide the candidate" },
-            priority: { type: "string", enum: ["high", "medium", "low"] }
+            priority: { type: "string", enum: ["high", "medium", "low"] },
+            source: { type: "string", enum: ["job_match", "industry_standard"], description: "Whether this question addresses a job match gap or industry standard gap" }
           },
-          required: ["id", "question", "purpose", "gap_addressed", "priority"],
+          required: ["id", "question", "purpose", "gap_addressed", "priority", "source"],
           additionalProperties: false
         }
       },

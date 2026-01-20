@@ -52,6 +52,7 @@ export interface InterviewQuestion {
   gap_addressed: string;
   example_answer?: string;
   priority: "high" | "medium" | "low";
+  source?: "job_match" | "industry_standard";
 }
 
 /**
