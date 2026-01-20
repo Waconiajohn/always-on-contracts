@@ -200,10 +200,28 @@ serve(async (req) => {
 
     await logAIUsage(metrics);
 
-    const rawContent = cleanCitations(response.choices?.[0]?.message?.content || '').trim();
+    // Extract content from response - handle different response formats
+    const choice = response.choices?.[0];
+    let rawContent = '';
+    
+    // Try standard content first
+    if (choice?.message?.content) {
+      rawContent = choice.message.content;
+    }
+    // Check for tool_calls response format (sometimes GPT-5 uses this)
+    else if (choice?.message?.tool_calls?.[0]?.function?.arguments) {
+      rawContent = choice.message.tool_calls[0].function.arguments;
+    }
+    // Check if there's any text we can salvage
+    else if (typeof choice?.message === 'string') {
+      rawContent = choice.message;
+    }
+    
+    rawContent = cleanCitations(rawContent).trim();
 
     if (!rawContent) {
-      throw new Error('AI returned empty response');
+      console.error('Empty AI response. Full response:', JSON.stringify(response, null, 2));
+      throw new Error('AI returned empty response. Please try again.');
     }
 
     // Parse JSON response
@@ -220,6 +238,11 @@ serve(async (req) => {
     } catch {
       // If JSON parsing fails, use the raw text
       result = { improvedBullet: rawContent, changes: 'Improved bullet' };
+    }
+    
+    // Validate result has the required field
+    if (!result.improvedBullet || result.improvedBullet.trim() === '') {
+      throw new Error('AI generated empty bullet. Please try again.');
     }
 
     console.log('✅ Bullet refined successfully', { action, changes: result.changes });
