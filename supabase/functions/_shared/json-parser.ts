@@ -36,14 +36,28 @@ export function extractJSON<T = any>(
     }
     return { success: true, data: parsed };
   } catch {
-    // Continue to next strategy
+    // Strategy 1b: Repair common JSON issues (unescaped newlines, trailing commas, etc.)
+    try {
+      const repaired = repairJSON(cleanedContent);
+      const parsed = JSON.parse(repaired);
+      if (schema) {
+        const validated = schema.safeParse(parsed);
+        if (validated.success) {
+          return { success: true, data: validated.data };
+        }
+        return { success: false, error: `Schema validation failed: ${validated.error.message}` };
+      }
+      return { success: true, data: parsed };
+    } catch {
+      // Continue to next strategy
+    }
   }
 
   // Strategy 2: Extract from markdown code blocks (greedy match for full content)
   const codeBlockMatch = cleanedContent.match(/```(?:json)?[\s\n]*([\s\S]*?)```/);
   if (codeBlockMatch) {
+    const jsonContent = codeBlockMatch[1].trim();
     try {
-      const jsonContent = codeBlockMatch[1].trim();
       const parsed = JSON.parse(jsonContent);
       if (schema) {
         const validated = schema.safeParse(parsed);
@@ -54,8 +68,22 @@ export function extractJSON<T = any>(
         return { success: true, data: parsed };
       }
     } catch (e) {
-      console.log('Code block parse failed, trying next strategy:', e);
-      // Continue to next strategy
+      // Try repairing common issues (unescaped newlines inside strings, trailing commas, etc.)
+      try {
+        const repaired = repairJSON(jsonContent);
+        const parsed = JSON.parse(repaired);
+        if (schema) {
+          const validated = schema.safeParse(parsed);
+          if (validated.success) {
+            return { success: true, data: validated.data };
+          }
+        } else {
+          return { success: true, data: parsed };
+        }
+      } catch (repairError) {
+        console.log('Code block parse failed, trying next strategy:', repairError);
+        // Continue to next strategy
+      }
     }
   }
 
