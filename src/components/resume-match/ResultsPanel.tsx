@@ -1,4 +1,4 @@
-import { Loader2, TrendingUp, Zap, Target, Users, FileCheck, RefreshCw } from 'lucide-react';
+import { Loader2, Target, TrendingUp, FileCheck, RefreshCw, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -39,10 +39,10 @@ export function ResultsPanel({
   // Empty state
   if (!hasContent) {
     return (
-      <Card className="h-full flex flex-col bg-card/50">
+      <Card className="h-full flex flex-col">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <Target className="h-4 w-4 text-primary" />
+            <Target className="h-4 w-4 text-muted-foreground" />
             Match Results
           </CardTitle>
         </CardHeader>
@@ -60,16 +60,16 @@ export function ResultsPanel({
   // Loading state
   if (isAnalyzing) {
     return (
-      <Card className="h-full flex flex-col bg-card/50">
+      <Card className="h-full flex flex-col">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             Analyzing...
           </CardTitle>
         </CardHeader>
         <CardContent className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <Loader2 className="h-12 w-12 mx-auto mb-3 animate-spin text-primary" />
+            <Loader2 className="h-12 w-12 mx-auto mb-3 animate-spin text-muted-foreground" />
             <p className="text-sm text-muted-foreground">Analyzing your resume match...</p>
             <p className="text-xs text-muted-foreground mt-1">This usually takes 5-10 seconds</p>
           </div>
@@ -81,7 +81,7 @@ export function ResultsPanel({
   // Error state
   if (error) {
     return (
-      <Card className="h-full flex flex-col bg-card/50">
+      <Card className="h-full flex flex-col">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold text-destructive">
             Analysis Error
@@ -100,20 +100,19 @@ export function ResultsPanel({
   // No result yet but has content
   if (!result) {
     return (
-      <Card className="h-full flex flex-col bg-card/50">
+      <Card className="h-full flex flex-col">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <Target className="h-4 w-4 text-primary" />
+            <Target className="h-4 w-4 text-muted-foreground" />
             Match Results
           </CardTitle>
         </CardHeader>
         <CardContent className="flex-1 flex flex-col">
-          {/* Show ATS panel even before full analysis */}
           <ATSCompliancePanel resumeText={resumeText} />
           
           <div className="flex-1 flex items-center justify-center mt-4">
             <div className="text-center text-muted-foreground">
-              <Zap className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
               <p className="text-sm">Click "Analyze Match" for full results</p>
             </div>
           </div>
@@ -124,24 +123,13 @@ export function ResultsPanel({
 
   // Full results
   const tier = result.tier;
-  const getTierBgColor = (tierName: string) => {
-    switch (tierName) {
-      case 'ON_FIRE': return 'bg-gradient-to-br from-red-500 to-orange-500';
-      case 'HOT': return 'bg-gradient-to-br from-orange-500 to-amber-500';
-      case 'WARM': return 'bg-gradient-to-br from-amber-500 to-yellow-500';
-      case 'LUKEWARM': return 'bg-gradient-to-br from-yellow-500 to-lime-500';
-      case 'COLD': return 'bg-gradient-to-br from-blue-400 to-blue-500';
-      case 'FREEZING': return 'bg-gradient-to-br from-blue-600 to-indigo-600';
-      default: return 'bg-muted';
-    }
-  };
 
   return (
-    <Card className="h-full flex flex-col bg-card/50">
+    <Card className="h-full flex flex-col">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <Target className="h-4 w-4 text-primary" />
+            <Target className="h-4 w-4 text-muted-foreground" />
             Match Results
           </CardTitle>
           <div className="flex items-center gap-2">
@@ -164,75 +152,66 @@ export function ResultsPanel({
       
       <ScrollArea className="flex-1">
         <CardContent className="space-y-4 pb-4">
-          {/* Overall Score - Hero */}
-          <div className={cn(
-            "rounded-lg p-4 text-white",
-            getTierBgColor(tier?.tier || '')
-          )}>
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold">{result.overallScore}%</span>
-                  <span className="text-2xl">{tier?.emoji}</span>
-                  <div className="ml-1">
-                    <ScoreTooltip />
-                  </div>
-                </div>
-                <p className="text-sm opacity-90 mt-1">{tier?.message}</p>
-              </div>
-              <div className="text-right">
-                <Badge variant="secondary" className="bg-white/20 text-white border-0">
-                  {tier?.tier?.replace('_', ' ')}
-                </Badge>
-                {result.pointsToNextTier > 0 && (
-                  <p className="text-xs opacity-80 mt-2">
-                    +{result.pointsToNextTier} pts to next tier
-                  </p>
-                )}
+          {/* Overall Score - Clean Typography */}
+          <div className="text-center py-4 border border-border rounded-lg">
+            <div className="flex items-baseline justify-center gap-1">
+              <span className="text-5xl font-light tabular-nums">{result.overallScore}</span>
+              <span className="text-xl text-muted-foreground">%</span>
+              <div className="ml-2">
+                <ScoreTooltip />
               </div>
             </div>
+            <p className="text-sm font-medium mt-1">
+              {tier?.tier?.replace('_', ' ')}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">{tier?.message}</p>
+            {result.pointsToNextTier > 0 && (
+              <p className="text-xs text-muted-foreground mt-2">
+                +{result.pointsToNextTier} pts to next tier
+              </p>
+            )}
           </div>
 
           {/* Score Breakdown */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="p-2 rounded-md bg-muted/50">
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-                <FileCheck className="h-3 w-3" />
-                JD Match
+          <div className="space-y-2">
+            <div className="flex items-center justify-between py-2">
+              <div className="flex items-center gap-2 text-sm">
+                <FileCheck className="h-4 w-4 text-muted-foreground" />
+                <span>JD Match</span>
               </div>
-              <div className="flex items-baseline justify-between">
-                <span className="text-lg font-bold">{result.scores?.jdMatch?.score || 0}%</span>
-                <Progress value={result.scores?.jdMatch?.score || 0} className="w-12 h-1.5" />
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium tabular-nums">{result.scores?.jdMatch?.score || 0}%</span>
+                <Progress value={result.scores?.jdMatch?.score || 0} className="w-16 h-1.5" />
               </div>
             </div>
             
-            <div className="p-2 rounded-md bg-muted/50">
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-                <TrendingUp className="h-3 w-3" />
-                Industry
+            <div className="flex items-center justify-between py-2">
+              <div className="flex items-center gap-2 text-sm">
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                <span>Industry Benchmark</span>
               </div>
-              <div className="flex items-baseline justify-between">
-                <span className="text-lg font-bold">{result.scores?.industryBenchmark?.score || 0}%</span>
-                <Progress value={result.scores?.industryBenchmark?.score || 0} className="w-12 h-1.5" />
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium tabular-nums">{result.scores?.industryBenchmark?.score || 0}%</span>
+                <Progress value={result.scores?.industryBenchmark?.score || 0} className="w-16 h-1.5" />
               </div>
             </div>
           </div>
 
           {/* Quick Wins */}
           {result.quickWins && result.quickWins.length > 0 && (
-            <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
-              <div className="flex items-center gap-2 mb-2">
-                <Zap className="h-4 w-4 text-primary" />
-                <span className="text-sm font-semibold">Quick Wins</span>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <Sparkles className="h-3.5 w-3.5" />
+                Quick Wins
               </div>
-              <ul className="space-y-1.5">
+              <ol className="space-y-1.5">
                 {result.quickWins.map((win, i) => (
-                  <li key={i} className="text-xs text-foreground flex items-start gap-2">
-                    <span className="text-primary font-bold mt-0.5">{i + 1}.</span>
+                  <li key={i} className="text-xs flex items-start gap-2">
+                    <span className="font-medium text-primary">{i + 1}.</span>
                     <span>{win}</span>
                   </li>
                 ))}
-              </ul>
+              </ol>
             </div>
           )}
 
@@ -273,29 +252,24 @@ export function ResultsPanel({
             apiScore={result.scores?.atsCompliance?.score}
           />
 
-          {/* Industry Benchmark */}
+          {/* Industry Benchmark Details */}
           {result.breakdown?.industryBenchmark && (
-            <Card className="bg-card/50">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <Users className="h-4 w-4 text-primary" />
-                  Industry Benchmark
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
+            <div className="space-y-2">
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Industry Benchmark
+              </div>
+              <div className="space-y-2 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Competitive Rank:</span>
-                  <Badge variant="outline">{result.breakdown.industryBenchmark.competitiveRank}</Badge>
+                  <span className="text-muted-foreground">Competitive Rank:</span>
+                  <Badge variant="outline" className="font-normal">{result.breakdown.industryBenchmark.competitiveRank}</Badge>
                 </div>
                 
                 {result.breakdown.industryBenchmark.meetingStandards?.length > 0 && (
                   <div>
-                    <p className="text-xs font-medium text-green-600 dark:text-green-400 mb-1">
-                      Meeting Standards:
-                    </p>
+                    <p className="text-muted-foreground mb-1">Meeting Standards:</p>
                     <ul className="space-y-0.5">
-                      {result.breakdown.industryBenchmark.meetingStandards.slice(0, 3).map((s, i) => (
-                        <li key={i} className="text-xs text-muted-foreground">• {s}</li>
+                      {result.breakdown.industryBenchmark.meetingStandards.slice(0, 3).map((s: string, i: number) => (
+                        <li key={i} className="text-muted-foreground">• {s}</li>
                       ))}
                     </ul>
                   </div>
@@ -303,18 +277,16 @@ export function ResultsPanel({
                 
                 {result.breakdown.industryBenchmark.belowStandards?.length > 0 && (
                   <div>
-                    <p className="text-xs font-medium text-amber-600 dark:text-amber-400 mb-1">
-                      Below Standards:
-                    </p>
+                    <p className="text-muted-foreground mb-1">Below Standards:</p>
                     <ul className="space-y-0.5">
-                      {result.breakdown.industryBenchmark.belowStandards.slice(0, 3).map((s, i) => (
-                        <li key={i} className="text-xs text-muted-foreground">• {s}</li>
+                      {result.breakdown.industryBenchmark.belowStandards.slice(0, 3).map((s: string, i: number) => (
+                        <li key={i} className="text-muted-foreground">• {s}</li>
                       ))}
                     </ul>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
 
           {/* Analysis timestamp */}
