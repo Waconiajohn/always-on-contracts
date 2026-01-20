@@ -112,6 +112,7 @@ export function EditAndOptimizeStep() {
     
     setFinalResume(updatedResume);
     setAiEnhancementsCount(prev => prev + 1);
+    setActiveTab("preview");
   }, [finalResume, setFinalResume]);
 
   // Handler for adding new bullets
@@ -137,6 +138,7 @@ export function EditAndOptimizeStep() {
     
     setFinalResume(updatedResume);
     setAiEnhancementsCount(prev => prev + 1);
+    setActiveTab("preview");
   }, [finalResume, setFinalResume]);
 
   // Handler for summary updates
@@ -154,6 +156,7 @@ export function EditAndOptimizeStep() {
     
     setFinalResume(updatedResume);
     setAiEnhancementsCount(prev => prev + 1);
+    setActiveTab("preview");
   }, [finalResume, setFinalResume]);
 
   // Handler for skill additions
@@ -176,6 +179,7 @@ export function EditAndOptimizeStep() {
     
     setFinalResume(updatedResume);
     setAiEnhancementsCount(prev => prev + 1);
+    setActiveTab("preview");
   }, [finalResume, setFinalResume]);
   
   // Track saved fingerprints to prevent race conditions
