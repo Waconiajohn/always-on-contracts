@@ -8,19 +8,11 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import { useResumeBuilderV3Store } from "@/stores/resumeBuilderV3Store";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Copy,
-  CheckCircle2,
-  FileText,
   Sparkles,
-  Printer,
   Loader2,
-  Eye,
-  BarChart3,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ExportOptionsV3 } from "./ExportOptionsV3";
@@ -362,74 +354,61 @@ export function EditAndOptimizeStep() {
   };
 
   return (
-    <div className="space-y-4 no-print max-w-4xl mx-auto">
+    <div className="space-y-6 no-print max-w-3xl mx-auto px-4">
       {/* Hidden printable version */}
       <div className="hidden print:block">
         <PrintableResume ref={printRef} resume={finalResume} />
       </div>
 
-      {/* Header */}
+      {/* Minimal Header */}
       <SuccessAnimation>
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-primary/10 mb-3">
-            <CheckCircle2 className="h-5 w-5 text-primary" />
+        <div className="flex items-center justify-between py-4 border-b border-border">
+          <div>
+            <h1 className="text-xl font-semibold text-foreground">Resume Analysis</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {finalResume.header.name}
+            </p>
           </div>
-          <h2 className="text-lg font-semibold mb-1">Your Fit Report</h2>
-          <p className="text-sm text-muted-foreground">
-            See what's strong, what needs work, and fix it inline.
-          </p>
+          
+          {/* Action buttons */}
+          <div className="flex items-center gap-2">
+            {aiEnhancementsCount > 0 && (
+              <span className="text-xs text-muted-foreground">
+                {aiEnhancementsCount} changes
+              </span>
+            )}
+            <VersionHistory versions={versions} currentVersion={finalResume} />
+            <Button variant="outline" size="sm" onClick={handleSaveVersion} disabled={isSaving}>
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleCopyText}>
+              <Copy className="h-4 w-4" />
+            </Button>
+            <ExportOptionsV3 resume={finalResume} />
+          </div>
         </div>
       </SuccessAnimation>
 
-      {/* Action Bar */}
+      {/* Tab Navigation - Clean and minimal */}
       <FadeIn delay={0.1}>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between gap-3 px-4 py-3">
-            <div className="flex items-center gap-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                {finalResume.header.name}
-              </CardTitle>
-              {aiEnhancementsCount > 0 && (
-                <Badge variant="secondary" className="text-xs">
-                  <Sparkles className="h-3 w-3 mr-1" />
-                  {aiEnhancementsCount} improvements
-                </Badge>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <VersionHistory versions={versions} currentVersion={finalResume} />
-              <Button variant="outline" size="sm" onClick={handleSaveVersion} disabled={isSaving}>
-                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
-              </Button>
-              <Button variant="outline" size="sm" onClick={handlePrint} className="hidden sm:flex">
-                <Printer className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleCopyText}>
-                <Copy className="h-4 w-4" />
-              </Button>
-              <ExportOptionsV3 resume={finalResume} />
-            </div>
-          </CardHeader>
-        </Card>
-      </FadeIn>
-
-      {/* Main Content: Tabs for Report vs Preview */}
-      <FadeIn delay={0.2}>
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "report" | "preview")} className="w-full">
-          <TabsList className="w-full grid grid-cols-2">
-            <TabsTrigger value="report" className="gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Fit Report
+          <TabsList className="bg-transparent border-b border-border rounded-none w-full justify-start gap-4 p-0 h-auto">
+            <TabsTrigger 
+              value="report" 
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent px-0 pb-3 pt-0 font-medium"
+            >
+              Fit Analysis
             </TabsTrigger>
-            <TabsTrigger value="preview" className="gap-2">
-              <Eye className="h-4 w-4" />
+            <TabsTrigger 
+              value="preview" 
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent px-0 pb-3 pt-0 font-medium"
+            >
               Resume Preview
             </TabsTrigger>
           </TabsList>
 
           {/* Fit Report Tab */}
-          <TabsContent value="report" className="mt-4">
+          <TabsContent value="report" className="mt-8">
             <FitReport
               fitAnalysis={fitAnalysis}
               finalResume={finalResume}
@@ -442,125 +421,117 @@ export function EditAndOptimizeStep() {
           </TabsContent>
 
           {/* Resume Preview Tab */}
-          <TabsContent value="preview" className="mt-4">
-            <Card>
-              <CardContent className="space-y-4 p-6">
-                {/* Header */}
-                <div className="text-center border-b pb-4">
-                  <h3 className="text-xl font-bold">{finalResume.header.name}</h3>
-                  <p className="text-muted-foreground">{finalResume.header.title}</p>
-                  {finalResume.header.contact && (
-                    <p className="text-xs text-muted-foreground mt-1">{finalResume.header.contact}</p>
-                  )}
-                </div>
+          <TabsContent value="preview" className="mt-8">
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="text-center pb-6 border-b border-border">
+                <h2 className="text-2xl font-semibold text-foreground">{finalResume.header.name}</h2>
+                <p className="text-muted-foreground mt-1">{finalResume.header.title}</p>
+                {finalResume.header.contact && (
+                  <p className="text-xs text-muted-foreground mt-1">{finalResume.header.contact}</p>
+                )}
+              </div>
 
-                {/* Summary */}
-                <div>
-                  <h4 className="font-semibold text-sm uppercase tracking-wide mb-2">Professional Summary</h4>
-                  <p className="text-sm text-muted-foreground">{finalResume.summary}</p>
-                </div>
+              {/* Summary */}
+              <div>
+                <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+                  Professional Summary
+                </h4>
+                <p className="text-foreground leading-relaxed">{finalResume.summary}</p>
+              </div>
 
-                <Separator />
-
-                {/* Experience */}
-                <div>
-                  <h4 className="font-semibold text-sm uppercase tracking-wide mb-3">Experience</h4>
-                  <div className="space-y-4">
-                    {finalResume.experience.map((exp, index) => (
-                      <div key={`exp-${index}`}>
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <p className="font-semibold">{exp.title}</p>
-                            <p className="text-sm text-muted-foreground">{exp.company}</p>
-                          </div>
-                          <p className="text-sm text-muted-foreground">{exp.dates}</p>
+              {/* Experience */}
+              <div>
+                <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-4">
+                  Experience
+                </h4>
+                <div className="space-y-6">
+                  {finalResume.experience.map((exp, index) => (
+                    <div key={`exp-${index}`}>
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <p className="font-semibold text-foreground">{exp.title}</p>
+                          <p className="text-muted-foreground">{exp.company}</p>
                         </div>
-                        <ul className="mt-2 space-y-1">
-                          {exp.bullets.map((bullet, bIdx) => (
-                            <li key={`bullet-${index}-${bIdx}`} className="text-sm flex items-start gap-2">
-                              <span className="text-muted-foreground">•</span>
-                              <span>{bullet}</span>
-                            </li>
-                          ))}
-                        </ul>
+                        <p className="text-sm text-muted-foreground">{exp.dates}</p>
                       </div>
-                    ))}
-                  </div>
+                      <ul className="space-y-2">
+                        {exp.bullets.map((bullet, bIdx) => (
+                          <li key={`bullet-${index}-${bIdx}`} className="text-foreground flex items-start gap-2">
+                            <span className="text-muted-foreground mt-1.5">•</span>
+                            <span>{bullet}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
                 </div>
+              </div>
 
-                <Separator />
+              {/* Skills */}
+              <div>
+                <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+                  Skills
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {finalResume.skills.map((skill, index) => (
+                    <span 
+                      key={`skill-${index}`} 
+                      className="px-3 py-1 bg-muted rounded-full text-sm text-foreground"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
 
-                {/* Skills */}
+              {/* Education */}
+              {finalResume.education && finalResume.education.length > 0 && (
                 <div>
-                  <h4 className="font-semibold text-sm uppercase tracking-wide mb-2">Skills</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {finalResume.skills.map((skill, index) => (
-                      <Badge key={`skill-${index}`} variant="secondary">{skill}</Badge>
+                  <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+                    Education
+                  </h4>
+                  <div className="space-y-3">
+                    {finalResume.education.map((edu, index) => (
+                      <div key={`edu-${index}`} className="flex items-start justify-between">
+                        <div>
+                          <p className="font-medium text-foreground">{edu.degree}</p>
+                          <p className="text-muted-foreground">{edu.institution}</p>
+                        </div>
+                        {edu.year && <p className="text-muted-foreground">{edu.year}</p>}
+                      </div>
                     ))}
                   </div>
                 </div>
+              )}
 
-                {/* Education */}
-                {finalResume.education && finalResume.education.length > 0 && (
-                  <>
-                    <Separator />
-                    <div>
-                      <h4 className="font-semibold text-sm uppercase tracking-wide mb-2">Education</h4>
-                      <div className="space-y-2">
-                        {finalResume.education.map((edu, index) => (
-                          <div key={`edu-${index}`} className="flex items-start justify-between">
-                            <div>
-                              <p className="font-medium text-sm">{edu.degree}</p>
-                              <p className="text-sm text-muted-foreground">{edu.institution}</p>
-                            </div>
-                            {edu.year && <p className="text-sm text-muted-foreground">{edu.year}</p>}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
+              {/* Certifications */}
+              {finalResume.certifications && finalResume.certifications.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+                    Certifications
+                  </h4>
+                  <ul className="space-y-1">
+                    {finalResume.certifications.map((cert, index) => (
+                      <li key={`cert-${index}`} className="text-foreground flex items-start gap-2">
+                        <span className="text-muted-foreground">•</span>
+                        {cert}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
-                {/* Certifications */}
-                {finalResume.certifications && finalResume.certifications.length > 0 && (
-                  <>
-                    <Separator />
-                    <div>
-                      <h4 className="font-semibold text-sm uppercase tracking-wide mb-2">Certifications</h4>
-                      <ul className="space-y-1">
-                        {finalResume.certifications.map((cert, index) => (
-                          <li key={`cert-${index}`} className="text-sm flex items-start gap-2">
-                            <span className="text-muted-foreground">•</span>
-                            {cert}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </>
-                )}
-
-                {/* Improvements made */}
-                {finalResume.improvements_made.length > 0 && (
-                  <>
-                    <Separator />
-                    <div className="bg-primary/5 rounded-lg p-4">
-                      <h4 className="font-semibold text-sm flex items-center gap-2 text-primary mb-2">
-                        <Sparkles className="h-4 w-4" />
-                        {finalResume.improvements_made.length} Improvements Made
-                      </h4>
-                      <ul className="space-y-1">
-                        {finalResume.improvements_made.slice(-5).map((improvement, index) => (
-                          <li key={`improvement-${index}`} className="text-xs text-muted-foreground flex items-start gap-2">
-                            <CheckCircle2 className="h-3 w-3 mt-0.5 text-primary flex-shrink-0" />
-                            {improvement}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
+              {/* Improvements */}
+              {finalResume.improvements_made.length > 0 && (
+                <div className="pt-4 border-t border-border">
+                  <p className="text-sm text-muted-foreground flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    {finalResume.improvements_made.length} improvements applied
+                  </p>
+                </div>
+              )}
+            </div>
           </TabsContent>
         </Tabs>
       </FadeIn>
