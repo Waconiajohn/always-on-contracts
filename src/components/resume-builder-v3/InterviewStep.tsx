@@ -23,6 +23,8 @@ import {
   Loader2,
   AlertTriangle,
   Sparkles,
+  Target,
+  TrendingUp,
 } from "lucide-react";
 import { LoadingSkeletonV3 } from "./LoadingSkeletonV3";
 import { useResumeBuilderApi } from "./hooks/useResumeBuilderApi";
@@ -285,23 +287,49 @@ export function InterviewStep() {
         </div>
       </div>
 
+      {/* Legend for question sources */}
+      <div className="flex justify-center gap-4 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1.5">
+          <Target className="h-3.5 w-3.5 text-blue-500" />
+          <span>Job Match</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+          <span>Industry Standard</span>
+        </div>
+      </div>
+
       {/* Question navigation dots */}
       <div className="flex justify-center gap-2" role="navigation" aria-label="Question navigation">
         {questions.questions.map((q, index) => {
           const isAnswered = !!interviewAnswers[q.id]?.trim();
           const isCurrent = index === currentQuestionIndex;
+          // Infer source from question ID if not explicitly set
+          const questionSource = q.source || (
+            q.id.startsWith('q_gap_') || q.id.startsWith('q_keyword_') 
+              ? 'job_match' 
+              : 'industry_standard'
+          );
+          const isJobMatch = questionSource === 'job_match';
+          
           return (
             <button
               key={q.id}
               onClick={() => setCurrentQuestionIndex(index)}
-              className={`h-2.5 w-2.5 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+              className={`h-2.5 w-2.5 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
                 isCurrent
-                  ? "bg-primary"
+                  ? isJobMatch 
+                    ? "bg-blue-500 ring-blue-500" 
+                    : "bg-emerald-500 ring-emerald-500"
                   : isAnswered
-                  ? "bg-primary/50"
-                  : "bg-muted-foreground/30"
+                  ? isJobMatch 
+                    ? "bg-blue-500/50" 
+                    : "bg-emerald-500/50"
+                  : isJobMatch
+                    ? "bg-blue-500/30"
+                    : "bg-emerald-500/30"
               }`}
-              aria-label={`Question ${index + 1}${isAnswered ? ' (answered)' : ''}${isCurrent ? ' (current)' : ''}`}
+              aria-label={`Question ${index + 1} (${isJobMatch ? 'Job Match' : 'Industry Standard'})${isAnswered ? ' - answered' : ''}${isCurrent ? ' - current' : ''}`}
               aria-current={isCurrent ? "step" : undefined}
             />
           );
@@ -318,7 +346,30 @@ export function InterviewStep() {
                 <MessageCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                 <div>
                   <h3 className="font-medium text-foreground">{currentQuestion.question}</h3>
-                  <div className="flex items-center gap-2 mt-2">
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    {/* Source badge */}
+                    {(() => {
+                      const questionSource = currentQuestion.source || (
+                        currentQuestion.id.startsWith('q_gap_') || currentQuestion.id.startsWith('q_keyword_') 
+                          ? 'job_match' 
+                          : 'industry_standard'
+                      );
+                      const isJobMatch = questionSource === 'job_match';
+                      return (
+                        <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${
+                          isJobMatch 
+                            ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400' 
+                            : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                        }`}>
+                          {isJobMatch ? (
+                            <Target className="h-3 w-3" />
+                          ) : (
+                            <TrendingUp className="h-3 w-3" />
+                          )}
+                          {isJobMatch ? 'Job Match' : 'Industry Standard'}
+                        </span>
+                      );
+                    })()}
                     <span className="text-xs text-muted-foreground capitalize">
                       {currentQuestion.priority} priority
                     </span>

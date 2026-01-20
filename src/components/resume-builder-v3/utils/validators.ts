@@ -57,6 +57,7 @@ const InterviewQuestionSchema = z.object({
   gap_addressed: z.string(),
   priority: z.enum(["high", "medium", "low"]),
   example_answer: z.string().optional(),
+  source: z.enum(["job_match", "industry_standard"]).optional(),
 });
 
 const QuestionsSchema = z.object({

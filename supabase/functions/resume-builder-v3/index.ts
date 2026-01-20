@@ -240,7 +240,11 @@ IMPORTANT: Each question MUST have a unique, deterministic ID. Use the format: q
 - For benchmark questions: q_bench_1, q_bench_2, etc.  
 - For metrics questions: q_metric_1, q_metric_2, etc.
 - For keyword questions: q_keyword_1, q_keyword_2, etc.
-Never generate random or UUID-style IDs.`;
+Never generate random or UUID-style IDs.
+
+CRITICAL - SOURCE FIELD: Each question MUST have a "source" field indicating where the gap originated:
+- Use "job_match" for questions addressing: GAPS TO ADDRESS or MISSING KEYWORDS sections (these come from job description fit analysis)
+- Use "industry_standard" for questions addressing: BENCHMARKS BELOW STANDARD or METRICS SUGGESTIONS sections (these come from industry standards comparison)`;
 
   const userPrompt = `Generate interview questions to fill resume gaps and enhance strengths.
 
