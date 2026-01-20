@@ -1,8 +1,8 @@
 // =====================================================
-// STEP 3: Edit & Optimize - Unified Analysis + Editing
+// STEP 3: Edit & Optimize - Unified Fit Report
 // =====================================================
-// Side-by-side view with resume editor (left) and analysis (right)
-// Combines FitAnalysis, Standards, and GenerateStep into one cohesive experience
+// Single scrollable report where each issue has its action inline
+// No navigation. No cognitive overhead. See problem → fix problem → move on.
 // =====================================================
 
 import { useRef, useState, useEffect, useCallback } from "react";
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Copy,
   CheckCircle2,
@@ -19,21 +19,16 @@ import {
   Sparkles,
   Printer,
   Loader2,
-  PanelLeftClose,
-  PanelLeft,
+  Eye,
+  BarChart3,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ExportOptionsV3 } from "./ExportOptionsV3";
 import { PrintableResume } from "./PrintableResume";
-import { SuccessAnimation, FadeIn, StaggerContainer, StaggerItem } from "./StepTransition";
+import { SuccessAnimation, FadeIn } from "./StepTransition";
 import { formatResumeAsText } from "./utils/formatters";
-import { HelpTooltip, HELP_CONTENT } from "./components/HelpTooltip";
 import { VersionHistory, safeParseVersions } from "./components/VersionHistory";
-import { BulletEditor } from "./components/BulletEditor";
-import { SummaryEditor } from "./components/SummaryEditor";
-import { SkillsSuggester } from "./components/SkillsSuggester";
-import { AIEnhancementsSidebar } from "./components/AIEnhancementsSidebar";
-import { SectionHealthBadge, getSectionStatus } from "./components/SectionHealthBadge";
+import { FitReport } from "./FitReport";
 import { MAX_VERSION_HISTORY } from "./constants";
 import { logger } from "@/lib/logger";
 import type { ResumeVersion, OptimizedResume } from "@/types/resume-builder-v3";
@@ -87,12 +82,12 @@ const createFingerprintSync = (resume: Record<string, unknown>): string => {
 };
 
 export function EditAndOptimizeStep() {
-  const { finalResume, fitAnalysis, jobDescription, resumeText, setFinalResume } = useResumeBuilderV3Store();
+  const { finalResume, fitAnalysis, jobDescription, setFinalResume } = useResumeBuilderV3Store();
   const printRef = useRef<HTMLDivElement>(null);
   const [versions, setVersions] = useState<ResumeVersion[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [aiEnhancementsCount, setAiEnhancementsCount] = useState(0);
-  const [showAnalysisSidebar, setShowAnalysisSidebar] = useState(true);
+  const [activeTab, setActiveTab] = useState<"report" | "preview">("report");
   
   // Master Resume enrichment
   const { masterResume, enrichMasterResume, isEnriching } = useMasterResume();
@@ -100,7 +95,7 @@ export function EditAndOptimizeStep() {
   const [showEnrichmentPrompt, setShowEnrichmentPrompt] = useState(false);
   const hasShownEnrichmentRef = useRef(false);
   
-  // Handler for bullet updates from BulletEditor
+  // Handler for bullet updates
   const handleBulletUpdate = useCallback((experienceIndex: number, bulletIndex: number, newBullet: string) => {
     if (!finalResume) return;
     
@@ -127,7 +122,32 @@ export function EditAndOptimizeStep() {
     setAiEnhancementsCount(prev => prev + 1);
   }, [finalResume, setFinalResume]);
 
-  // Handler for summary updates from SummaryEditor
+  // Handler for adding new bullets
+  const handleBulletAdd = useCallback((experienceIndex: number, newBullet: string) => {
+    if (!finalResume) return;
+    
+    const updatedExperience = finalResume.experience.map((exp, expIdx) => {
+      if (expIdx !== experienceIndex) return exp;
+      return {
+        ...exp,
+        bullets: [...exp.bullets, newBullet],
+      };
+    });
+    
+    const updatedResume: OptimizedResume = {
+      ...finalResume,
+      experience: updatedExperience,
+      improvements_made: [
+        ...finalResume.improvements_made,
+        `Added new bullet to ${finalResume.experience[experienceIndex]?.title || 'experience'}`,
+      ],
+    };
+    
+    setFinalResume(updatedResume);
+    setAiEnhancementsCount(prev => prev + 1);
+  }, [finalResume, setFinalResume]);
+
+  // Handler for summary updates
   const handleSummaryUpdate = useCallback((newSummary: string) => {
     if (!finalResume) return;
     
@@ -144,7 +164,7 @@ export function EditAndOptimizeStep() {
     setAiEnhancementsCount(prev => prev + 1);
   }, [finalResume, setFinalResume]);
 
-  // Handler for skill additions from SkillsSuggester
+  // Handler for skill additions
   const handleSkillAdd = useCallback((skill: string) => {
     if (!finalResume) return;
     
@@ -169,7 +189,7 @@ export function EditAndOptimizeStep() {
   // Track saved fingerprints to prevent race conditions
   const savedFingerprintRef = useRef<string | null>(null);
 
-  // Load versions on mount and cleanup ref on unmount
+  // Load versions on mount
   useEffect(() => {
     setVersions(safeGetVersions());
     return () => {
@@ -178,7 +198,7 @@ export function EditAndOptimizeStep() {
     };
   }, []);
 
-  // Keyboard shortcuts (V2 pattern)
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
@@ -203,7 +223,7 @@ export function EditAndOptimizeStep() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
   
-  // Check for enrichment opportunities when resume is generated
+  // Check for enrichment opportunities
   useEffect(() => {
     if (!finalResume || !masterResume?.content || hasShownEnrichmentRef.current) return;
     
@@ -265,7 +285,7 @@ export function EditAndOptimizeStep() {
     }
   }, [finalResume]);
 
-  if (!finalResume) return null;
+  if (!finalResume || !fitAnalysis) return null;
 
   const handleCopyText = async () => {
     const resumeTextFormatted = formatResumeAsText(finalResume);
@@ -341,113 +361,113 @@ export function EditAndOptimizeStep() {
     }
   };
 
-  // Calculate section health
-  const missingKeywordsCount = fitAnalysis?.keywords_missing?.length || 0;
-  const fitScore = fitAnalysis?.fit_score || 0;
-  const summaryStatus = getSectionStatus('summary', fitScore, missingKeywordsCount, aiEnhancementsCount > 0);
-  const experienceStatus = getSectionStatus('experience', fitScore, missingKeywordsCount, aiEnhancementsCount > 0);
-  const skillsStatus = getSectionStatus('skills', fitScore, missingKeywordsCount, aiEnhancementsCount > 0);
-  const matchedKeywords = fitAnalysis?.keywords_found || [];
-
   return (
-    <div className="space-y-4 no-print">
+    <div className="space-y-4 no-print max-w-4xl mx-auto">
       {/* Hidden printable version */}
       <div className="hidden print:block">
         <PrintableResume ref={printRef} resume={finalResume} />
       </div>
 
-      {/* Success header */}
+      {/* Header */}
       <SuccessAnimation>
         <div className="text-center">
-          <div className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-green-100 dark:bg-green-900 mb-3">
-            <CheckCircle2 className="h-5 w-5 text-green-600" />
+          <div className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-primary/10 mb-3">
+            <CheckCircle2 className="h-5 w-5 text-primary" />
           </div>
-          <h2 className="text-lg font-semibold mb-1">Edit & Optimize Your Resume</h2>
+          <h2 className="text-lg font-semibold mb-1">Your Fit Report</h2>
           <p className="text-sm text-muted-foreground">
-            See issues on the right, fix them on the left. Click "Improve with AI" on any bullet to enhance it.
+            See what's strong, what needs work, and fix it inline.
           </p>
         </div>
       </SuccessAnimation>
 
-      {/* Main content: Side-by-side layout */}
-      <div className="flex gap-4">
-        {/* Left Panel: Resume Editor (60-100%) */}
-        <div className={`flex-1 min-w-0 ${showAnalysisSidebar ? 'lg:w-[60%]' : 'w-full'}`}>
-          <FadeIn delay={0.1}>
+      {/* Action Bar */}
+      <FadeIn delay={0.1}>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-3 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                {finalResume.header.name}
+              </CardTitle>
+              {aiEnhancementsCount > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  {aiEnhancementsCount} improvements
+                </Badge>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <VersionHistory versions={versions} currentVersion={finalResume} />
+              <Button variant="outline" size="sm" onClick={handleSaveVersion} disabled={isSaving}>
+                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+              </Button>
+              <Button variant="outline" size="sm" onClick={handlePrint} className="hidden sm:flex">
+                <Printer className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleCopyText}>
+                <Copy className="h-4 w-4" />
+              </Button>
+              <ExportOptionsV3 resume={finalResume} />
+            </div>
+          </CardHeader>
+        </Card>
+      </FadeIn>
+
+      {/* Main Content: Tabs for Report vs Preview */}
+      <FadeIn delay={0.2}>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "report" | "preview")} className="w-full">
+          <TabsList className="w-full grid grid-cols-2">
+            <TabsTrigger value="report" className="gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Fit Report
+            </TabsTrigger>
+            <TabsTrigger value="preview" className="gap-2">
+              <Eye className="h-4 w-4" />
+              Resume Preview
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Fit Report Tab */}
+          <TabsContent value="report" className="mt-4">
+            <FitReport
+              fitAnalysis={fitAnalysis}
+              finalResume={finalResume}
+              jobDescription={jobDescription}
+              onBulletUpdate={handleBulletUpdate}
+              onBulletAdd={handleBulletAdd}
+              onSkillAdd={handleSkillAdd}
+              onSummaryUpdate={handleSummaryUpdate}
+            />
+          </TabsContent>
+
+          {/* Resume Preview Tab */}
+          <TabsContent value="preview" className="mt-4">
             <Card>
-              <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-3 sm:px-6 py-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Resume Editor
-                  {aiEnhancementsCount > 0 && (
-                    <Badge variant="secondary" className="text-xs">
-                      {aiEnhancementsCount} AI edits
-                    </Badge>
-                  )}
-                </CardTitle>
-                <div className="flex flex-wrap gap-2">
-                  <VersionHistory versions={versions} currentVersion={finalResume} />
-                  <Button variant="outline" size="sm" onClick={handleSaveVersion} disabled={isSaving}>
-                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Version"}
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={handlePrint} className="hidden sm:flex">
-                    <Printer className="h-4 w-4 sm:mr-1" />
-                    <span className="hidden sm:inline">Print</span>
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={handleCopyText}>
-                    <Copy className="h-4 w-4 sm:mr-1" />
-                    <span className="hidden sm:inline">Copy</span>
-                  </Button>
-                  <ExportOptionsV3 resume={finalResume} />
-                  {/* Toggle sidebar button for mobile/tablet */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowAnalysisSidebar(!showAnalysisSidebar)}
-                    className="lg:hidden"
-                  >
-                    {showAnalysisSidebar ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4 px-3 sm:px-6">
+              <CardContent className="space-y-4 p-6">
                 {/* Header */}
-                <div className="text-center border-b pb-3">
-                  <h3 className="text-lg sm:text-xl font-bold">{finalResume.header.name}</h3>
-                  <p className="text-sm sm:text-base text-muted-foreground">{finalResume.header.title}</p>
+                <div className="text-center border-b pb-4">
+                  <h3 className="text-xl font-bold">{finalResume.header.name}</h3>
+                  <p className="text-muted-foreground">{finalResume.header.title}</p>
                   {finalResume.header.contact && (
-                    <p className="text-xs text-muted-foreground mt-1 break-all">{finalResume.header.contact}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{finalResume.header.contact}</p>
                   )}
                 </div>
 
-                {/* Summary with health badge */}
+                {/* Summary */}
                 <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <h4 className="font-semibold text-sm uppercase tracking-wide">
-                      Professional Summary
-                    </h4>
-                    <SectionHealthBadge status={summaryStatus} />
-                  </div>
-                  <SummaryEditor
-                    summary={finalResume.summary}
-                    jobDescription={jobDescription}
-                    onSummaryUpdate={handleSummaryUpdate}
-                  />
+                  <h4 className="font-semibold text-sm uppercase tracking-wide mb-2">Professional Summary</h4>
+                  <p className="text-sm text-muted-foreground">{finalResume.summary}</p>
                 </div>
 
                 <Separator />
 
-                {/* Experience with health badge */}
+                {/* Experience */}
                 <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <h4 className="font-semibold text-sm uppercase tracking-wide">
-                      Experience
-                    </h4>
-                    <SectionHealthBadge status={experienceStatus} />
-                  </div>
+                  <h4 className="font-semibold text-sm uppercase tracking-wide mb-3">Experience</h4>
                   <div className="space-y-4">
                     {finalResume.experience.map((exp, index) => (
-                      <div key={`exp-${index}-${exp.company}`}>
+                      <div key={`exp-${index}`}>
                         <div className="flex items-start justify-between">
                           <div>
                             <p className="font-semibold">{exp.title}</p>
@@ -455,17 +475,12 @@ export function EditAndOptimizeStep() {
                           </div>
                           <p className="text-sm text-muted-foreground">{exp.dates}</p>
                         </div>
-                        <ul className="mt-2 space-y-2">
-                          {exp.bullets.map((bullet, bIndex) => (
-                            <BulletEditor
-                              key={`bullet-${index}-${bIndex}-${bullet.substring(0, 20).replace(/\s/g, '')}`}
-                              bullet={bullet}
-                              experienceIndex={index}
-                              bulletIndex={bIndex}
-                              jobDescription={jobDescription}
-                              fitAnalysis={fitAnalysis}
-                              onBulletUpdate={handleBulletUpdate}
-                            />
+                        <ul className="mt-2 space-y-1">
+                          {exp.bullets.map((bullet, bIdx) => (
+                            <li key={`bullet-${index}-${bIdx}`} className="text-sm flex items-start gap-2">
+                              <span className="text-muted-foreground">•</span>
+                              <span>{bullet}</span>
+                            </li>
                           ))}
                         </ul>
                       </div>
@@ -475,41 +490,14 @@ export function EditAndOptimizeStep() {
 
                 <Separator />
 
-                {/* Skills with health badge */}
+                {/* Skills */}
                 <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <h4 className="font-semibold text-sm uppercase tracking-wide">
-                      Skills
-                    </h4>
-                    <SectionHealthBadge status={skillsStatus} />
+                  <h4 className="font-semibold text-sm uppercase tracking-wide mb-2">Skills</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {finalResume.skills.map((skill, index) => (
+                      <Badge key={`skill-${index}`} variant="secondary">{skill}</Badge>
+                    ))}
                   </div>
-                  {finalResume.skills.length > 0 ? (
-                    <div className="flex flex-wrap gap-2" role="list" aria-label="Skills">
-                      {finalResume.skills.map((skill, index) => {
-                        const isMatched = matchedKeywords.some(
-                          kw => kw.toLowerCase() === skill.toLowerCase()
-                        );
-                        return (
-                          <Badge 
-                            key={`skill-${index}-${skill}`} 
-                            variant={isMatched ? "default" : "secondary"} 
-                            role="listitem"
-                            className={isMatched ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800" : ""}
-                          >
-                            {isMatched && <span className="mr-1">✓</span>}
-                            {skill}
-                          </Badge>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground italic">No skills listed</p>
-                  )}
-                  <SkillsSuggester
-                    currentSkills={finalResume.skills}
-                    jobDescription={jobDescription}
-                    onSkillAdd={handleSkillAdd}
-                  />
                 </div>
 
                 {/* Education */}
@@ -517,19 +505,15 @@ export function EditAndOptimizeStep() {
                   <>
                     <Separator />
                     <div>
-                      <h4 className="font-semibold text-sm uppercase tracking-wide mb-2">
-                        Education
-                      </h4>
+                      <h4 className="font-semibold text-sm uppercase tracking-wide mb-2">Education</h4>
                       <div className="space-y-2">
                         {finalResume.education.map((edu, index) => (
-                          <div key={`edu-${index}-${edu.institution}-${edu.degree}`} className="flex items-start justify-between">
+                          <div key={`edu-${index}`} className="flex items-start justify-between">
                             <div>
                               <p className="font-medium text-sm">{edu.degree}</p>
                               <p className="text-sm text-muted-foreground">{edu.institution}</p>
                             </div>
-                            {edu.year && (
-                              <p className="text-sm text-muted-foreground">{edu.year}</p>
-                            )}
+                            {edu.year && <p className="text-sm text-muted-foreground">{edu.year}</p>}
                           </div>
                         ))}
                       </div>
@@ -542,12 +526,10 @@ export function EditAndOptimizeStep() {
                   <>
                     <Separator />
                     <div>
-                      <h4 className="font-semibold text-sm uppercase tracking-wide mb-2">
-                        Certifications
-                      </h4>
+                      <h4 className="font-semibold text-sm uppercase tracking-wide mb-2">Certifications</h4>
                       <ul className="space-y-1">
                         {finalResume.certifications.map((cert, index) => (
-                          <li key={`cert-${index}-${cert}`} className="text-sm flex items-start gap-2">
+                          <li key={`cert-${index}`} className="text-sm flex items-start gap-2">
                             <span className="text-muted-foreground">•</span>
                             {cert}
                           </li>
@@ -561,83 +543,29 @@ export function EditAndOptimizeStep() {
                 {finalResume.improvements_made.length > 0 && (
                   <>
                     <Separator />
-                    <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-3">
-                      <h4 className="font-semibold text-sm flex items-center gap-2 text-green-800 dark:text-green-200 mb-2">
-                        <Sparkles className="h-4 w-4" aria-hidden="true" />
-                        Improvements Made ({finalResume.improvements_made.length})
-                        <HelpTooltip content={HELP_CONTENT.improvements} />
+                    <div className="bg-primary/5 rounded-lg p-4">
+                      <h4 className="font-semibold text-sm flex items-center gap-2 text-primary mb-2">
+                        <Sparkles className="h-4 w-4" />
+                        {finalResume.improvements_made.length} Improvements Made
                       </h4>
-                      <StaggerContainer staggerDelay={0.05}>
-                        <ul className="space-y-1" role="list">
-                          {finalResume.improvements_made.slice(-5).map((improvement, index) => (
-                            <StaggerItem key={`improvement-${index}`}>
-                              <li className="text-xs text-green-700 dark:text-green-300 flex items-start gap-2">
-                                <CheckCircle2 className="h-3 w-3 mt-0.5 flex-shrink-0" aria-hidden="true" />
-                                {improvement}
-                              </li>
-                            </StaggerItem>
-                          ))}
-                        </ul>
-                      </StaggerContainer>
+                      <ul className="space-y-1">
+                        {finalResume.improvements_made.slice(-5).map((improvement, index) => (
+                          <li key={`improvement-${index}`} className="text-xs text-muted-foreground flex items-start gap-2">
+                            <CheckCircle2 className="h-3 w-3 mt-0.5 text-primary flex-shrink-0" />
+                            {improvement}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   </>
                 )}
               </CardContent>
             </Card>
-          </FadeIn>
-        </div>
-
-        {/* Right Panel: Analysis Sidebar (40%) - Hidden on mobile by default */}
-        {showAnalysisSidebar && (
-          <div className="hidden lg:block lg:w-[40%] lg:max-w-md">
-            <div className="sticky top-4">
-              <FadeIn delay={0.2}>
-                <div className="space-y-4">
-                  {/* Toggle button for desktop */}
-                  <div className="flex justify-end">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowAnalysisSidebar(false)}
-                      className="text-xs text-muted-foreground"
-                    >
-                      <PanelLeftClose className="h-3 w-3 mr-1" />
-                      Hide Analysis
-                    </Button>
-                  </div>
-                  
-                  <ScrollArea className="h-[calc(100vh-12rem)]">
-                    <AIEnhancementsSidebar
-                      fitAnalysis={fitAnalysis}
-                      finalResume={finalResume}
-                      resumeText={resumeText}
-                      jobDescription={jobDescription}
-                      onSkillAdd={handleSkillAdd}
-                    />
-                  </ScrollArea>
-                </div>
-              </FadeIn>
-            </div>
-          </div>
-        )}
-
-        {/* Collapsed sidebar toggle */}
-        {!showAnalysisSidebar && (
-          <div className="hidden lg:block">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowAnalysisSidebar(true)}
-              className="sticky top-4"
-            >
-              <PanelLeft className="h-4 w-4 mr-1" />
-              Show Analysis
-            </Button>
-          </div>
-        )}
-      </div>
+          </TabsContent>
+        </Tabs>
+      </FadeIn>
       
-      {/* Keyboard shortcuts hint (V2 pattern) */}
+      {/* Keyboard shortcuts hint */}
       <div className="text-center text-[10px] text-muted-foreground mt-4 py-2 border-t">
         <span className="inline-flex items-center gap-3">
           <span><kbd className="px-1.5 py-0.5 text-[9px] bg-muted rounded">⌘/Ctrl</kbd> + <kbd className="px-1.5 py-0.5 text-[9px] bg-muted rounded">S</kbd> Save</span>
