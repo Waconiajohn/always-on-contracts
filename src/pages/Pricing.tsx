@@ -378,7 +378,7 @@ export default function Pricing() {
                   <CardTitle>Quick Score is Always Free</CardTitle>
                 </div>
                 <CardDescription>
-                  Upload your resume and get an instant ATS score, skills analysis, and improvement suggestions - no account required.
+                  Upload your resume and get an instant ATS score, skills analysis, and improvement suggestions with your free account.
                 </CardDescription>
               </CardHeader>
               <CardFooter className="justify-center">
