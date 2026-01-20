@@ -177,6 +177,31 @@ export function EditAndOptimizeStep() {
       hasShownEnrichmentRef.current = false;
     };
   }, []);
+
+  // Keyboard shortcuts (V2 pattern)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const modKey = isMac ? e.metaKey : e.ctrlKey;
+      
+      if (modKey && e.key === 's') {
+        e.preventDefault();
+        handleSaveVersion();
+        toast.success("Version saved!");
+      }
+      if (modKey && e.key === 'p') {
+        e.preventDefault();
+        handlePrint();
+      }
+      if (modKey && e.key === 'c' && e.shiftKey) {
+        e.preventDefault();
+        handleCopyText();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
   
   // Check for enrichment opportunities when resume is generated
   useEffect(() => {
@@ -610,6 +635,15 @@ export function EditAndOptimizeStep() {
             </Button>
           </div>
         )}
+      </div>
+      
+      {/* Keyboard shortcuts hint (V2 pattern) */}
+      <div className="text-center text-[10px] text-muted-foreground mt-4 py-2 border-t">
+        <span className="inline-flex items-center gap-3">
+          <span><kbd className="px-1.5 py-0.5 text-[9px] bg-muted rounded">⌘/Ctrl</kbd> + <kbd className="px-1.5 py-0.5 text-[9px] bg-muted rounded">S</kbd> Save</span>
+          <span><kbd className="px-1.5 py-0.5 text-[9px] bg-muted rounded">⌘/Ctrl</kbd> + <kbd className="px-1.5 py-0.5 text-[9px] bg-muted rounded">P</kbd> Print</span>
+          <span><kbd className="px-1.5 py-0.5 text-[9px] bg-muted rounded">⌘/Ctrl</kbd> + <kbd className="px-1.5 py-0.5 text-[9px] bg-muted rounded">Shift</kbd> + <kbd className="px-1.5 py-0.5 text-[9px] bg-muted rounded">C</kbd> Copy</span>
+        </span>
       </div>
       
       {/* Enrichment Prompt Dialog */}
