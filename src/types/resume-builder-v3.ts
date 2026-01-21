@@ -137,9 +137,9 @@ export interface BulletEditResult {
 // =====================================================
 
 /**
- * Level of Acceptance - represents hiring funnel stages
+ * Level of Acceptance - represents hiring funnel stages (3 levels)
  */
-export type AcceptanceLevel = "ats" | "recruiter" | "hiring_manager" | "executive";
+export type AcceptanceLevel = "ats" | "recruiter" | "hiring_manager";
 
 /**
  * Status for each level
@@ -160,13 +160,12 @@ export interface LevelScore {
 }
 
 /**
- * Complete level scores for dashboard
+ * Complete level scores for dashboard (3 levels)
  */
 export interface LevelScores {
   ats: LevelScore;
   recruiter: LevelScore;
   hiring_manager: LevelScore;
-  executive: LevelScore;
   overall: number;
 }
 

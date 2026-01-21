@@ -1,7 +1,7 @@
 // =====================================================
-// EXECUTIVE RADAR CHART - Premium Minimal Design
+// EXECUTIVE RADAR CHART - Premium Minimal Design (3-Axis)
 // =====================================================
-// Visual comparison: "You" vs "Benchmark" across 4 levels
+// Visual comparison: "You" vs "Benchmark" across 3 levels
 // =====================================================
 
 import { useMemo } from "react";
@@ -41,12 +41,6 @@ export function ExecutiveRadar({ scores, className }: ExecutiveRadarProps) {
       you: scores.hiring_manager.score,
       benchmark: BENCHMARK_VALUE,
       fullLabel: scores.hiring_manager.label,
-    },
-    {
-      axis: "Executive",
-      you: scores.executive.score,
-      benchmark: BENCHMARK_VALUE,
-      fullLabel: scores.executive.label,
     },
   ], [scores]);
 

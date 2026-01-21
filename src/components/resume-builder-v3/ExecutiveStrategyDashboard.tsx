@@ -2,7 +2,7 @@
 // EXECUTIVE STRATEGY DASHBOARD - Premium Minimal Design
 // =====================================================
 // Replaces FitAnalysisStep with a high-end command center
-// Shows 4 Levels of Acceptance with radar visualization
+// Shows 3 Levels of Acceptance with radar visualization
 // =====================================================
 
 import { useResumeBuilderV3Store, StandardsResult, QuestionsResult } from "@/stores/resumeBuilderV3Store";
@@ -124,12 +124,11 @@ export function ExecutiveStrategyDashboard() {
         <ExecutiveRadar scores={levelScores} className="max-w-md" />
       </motion.div>
 
-      {/* Level Cards Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {/* Level Cards Grid - 3 columns */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <LevelCard levelScore={levelScores.ats} index={0} />
         <LevelCard levelScore={levelScores.recruiter} index={1} />
         <LevelCard levelScore={levelScores.hiring_manager} index={2} />
-        <LevelCard levelScore={levelScores.executive} index={3} />
       </div>
 
       {/* Keywords Analysis Section */}
