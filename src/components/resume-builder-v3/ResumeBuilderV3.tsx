@@ -20,7 +20,7 @@ const useStoreHydration = () => {
   );
 };
 import { UploadStep } from "./UploadStep";
-import { ExecutiveStrategyDashboard } from "./ExecutiveStrategyDashboard";
+import { FitAnalysisStep } from "./FitAnalysisStep";
 import { InterviewStep } from "./InterviewStep";
 import { EditAndOptimizeStep } from "./EditAndOptimizeStep";
 import { SessionRecoveryDialogV3 } from "./SessionRecoveryDialogV3";
@@ -285,7 +285,7 @@ export function ResumeBuilderV3() {
               <StepErrorBoundary key="upload" stepName="Upload"><UploadStep /></StepErrorBoundary>
             )}
             {step === 1 && fitAnalysis && (
-              <StepErrorBoundary key="fit" stepName="Executive Strategy"><ExecutiveStrategyDashboard /></StepErrorBoundary>
+              <StepErrorBoundary key="fit" stepName="Fit Analysis"><FitAnalysisStep /></StepErrorBoundary>
             )}
             {step === 2 && (
               <StepErrorBoundary key="interview" stepName="Interview"><InterviewStep /></StepErrorBoundary>
