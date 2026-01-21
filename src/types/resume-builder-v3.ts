@@ -132,6 +132,44 @@ export interface BulletEditResult {
   changes: string;
 }
 
+// =====================================================
+// EXECUTIVE STRATEGY DASHBOARD TYPES
+// =====================================================
+
+/**
+ * Level of Acceptance - represents hiring funnel stages
+ */
+export type AcceptanceLevel = "ats" | "recruiter" | "hiring_manager" | "executive";
+
+/**
+ * Status for each level
+ */
+export type LevelStatus = "passing" | "needs_work" | "critical";
+
+/**
+ * Individual level score with details
+ */
+export interface LevelScore {
+  level: AcceptanceLevel;
+  score: number;
+  status: LevelStatus;
+  label: string;
+  description: string;
+  blockers: string[];
+  actions: string[];
+}
+
+/**
+ * Complete level scores for dashboard
+ */
+export interface LevelScores {
+  ats: LevelScore;
+  recruiter: LevelScore;
+  hiring_manager: LevelScore;
+  executive: LevelScore;
+  overall: number;
+}
+
 // Shared constants for validation
 export const RESUME_LIMITS = {
   MAX_RESUME_CHARS: 15000,
