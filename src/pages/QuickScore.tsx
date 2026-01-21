@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { ModernScoreDisplay } from '@/components/quick-score/ModernScoreDisplay';
 import { ModernScoreBreakdown } from '@/components/quick-score/ModernScoreBreakdown';
-import { ModernGapAnalysis } from '@/components/quick-score/ModernGapAnalysis';
+import { QuickScoreKeywords } from '@/components/quick-score/QuickScoreKeywords';
 import { invokeEdgeFunction } from '@/lib/edgeFunction';
 import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -23,15 +23,6 @@ import { useNavigate } from 'react-router-dom';
 
 type Step = 'upload' | 'analyzing' | 'results';
 
-interface GapAnalysis {
-  fullMatches: Array<{ requirement: string; evidence: string }>;
-  partialMatches: Array<{ requirement: string; currentStatus: string; recommendation: string }>;
-  missingRequirements: Array<{ requirement: string; workaround: string }>;
-  overqualifications: Array<{ experience: string; recommendation: string }>;
-  irrelevantContent: Array<{ content: string; recommendation: string }>;
-  gapSummary: string[];
-}
-
 interface ScoreResult {
   success: boolean;
   overallScore: number;
@@ -45,14 +36,6 @@ interface ScoreResult {
   nextTierThreshold: number;
   scores: any;
   breakdown: any;
-  gapAnalysis?: GapAnalysis;
-  priorityFixes?: Array<{
-    priority: number;
-    category: string;
-    issue: string;
-    fix: string;
-    impact: string;
-  }>;
   quickWins?: string[];
   detected: {
     role: string;
@@ -345,27 +328,16 @@ export default function QuickScore() {
                 <Badge variant="outline" className="font-normal">{scoreResult.detected.level}</Badge>
               </div>
 
-              {/* Conversion Message */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="text-center py-4 border-y border-border"
-              >
-                <p className="text-muted-foreground">
-                  Right now, your résumé makes you look <span className="font-medium text-foreground">qualified</span>.
-                  <br />
-                  Our goal: make you <span className="font-medium text-primary">impossible to ignore</span>.
-                </p>
-              </motion.div>
-
-              {/* Score Breakdown */}
-              <ModernScoreBreakdown
-                scores={scoreResult.scores}
-                breakdown={scoreResult.breakdown}
+              {/* Keywords Section - THE DOPAMINE HIT */}
+              <QuickScoreKeywords 
+                matchedKeywords={scoreResult.breakdown?.jdMatch?.matchedKeywords || []}
+                missingKeywords={scoreResult.breakdown?.jdMatch?.missingKeywords || []}
               />
 
-              {/* Quick Wins */}
+              {/* Score Breakdown - Simplified */}
+              <ModernScoreBreakdown scores={scoreResult.scores} />
+
+              {/* Quick Wins - Condensed */}
               {(scoreResult.quickWins?.length || 0) > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
@@ -378,7 +350,7 @@ export default function QuickScore() {
                     Quick Wins
                   </h3>
                   <ol className="space-y-2">
-                    {scoreResult.quickWins?.map((win, i) => (
+                    {scoreResult.quickWins?.slice(0, 3).map((win, i) => (
                       <li key={i} className="flex items-start gap-3 text-sm">
                         <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-medium flex-shrink-0">
                           {i + 1}
@@ -387,12 +359,12 @@ export default function QuickScore() {
                       </li>
                     ))}
                   </ol>
+                  {(scoreResult.quickWins?.length || 0) > 3 && (
+                    <p className="text-xs text-muted-foreground mt-3 pl-8">
+                      +{(scoreResult.quickWins?.length || 0) - 3} more improvements available
+                    </p>
+                  )}
                 </motion.div>
-              )}
-
-              {/* Gap Analysis */}
-              {scoreResult.gapAnalysis && (
-                <ModernGapAnalysis gapAnalysis={scoreResult.gapAnalysis} />
               )}
 
               {/* CTA Section */}

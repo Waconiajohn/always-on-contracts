@@ -1,7 +1,7 @@
 // =====================================================
 // EXECUTIVE STRATEGY DASHBOARD - LEVEL SCORES HOOK
 // =====================================================
-// Derives 4 acceptance level scores from existing analysis data
+// Derives 3 acceptance level scores from existing analysis data
 // No new AI calls - pure frontend computation
 // =====================================================
 
@@ -31,10 +31,6 @@ const LEVEL_CONFIG: Record<AcceptanceLevel, { label: string; description: string
   hiring_manager: {
     label: "Hiring Manager Fit",
     description: "Do you match what they're looking for?",
-  },
-  executive: {
-    label: "Executive Positioning",
-    description: "Are you positioned as a leader?",
   },
 };
 
@@ -127,52 +123,10 @@ export function useLevelScores({ fitAnalysis, standards }: UseLevelScoresProps):
       hiringManagerActions.push(`Address: ${fitAnalysis.gaps[0].requirement}`);
     }
 
-    // ===== LEVEL 4: EXECUTIVE POSITIONING =====
-    // Benchmarks (50%) + power phrases (30%) + metrics (20%)
-    let executiveScore = 65; // Base score
-    let benchmarkRatio = 0.5;
-    let powerPhraseBonus = 0;
-    let metricsBonus = 0;
-    
-    if (standards) {
-      const exceedsCount = standards.benchmarks.filter(b => b.candidate_status === "exceeds").length;
-      const meetsCount = standards.benchmarks.filter(b => b.candidate_status === "meets").length;
-      const totalBenchmarks = standards.benchmarks.length;
-      
-      benchmarkRatio = totalBenchmarks > 0 
-        ? (exceedsCount * 1.2 + meetsCount * 0.8) / totalBenchmarks
-        : 0.5;
-      
-      powerPhraseBonus = Math.min(standards.power_phrases.length / 5, 1);
-      metricsBonus = Math.min(standards.metrics_suggestions.length / 3, 1);
-      
-      executiveScore = clamp((benchmarkRatio * 0.5 + powerPhraseBonus * 0.3 + metricsBonus * 0.2) * 100);
-    }
-
-    const executiveBlockers: string[] = [];
-    if (standards) {
-      const belowCount = standards.benchmarks.filter(b => b.candidate_status === "below").length;
-      if (belowCount > 0) {
-        executiveBlockers.push(`${belowCount} benchmark${belowCount > 1 ? 's' : ''} below standard`);
-      }
-      if (standards.power_phrases.length < 3) {
-        executiveBlockers.push("Lacking executive-level language");
-      }
-    } else {
-      executiveBlockers.push("Complete interview to unlock executive insights");
-    }
-
-    const executiveActions: string[] = [];
-    if (standards?.benchmarks.find(b => b.candidate_status === "below")) {
-      const belowBenchmark = standards.benchmarks.find(b => b.candidate_status === "below");
-      if (belowBenchmark?.recommendation) {
-        executiveActions.push(belowBenchmark.recommendation);
-      }
-    }
-
-    // Calculate overall score (weighted average)
+    // Calculate overall score (weighted average across 3 levels)
+    // ATS: 30%, Recruiter: 35%, Hiring Manager: 35%
     const overall = clamp(
-      (atsScore * 0.2 + recruiterScore * 0.25 + hiringManagerScore * 0.3 + executiveScore * 0.25)
+      (atsScore * 0.30 + recruiterScore * 0.35 + hiringManagerScore * 0.35)
     );
 
     return {
@@ -202,15 +156,6 @@ export function useLevelScores({ fitAnalysis, standards }: UseLevelScoresProps):
         description: LEVEL_CONFIG.hiring_manager.description,
         blockers: hiringManagerBlockers,
         actions: hiringManagerActions,
-      },
-      executive: {
-        level: "executive" as AcceptanceLevel,
-        score: executiveScore,
-        status: getStatus(executiveScore),
-        label: LEVEL_CONFIG.executive.label,
-        description: LEVEL_CONFIG.executive.description,
-        blockers: executiveBlockers,
-        actions: executiveActions,
       },
       overall,
     };
