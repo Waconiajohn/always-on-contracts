@@ -9,6 +9,7 @@ import { useResumeBuilderV3Store, StandardsResult, QuestionsResult } from "@/sto
 import { useLevelScores } from "@/hooks/useLevelScores";
 import { ExecutiveRadar } from "./components/ExecutiveRadar";
 import { LevelCard } from "./components/LevelCard";
+import { KeywordsAnalysis } from "./components/KeywordsAnalysis";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { LoadingSkeletonV3 } from "./LoadingSkeletonV3";
@@ -131,6 +132,14 @@ export function ExecutiveStrategyDashboard() {
         <LevelCard levelScore={levelScores.executive} index={3} />
       </div>
 
+      {/* Keywords Analysis Section */}
+      <KeywordsAnalysis
+        keywordsFound={fitAnalysis.keywords_found}
+        keywordsMissing={fitAnalysis.keywords_missing}
+        jobDescription={jobDescription}
+        resumeText={resumeText}
+      />
+
       {/* Quick Stats Row */}
       <motion.div 
         initial={{ opacity: 0 }}
@@ -140,17 +149,17 @@ export function ExecutiveStrategyDashboard() {
       >
         <div className="flex items-center gap-2">
           <span className="font-medium text-foreground">{fitAnalysis.keywords_found.length}</span>
-          <span>keywords matched</span>
+          <span>of {fitAnalysis.keywords_found.length + fitAnalysis.keywords_missing.length} keywords</span>
         </div>
         <div className="w-px h-4 bg-border" />
         <div className="flex items-center gap-2">
           <span className="font-medium text-foreground">{fitAnalysis.strengths.length}</span>
-          <span>strengths identified</span>
+          <span>strengths</span>
         </div>
         <div className="w-px h-4 bg-border" />
         <div className="flex items-center gap-2">
           <span className="font-medium text-foreground">{fitAnalysis.gaps.length}</span>
-          <span>gaps to address</span>
+          <span>gaps</span>
         </div>
       </motion.div>
 
