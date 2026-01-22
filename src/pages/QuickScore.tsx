@@ -411,17 +411,48 @@ export default function QuickScore() {
                 <Badge variant="outline" className="font-normal">{scoreResult.detected.level}</Badge>
               </div>
 
+              {/* Analysis Summary Stats */}
+              <div className="grid grid-cols-4 gap-4 p-4 rounded-lg border border-border bg-card">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary">
+                    {scoreResult.breakdown?.jdMatch?.matchedKeywords?.length || 0}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Keywords Matched</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-destructive">
+                    {scoreResult.breakdown?.jdMatch?.missingKeywords?.length || 0}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Keywords Missing</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-foreground">
+                    {scoreResult.priorityFixes?.length || 0}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Improvements Found</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary">
+                    +{scoreResult.priorityFixes?.reduce((sum, fix) => {
+                      const points = parseInt(fix.impact.replace(/[^\d]/g, '')) || 0;
+                      return sum + points;
+                    }, 0) || 0}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Points Potential</div>
+                </div>
+              </div>
+
               {/* Score Breakdown Grid */}
               <ScoreBreakdownGrid scores={scoreResult.scores} />
 
-              {/* Keyword Analysis */}
+              {/* Keyword Analysis - ALL keywords shown */}
               <KeywordAnalysisPanel
                 matchedKeywords={scoreResult.breakdown?.jdMatch?.matchedKeywords || []}
                 missingKeywords={scoreResult.breakdown?.jdMatch?.missingKeywords || []}
                 onAddToResume={handleAddKeywordToResume}
               />
 
-              {/* Action Cards (Top Improvements) */}
+              {/* Action Cards - ALL improvements shown */}
               {(scoreResult.priorityFixes?.length || 0) > 0 && (
                 <ActionCards 
                   priorityFixes={scoreResult.priorityFixes || []} 

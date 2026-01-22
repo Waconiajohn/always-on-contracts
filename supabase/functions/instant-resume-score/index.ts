@@ -141,7 +141,13 @@ Return JSON: { "role": "...", "industry": "...", "level": "..." }`;
     // STEP 2: Comprehensive structured gap analysis with keyword frequency and context
     const systemPrompt = `You are an expert resume analyst. Analyze the resume against the job description and return ONLY valid JSON.
 
-IMPORTANT: Keep your response concise. Limit arrays to 8 items max for keywords, 5 for others.
+CRITICAL EXTRACTION REQUIREMENTS - EXTRACT EVERYTHING:
+1. Extract ALL technical skills, tools, software, and technologies mentioned in the JD
+2. Extract ALL soft skills and competencies (communication, leadership, problem-solving, etc.)
+3. Extract ALL certifications, qualifications, and requirements
+4. Extract ALL key phrases that describe job requirements (e.g., "drilling budget", "regulatory agency approval", "cross-functional teams")
+5. Include role-specific terminology and industry jargon
+6. Do NOT limit the number of keywords - return EVERY relevant keyword and phrase
 
 CRITICAL FOR KEYWORDS: For each keyword, extract the EXACT sentence from the job description where it appears (jdContext).
 For matched keywords, also extract the EXACT sentence from the resume where it appears (resumeContext).
@@ -212,17 +218,18 @@ KEYWORD CONTEXT EXTRACTION RULES:
 2. resumeContext: Extract the sentence containing the keyword from the resume (for matched keywords only)
 3. suggestedPhrasing: Write a professional bullet point incorporating the missing keyword with metrics if possible
 4. Keep context sentences SHORT (under 30 words each)
-Keep arrays SHORT (max 8 items for keywords, 5 for others). Be concise.`;
+
+REMEMBER: Extract ALL keywords and phrases. Do NOT limit the count.`;
 
     const userPrompt = `ROLE: ${detectedRole} | INDUSTRY: ${detectedIndustry} | LEVEL: ${detectedLevel}
 
 JOB DESCRIPTION:
-${jobDescription.substring(0, 3000)}
+${jobDescription.substring(0, 4000)}
 
 RESUME:
-${resumeText.substring(0, 4000)}
+${resumeText.substring(0, 5000)}
 
-Analyze and return JSON. Keep arrays to 5 items max.`;
+Analyze thoroughly and return JSON with ALL keywords found in the job description.`;
 
     const { response, metrics } = await callLovableAI({
       messages: [
@@ -231,7 +238,7 @@ Analyze and return JSON. Keep arrays to 5 items max.`;
       ],
       model: LOVABLE_AI_MODELS.DEFAULT,
       temperature: 0.1,
-      max_tokens: 8000,
+      max_tokens: 12000,
       response_format: { type: 'json_object' }
     }, 'instant-resume-score');
 
