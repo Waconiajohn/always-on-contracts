@@ -11,5 +11,7 @@ export { ModernGapAnalysis } from './ModernGapAnalysis';
 export { HeroScoreDisplay } from './HeroScoreDisplay';
 export { ScoreBreakdownGrid } from './ScoreBreakdownGrid';
 export { KeywordAnalysisPanel } from './KeywordAnalysisPanel';
+export { KeywordContextPopover } from './KeywordContextPopover';
+export type { KeywordWithContext } from './KeywordContextPopover';
 export { ActionCards } from './ActionCards';
 export { BuilderGateway } from './BuilderGateway';
