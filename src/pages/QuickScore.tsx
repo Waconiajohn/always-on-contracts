@@ -82,30 +82,36 @@ export default function QuickScore() {
     setResumeFileName(file.name);
 
     try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64 = (reader.result as string).split(',')[1];
-        
-        const { data, error } = await invokeEdgeFunction('parse-resume', {
-          fileData: base64,
-          fileName: file.name
-        });
+      // Convert file to base64
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(',')[1]);
+        };
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(file);
+      });
+      
+      const { data, error } = await invokeEdgeFunction('parse-resume', {
+        fileData: base64,
+        fileName: file.name
+      });
 
-        if (error || !data?.success) {
-          throw new Error(data?.error || 'Failed to parse resume');
-        }
+      if (error || !data?.success) {
+        throw new Error(data?.error || 'Failed to parse resume');
+      }
 
-        setResumeText(data.text);
-        toast({
-          title: 'Resume uploaded',
-          description: `${file.name} processed successfully`
-        });
-      };
-      reader.readAsDataURL(file);
+      setResumeText(data.text);
+      toast({
+        title: 'Resume uploaded',
+        description: `${file.name} processed successfully`
+      });
     } catch (error: any) {
+      console.error('Resume upload error:', error);
       toast({
         title: 'Upload failed',
-        description: error.message,
+        description: error.message || 'Failed to process resume file',
         variant: 'destructive'
       });
       setResumeFileName(null);
