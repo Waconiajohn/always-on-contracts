@@ -6,16 +6,17 @@
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Check, MessageSquare, FileText, Sparkles } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface BuilderGatewayProps {
   score: number;
+  gapCount?: number;
   onStartBuilder: () => void;
   onScoreAnother: () => void;
 }
 
-export function BuilderGateway({ score, onStartBuilder, onScoreAnother }: BuilderGatewayProps) {
+export function BuilderGateway({ score, gapCount, onStartBuilder, onScoreAnother }: BuilderGatewayProps) {
   const pointsToMustInterview = Math.max(0, 91 - score);
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -51,11 +52,19 @@ export function BuilderGateway({ score, onStartBuilder, onScoreAnother }: Builde
           <div className="h-0.5 w-8 md:w-16 bg-border" />
 
           {/* Step 2 */}
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-2 relative">
             <div className="w-10 h-10 rounded-full border-2 border-muted-foreground/30 text-muted-foreground flex items-center justify-center">
               <MessageSquare className="h-5 w-5" />
             </div>
             <span className="text-xs text-muted-foreground">Answer 3 Qs</span>
+            {gapCount !== undefined && gapCount > 0 && (
+              <Badge 
+                variant="secondary" 
+                className="absolute -top-1 -right-2 h-5 min-w-5 px-1.5 text-[10px] font-medium animate-pulse"
+              >
+                {gapCount}
+              </Badge>
+            )}
           </div>
 
           {/* Connector */}

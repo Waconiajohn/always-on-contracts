@@ -7,7 +7,7 @@ import { HeroScoreDisplay } from '@/components/quick-score/HeroScoreDisplay';
 import { ScoreBreakdownGrid } from '@/components/quick-score/ScoreBreakdownGrid';
 import { KeywordAnalysisPanel } from '@/components/quick-score/KeywordAnalysisPanel';
 import { KeywordWithContext } from '@/components/quick-score/KeywordContextPopover';
-import { ActionCards } from '@/components/quick-score/ActionCards';
+import { ActionCards, PriorityFix } from '@/components/quick-score/ActionCards';
 import { BuilderGateway } from '@/components/quick-score/BuilderGateway';
 import { ModernGapAnalysis } from '@/components/quick-score/ModernGapAnalysis';
 import { invokeEdgeFunction } from '@/lib/edgeFunction';
@@ -207,6 +207,42 @@ export default function QuickScore() {
     handleFixResume(keyword);
   };
 
+  const handleFixIssue = (fix: PriorityFix) => {
+    navigate('/resume-builder', {
+      state: {
+        fromQuickScore: true,
+        resumeText,
+        jobDescription,
+        scoreResult,
+        identifiedGaps: scoreResult?.priorityFixes?.map(f => ({
+          type: f.category,
+          issue: f.issue,
+          recommendation: f.fix,
+          impact: f.impact,
+          priority: f.priority
+        })),
+        keywordAnalysis: {
+          matched: scoreResult?.breakdown?.jdMatch?.matchedKeywords || [],
+          missing: scoreResult?.breakdown?.jdMatch?.missingKeywords || []
+        },
+        jobTitle: scoreResult?.detected?.role,
+        industry: scoreResult?.detected?.industry,
+        focusedAction: {
+          type: 'fix_gap',
+          issue: fix.issue,
+          recommendation: fix.fix,
+          category: fix.category
+        }
+      }
+    });
+  };
+
+  // Calculate gap count for BuilderGateway
+  const gapCount = scoreResult 
+    ? (scoreResult.priorityFixes?.length || 0) + 
+      (scoreResult.breakdown?.jdMatch?.missingKeywords?.length || 0)
+    : 0;
+
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-4 py-12">
@@ -381,7 +417,10 @@ export default function QuickScore() {
 
               {/* Action Cards (Top Improvements) */}
               {(scoreResult.priorityFixes?.length || 0) > 0 && (
-                <ActionCards priorityFixes={scoreResult.priorityFixes || []} />
+                <ActionCards 
+                  priorityFixes={scoreResult.priorityFixes || []} 
+                  onFixIssue={handleFixIssue}
+                />
               )}
 
               {/* Gap Analysis - Collapsible for detailed view */}
@@ -392,6 +431,7 @@ export default function QuickScore() {
               {/* Builder Gateway CTA */}
               <BuilderGateway
                 score={scoreResult.overallScore}
+                gapCount={gapCount}
                 onStartBuilder={handleFixResume}
                 onScoreAnother={handleStartOver}
               />

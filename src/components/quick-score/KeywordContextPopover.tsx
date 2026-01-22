@@ -133,7 +133,9 @@ export function KeywordContextPopover({
                       "{highlightKeyword(keyword.jdContext, keyword.keyword)}"
                     </p>
                   ) : (
-                    <p className="text-muted-foreground italic">No context available</p>
+                    <p className="text-muted-foreground text-xs">
+                      Keyword appears in the job posting. Click "Add to Resume" for suggestions.
+                    </p>
                   )}
                 </div>
               </div>
