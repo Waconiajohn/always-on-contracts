@@ -1,17 +1,15 @@
 /**
  * KeywordAnalysisPanel - Visual keyword comparison with pills
- * Shows matched vs missing keywords with frequency counts
+ * Shows ALL matched vs missing keywords with frequency counts
  * Click keywords to see context from JD and Resume
  */
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { ChevronDown, Check, X, AlertTriangle, MousePointerClick } from 'lucide-react';
+import { Check, X, AlertTriangle, MousePointerClick } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { KeywordContextPopover, KeywordWithContext } from './KeywordContextPopover';
-
 interface Keyword {
   keyword: string;
   priority: 'critical' | 'high' | 'medium';
@@ -33,7 +31,6 @@ export function KeywordAnalysisPanel({
   missingKeywords = [],
   onAddToResume
 }: KeywordAnalysisPanelProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
   const [hasClickedKeyword, setHasClickedKeyword] = useState(false);
   
   const totalKeywords = matchedKeywords.length + missingKeywords.length;
@@ -41,9 +38,10 @@ export function KeywordAnalysisPanel({
     ? Math.round((matchedKeywords.length / totalKeywords) * 100) 
     : 0;
 
+  // Group missing keywords by priority
   const criticalMissing = missingKeywords.filter(k => k.priority === 'critical');
-  const otherMissing = missingKeywords.filter(k => k.priority !== 'critical');
-
+  const highMissing = missingKeywords.filter(k => k.priority === 'high');
+  const mediumMissing = missingKeywords.filter(k => k.priority === 'medium');
   // Check if any keywords have context data
   const hasContextData = matchedKeywords.some(k => k.jdContext || k.resumeContext) ||
                          missingKeywords.some(k => k.jdContext || k.suggestedPhrasing);
@@ -136,34 +134,29 @@ export function KeywordAnalysisPanel({
         </div>
       </div>
 
-      {/* Matched Keywords */}
+      {/* All Keywords - No slicing, show everything */}
       <div className="p-4 space-y-4">
-        {/* Matched */}
+        {/* Matched Keywords - Show ALL */}
         {matchedKeywords.length > 0 && (
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
               <Check className="h-3 w-3 text-primary" />
-              Matched Keywords
+              Matched Keywords ({matchedKeywords.length})
             </p>
             <div className="flex flex-wrap gap-1.5">
-              {matchedKeywords.slice(0, isExpanded ? undefined : 10).map((kw, i) => 
+              {matchedKeywords.map((kw, i) => 
                 renderKeywordBadge(kw, i, true)
-              )}
-              {!isExpanded && matchedKeywords.length > 10 && (
-                <Badge variant="secondary" className="text-xs font-normal">
-                  +{matchedKeywords.length - 10} more
-                </Badge>
               )}
             </div>
           </div>
         )}
 
-        {/* Critical Missing */}
+        {/* Critical Missing - Show ALL */}
         {criticalMissing.length > 0 && (
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
               <X className="h-3 w-3 text-destructive" />
-              Missing (Critical)
+              Missing - Critical ({criticalMissing.length})
             </p>
             <div className="flex flex-wrap gap-1.5">
               {criticalMissing.map((kw, i) => 
@@ -173,46 +166,37 @@ export function KeywordAnalysisPanel({
           </div>
         )}
 
-        {/* Other Missing */}
-        <AnimatePresence>
-          {isExpanded && otherMissing.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="space-y-2"
-            >
-              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                <X className="h-3 w-3 text-muted-foreground" />
-                Missing (Recommended)
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {otherMissing.map((kw, i) => 
-                  renderKeywordBadge(kw, i, false)
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* High Priority Missing - Show ALL */}
+        {highMissing.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <X className="h-3 w-3 text-chart-4" />
+              Missing - High Priority ({highMissing.length})
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {highMissing.map((kw, i) => 
+                renderKeywordBadge(kw, i, false)
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Medium Priority Missing - Show ALL */}
+        {mediumMissing.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <X className="h-3 w-3 text-muted-foreground" />
+              Missing - Recommended ({mediumMissing.length})
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {mediumMissing.map((kw, i) => 
+                renderKeywordBadge(kw, i, false)
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Expand/Collapse */}
-      {(matchedKeywords.length > 10 || otherMissing.length > 0) && (
-        <div className="px-4 pb-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="text-xs text-muted-foreground hover:text-foreground w-full justify-center gap-1"
-          >
-            {isExpanded ? 'Show Less' : 'View All Keywords'}
-            <ChevronDown className={cn(
-              "h-3.5 w-3.5 transition-transform",
-              isExpanded && "rotate-180"
-            )} />
-          </Button>
-        </div>
-      )}
     </motion.div>
   );
 }
