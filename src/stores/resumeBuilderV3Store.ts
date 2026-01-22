@@ -31,6 +31,15 @@ export type {
 export type { InterviewQuestion } from "@/types/resume-builder-v3";
 
 // Data passed from Quick Score
+export interface KeywordData {
+  keyword: string;
+  priority?: 'critical' | 'high' | 'medium';
+  frequency?: number;
+  jdContext?: string;
+  resumeContext?: string;
+  suggestedPhrasing?: string;
+}
+
 export interface QuickScoreData {
   identifiedGaps: Array<{
     type: string;
@@ -40,8 +49,8 @@ export interface QuickScoreData {
     priority?: number;
   }>;
   keywordAnalysis: {
-    matched: string[];
-    missing: string[];
+    matched: KeywordData[];
+    missing: KeywordData[];
   };
   jobTitle?: string;
   industry?: string;

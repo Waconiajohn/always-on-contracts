@@ -108,9 +108,20 @@ export function ResumeBuilderV3() {
       }
       // Store Quick Score enriched data for use in Interview step
       if (state.identifiedGaps || state.keywordAnalysis) {
+        // Convert string arrays to KeywordData arrays if needed
+        const keywordAnalysis = state.keywordAnalysis || { matched: [], missing: [] };
+        const normalizedKeywords = {
+          matched: keywordAnalysis.matched.map((k: string | { keyword: string }) => 
+            typeof k === 'string' ? { keyword: k } : k
+          ),
+          missing: keywordAnalysis.missing.map((k: string | { keyword: string }) => 
+            typeof k === 'string' ? { keyword: k } : k
+          )
+        };
+        
         setQuickScoreData({
           identifiedGaps: state.identifiedGaps || [],
-          keywordAnalysis: state.keywordAnalysis || { matched: [], missing: [] },
+          keywordAnalysis: normalizedKeywords,
           jobTitle: state.jobTitle,
           industry: state.industry,
           initialScore: state.scoreResult?.overallScore

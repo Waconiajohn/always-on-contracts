@@ -4,10 +4,11 @@
  */
 
 import { motion } from 'framer-motion';
-import { Zap } from 'lucide-react';
+import { Zap, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
-interface PriorityFix {
+export interface PriorityFix {
   priority: number;
   category: string;
   issue: string;
@@ -18,6 +19,7 @@ interface PriorityFix {
 
 interface ActionCardsProps {
   priorityFixes: PriorityFix[];
+  onFixIssue?: (fix: PriorityFix) => void;
 }
 
 const categoryColors: Record<string, string> = {
@@ -34,7 +36,7 @@ const categoryLabels: Record<string, string> = {
   humanVoice: 'Voice'
 };
 
-export function ActionCards({ priorityFixes }: ActionCardsProps) {
+export function ActionCards({ priorityFixes, onFixIssue }: ActionCardsProps) {
   // Show top 3 priority fixes
   const topFixes = priorityFixes.slice(0, 3);
   
@@ -103,10 +105,22 @@ export function ActionCards({ priorityFixes }: ActionCardsProps) {
                   </span>
                 </div>
                 
-                <div className="flex items-center gap-2">
+                {/* Category label and Fix button */}
+                <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">
                     {categoryLabels[fix.category] || fix.category}
                   </span>
+                  {onFixIssue && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-xs gap-1 text-primary hover:text-primary"
+                      onClick={() => onFixIssue(fix)}
+                    >
+                      Fix This
+                      <ArrowRight className="h-3 w-3" />
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
