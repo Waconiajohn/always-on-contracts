@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { HeroScoreDisplay } from '@/components/quick-score/HeroScoreDisplay';
 import { ScoreBreakdownGrid } from '@/components/quick-score/ScoreBreakdownGrid';
 import { KeywordAnalysisPanel } from '@/components/quick-score/KeywordAnalysisPanel';
+import { KeywordWithContext } from '@/components/quick-score/KeywordContextPopover';
 import { ActionCards } from '@/components/quick-score/ActionCards';
 import { BuilderGateway } from '@/components/quick-score/BuilderGateway';
 import { ModernGapAnalysis } from '@/components/quick-score/ModernGapAnalysis';
@@ -171,7 +172,7 @@ export default function QuickScore() {
     setScoreResult(null);
   };
 
-  const handleFixResume = () => {
+  const handleFixResume = (focusedKeyword?: KeywordWithContext) => {
     navigate('/resume-builder', {
       state: {
         fromQuickScore: true,
@@ -190,9 +191,20 @@ export default function QuickScore() {
           missing: scoreResult?.breakdown?.jdMatch?.missingKeywords || []
         },
         jobTitle: scoreResult?.detected?.role,
-        industry: scoreResult?.detected?.industry
+        industry: scoreResult?.detected?.industry,
+        // Pass focused keyword action if triggered from keyword context popover
+        focusedAction: focusedKeyword ? {
+          type: 'add_keyword',
+          keyword: focusedKeyword.keyword,
+          suggestedPhrasing: focusedKeyword.suggestedPhrasing,
+          jdContext: focusedKeyword.jdContext
+        } : undefined
       }
     });
+  };
+
+  const handleAddKeywordToResume = (keyword: KeywordWithContext) => {
+    handleFixResume(keyword);
   };
 
   return (
@@ -364,6 +376,7 @@ export default function QuickScore() {
               <KeywordAnalysisPanel
                 matchedKeywords={scoreResult.breakdown?.jdMatch?.matchedKeywords || []}
                 missingKeywords={scoreResult.breakdown?.jdMatch?.missingKeywords || []}
+                onAddToResume={handleAddKeywordToResume}
               />
 
               {/* Action Cards (Top Improvements) */}

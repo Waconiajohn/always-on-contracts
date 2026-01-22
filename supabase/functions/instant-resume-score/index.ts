@@ -138,10 +138,14 @@ Return JSON: { "role": "...", "industry": "...", "level": "..." }`;
       }
     }
 
-    // STEP 2: Comprehensive structured gap analysis with keyword frequency
+    // STEP 2: Comprehensive structured gap analysis with keyword frequency and context
     const systemPrompt = `You are an expert resume analyst. Analyze the resume against the job description and return ONLY valid JSON.
 
 IMPORTANT: Keep your response concise. Limit arrays to 8 items max for keywords, 5 for others.
+
+CRITICAL FOR KEYWORDS: For each keyword, extract the EXACT sentence from the job description where it appears (jdContext).
+For matched keywords, also extract the EXACT sentence from the resume where it appears (resumeContext).
+For missing keywords, include a suggestedPhrasing that the candidate could add to their resume.
 
 Return this EXACT JSON structure:
 {
@@ -153,8 +157,25 @@ Return this EXACT JSON structure:
   },
   "breakdown": {
     "jdMatch": {
-      "matchedKeywords": [{"keyword": "string", "priority": "critical|high|medium", "frequency": 1}],
-      "missingKeywords": [{"keyword": "string", "priority": "critical|high|medium", "frequency": 1, "prevalence": "string"}],
+      "matchedKeywords": [
+        {
+          "keyword": "string",
+          "priority": "critical|high|medium",
+          "frequency": 1,
+          "jdContext": "Exact sentence from JD containing this keyword",
+          "resumeContext": "Exact sentence from resume where this keyword appears"
+        }
+      ],
+      "missingKeywords": [
+        {
+          "keyword": "string",
+          "priority": "critical|high|medium",
+          "frequency": 1,
+          "prevalence": "string",
+          "jdContext": "Exact sentence from JD containing this keyword",
+          "suggestedPhrasing": "A bullet point the candidate could add to address this keyword"
+        }
+      ],
       "skillsMatch": 0-100,
       "experienceMatch": 0-100
     },
@@ -186,7 +207,11 @@ Return this EXACT JSON structure:
   "quickWins": ["string"]
 }
 
-KEYWORD FREQUENCY: Count how many times each keyword appears in the job description. Include "frequency" field for each keyword.
+KEYWORD CONTEXT EXTRACTION RULES:
+1. jdContext: Extract the most relevant sentence containing the keyword from the job description
+2. resumeContext: Extract the sentence containing the keyword from the resume (for matched keywords only)
+3. suggestedPhrasing: Write a professional bullet point incorporating the missing keyword with metrics if possible
+4. Keep context sentences SHORT (under 30 words each)
 Keep arrays SHORT (max 8 items for keywords, 5 for others). Be concise.`;
 
     const userPrompt = `ROLE: ${detectedRole} | INDUSTRY: ${detectedIndustry} | LEVEL: ${detectedLevel}

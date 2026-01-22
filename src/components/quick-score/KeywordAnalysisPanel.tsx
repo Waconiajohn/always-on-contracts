@@ -1,14 +1,16 @@
 /**
  * KeywordAnalysisPanel - Visual keyword comparison with pills
  * Shows matched vs missing keywords with frequency counts
+ * Click keywords to see context from JD and Resume
  */
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, Check, X, AlertTriangle } from 'lucide-react';
+import { ChevronDown, Check, X, AlertTriangle, MousePointerClick } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { KeywordContextPopover, KeywordWithContext } from './KeywordContextPopover';
 
 interface Keyword {
   keyword: string;
@@ -17,18 +19,22 @@ interface Keyword {
   frequency?: number;
   jdContext?: string;
   resumeContext?: string;
+  suggestedPhrasing?: string;
 }
 
 interface KeywordAnalysisPanelProps {
   matchedKeywords: Keyword[];
   missingKeywords: Keyword[];
+  onAddToResume?: (keyword: KeywordWithContext) => void;
 }
 
 export function KeywordAnalysisPanel({
   matchedKeywords = [],
-  missingKeywords = []
+  missingKeywords = [],
+  onAddToResume
 }: KeywordAnalysisPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [hasClickedKeyword, setHasClickedKeyword] = useState(false);
   
   const totalKeywords = matchedKeywords.length + missingKeywords.length;
   const matchPercentage = totalKeywords > 0 
@@ -37,6 +43,62 @@ export function KeywordAnalysisPanel({
 
   const criticalMissing = missingKeywords.filter(k => k.priority === 'critical');
   const otherMissing = missingKeywords.filter(k => k.priority !== 'critical');
+
+  // Check if any keywords have context data
+  const hasContextData = matchedKeywords.some(k => k.jdContext || k.resumeContext) ||
+                         missingKeywords.some(k => k.jdContext || k.suggestedPhrasing);
+
+  const handleKeywordClick = () => {
+    if (!hasClickedKeyword) {
+      setHasClickedKeyword(true);
+    }
+  };
+
+  const renderKeywordBadge = (kw: Keyword, index: number, isMatched: boolean) => {
+    const hasContext = kw.jdContext || kw.resumeContext || kw.suggestedPhrasing;
+    
+    const badge = (
+      <Badge 
+        variant="outline"
+        className={cn(
+          "text-xs font-normal transition-all",
+          isMatched 
+            ? "bg-primary/5 border-primary/20 text-primary" 
+            : kw.priority === 'critical'
+              ? "bg-destructive/5 border-destructive/20 text-destructive"
+              : "bg-muted/50",
+          kw.priority === 'critical' && isMatched && "bg-primary/10 border-primary/30",
+          hasContext && "cursor-pointer hover:bg-accent hover:border-accent-foreground/20"
+        )}
+        onClick={hasContext ? handleKeywordClick : undefined}
+      >
+        {isMatched ? (
+          <Check className="h-2.5 w-2.5 mr-1" />
+        ) : (
+          <X className="h-2.5 w-2.5 mr-1" />
+        )}
+        {kw.keyword}
+        {!isMatched && kw.frequency && (
+          <span className="ml-1 opacity-70">({kw.frequency}×)</span>
+        )}
+      </Badge>
+    );
+
+    if (hasContext) {
+      return (
+        <KeywordContextPopover
+          key={index}
+          keyword={kw as KeywordWithContext}
+          isMatched={isMatched}
+          onAddToResume={onAddToResume}
+        >
+          {badge}
+        </KeywordContextPopover>
+      );
+    }
+
+    return <span key={index}>{badge}</span>;
+  };
 
   return (
     <motion.div
@@ -58,12 +120,20 @@ export function KeywordAnalysisPanel({
             {matchedKeywords.length}/{totalKeywords} ({matchPercentage}%)
           </Badge>
         </div>
-        {criticalMissing.length > 0 && (
-          <div className="flex items-center gap-1 text-destructive text-xs">
-            <AlertTriangle className="h-3.5 w-3.5" />
-            <span>{criticalMissing.length} critical missing</span>
-          </div>
-        )}
+        <div className="flex items-center gap-3">
+          {hasContextData && !hasClickedKeyword && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground animate-pulse">
+              <MousePointerClick className="h-3 w-3" />
+              <span>Click for context</span>
+            </div>
+          )}
+          {criticalMissing.length > 0 && (
+            <div className="flex items-center gap-1 text-destructive text-xs">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              <span>{criticalMissing.length} critical missing</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Matched Keywords */}
@@ -76,19 +146,9 @@ export function KeywordAnalysisPanel({
               Matched Keywords
             </p>
             <div className="flex flex-wrap gap-1.5">
-              {matchedKeywords.slice(0, isExpanded ? undefined : 10).map((kw, i) => (
-                <Badge 
-                  key={i}
-                  variant="outline"
-                  className={cn(
-                    "text-xs font-normal bg-primary/5 border-primary/20 text-primary",
-                    kw.priority === 'critical' && "bg-primary/10 border-primary/30"
-                  )}
-                >
-                  <Check className="h-2.5 w-2.5 mr-1" />
-                  {kw.keyword}
-                </Badge>
-              ))}
+              {matchedKeywords.slice(0, isExpanded ? undefined : 10).map((kw, i) => 
+                renderKeywordBadge(kw, i, true)
+              )}
               {!isExpanded && matchedKeywords.length > 10 && (
                 <Badge variant="secondary" className="text-xs font-normal">
                   +{matchedKeywords.length - 10} more
@@ -106,19 +166,9 @@ export function KeywordAnalysisPanel({
               Missing (Critical)
             </p>
             <div className="flex flex-wrap gap-1.5">
-              {criticalMissing.map((kw, i) => (
-                <Badge 
-                  key={i}
-                  variant="outline"
-                  className="text-xs font-normal bg-destructive/5 border-destructive/20 text-destructive"
-                >
-                  <X className="h-2.5 w-2.5 mr-1" />
-                  {kw.keyword}
-                  {kw.frequency && (
-                    <span className="ml-1 text-destructive/70">({kw.frequency}x in JD)</span>
-                  )}
-                </Badge>
-              ))}
+              {criticalMissing.map((kw, i) => 
+                renderKeywordBadge(kw, i, false)
+              )}
             </div>
           </div>
         )}
@@ -137,15 +187,9 @@ export function KeywordAnalysisPanel({
                 Missing (Recommended)
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {otherMissing.map((kw, i) => (
-                  <Badge 
-                    key={i}
-                    variant="outline"
-                    className="text-xs font-normal bg-muted/50"
-                  >
-                    {kw.keyword}
-                  </Badge>
-                ))}
+                {otherMissing.map((kw, i) => 
+                  renderKeywordBadge(kw, i, false)
+                )}
               </div>
             </motion.div>
           )}
