@@ -50,6 +50,21 @@ interface NavigationState {
   jobDescription?: string;
   savedResumeId?: string;
   savedContent?: unknown;
+  // Quick Score enriched data
+  identifiedGaps?: Array<{
+    type: string;
+    issue: string;
+    recommendation: string;
+    impact?: number;
+    priority?: number;
+  }>;
+  keywordAnalysis?: {
+    matched: string[];
+    missing: string[];
+  };
+  jobTitle?: string;
+  industry?: string;
+  scoreResult?: { overallScore?: number };
 }
 
 // Map step numbers to display labels
@@ -68,7 +83,8 @@ export function ResumeBuilderV3() {
     reset, 
     setStep, 
     setResumeText, 
-    setJobDescription, 
+    setJobDescription,
+    setQuickScoreData,
     lastUpdated 
   } = useResumeBuilderV3Store();
   const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
@@ -90,6 +106,16 @@ export function ResumeBuilderV3() {
       if (state.jobDescription) {
         setJobDescription(state.jobDescription);
       }
+      // Store Quick Score enriched data for use in Interview step
+      if (state.identifiedGaps || state.keywordAnalysis) {
+        setQuickScoreData({
+          identifiedGaps: state.identifiedGaps || [],
+          keywordAnalysis: state.keywordAnalysis || { matched: [], missing: [] },
+          jobTitle: state.jobTitle,
+          industry: state.industry,
+          initialScore: state.scoreResult?.overallScore
+        });
+      }
       window.history.replaceState({}, document.title);
       setHasHandledNavState(true);
       setHasCheckedSession(true);
@@ -100,7 +126,7 @@ export function ResumeBuilderV3() {
       window.history.replaceState({}, document.title);
       setHasHandledNavState(true);
     }
-  }, [location.state, hasHandledNavState, reset, setResumeText, setJobDescription]);
+  }, [location.state, hasHandledNavState, reset, setResumeText, setJobDescription, setQuickScoreData]);
 
   const resumeText = useResumeBuilderV3Store((state) => state.resumeText);
   const jobDescription = useResumeBuilderV3Store((state) => state.jobDescription);
@@ -234,7 +260,7 @@ export function ResumeBuilderV3() {
             <div className="flex items-center gap-2 self-end sm:self-auto">
               {lastUpdated && (
                 <Badge variant="outline" className="text-xs text-muted-foreground gap-1">
-                  <CheckCircle2 className="h-3 w-3 text-green-500" />
+                  <CheckCircle2 className="h-3 w-3 text-primary" />
                   <span className="hidden xs:inline">Saved</span>
                 </Badge>
               )}

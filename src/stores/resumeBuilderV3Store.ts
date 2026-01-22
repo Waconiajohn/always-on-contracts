@@ -30,6 +30,24 @@ export type {
 // Re-export InterviewQuestion separately (it's used in other places)
 export type { InterviewQuestion } from "@/types/resume-builder-v3";
 
+// Data passed from Quick Score
+export interface QuickScoreData {
+  identifiedGaps: Array<{
+    type: string;
+    issue: string;
+    recommendation: string;
+    impact?: number;
+    priority?: number;
+  }>;
+  keywordAnalysis: {
+    matched: string[];
+    missing: string[];
+  };
+  jobTitle?: string;
+  industry?: string;
+  initialScore?: number;
+}
+
 interface ResumeBuilderV3State {
   // Current step
   step: Step;
@@ -37,6 +55,9 @@ interface ResumeBuilderV3State {
   // Inputs
   resumeText: string;
   jobDescription: string;
+  
+  // Quick Score data (pre-populated gaps)
+  quickScoreData: QuickScoreData | null;
   
   // Results from each step
   fitAnalysis: FitAnalysisResult | null;
@@ -55,6 +76,7 @@ interface ResumeBuilderV3State {
   // Actions
   setResumeText: (text: string) => void;
   setJobDescription: (text: string) => void;
+  setQuickScoreData: (data: QuickScoreData) => void;
   setStep: (step: Step) => void;
   setFitAnalysis: (result: FitAnalysisResult) => void;
   setStandards: (result: StandardsResult) => void;
@@ -72,6 +94,7 @@ const initialState = {
   step: 1 as Step,
   resumeText: "",
   jobDescription: "",
+  quickScoreData: null,
   fitAnalysis: null,
   standards: null,
   questions: null,
@@ -89,6 +112,7 @@ export const useResumeBuilderV3Store = create<ResumeBuilderV3State>()(
       
       setResumeText: (text) => set({ resumeText: text, lastUpdated: Date.now() }),
       setJobDescription: (text) => set({ jobDescription: text, lastUpdated: Date.now() }),
+      setQuickScoreData: (data) => set({ quickScoreData: data, lastUpdated: Date.now() }),
       // Reset loading and error on step change to prevent stale states
       setStep: (step) => set({ step, lastUpdated: Date.now(), isLoading: false, error: null }),
       setFitAnalysis: (result) => set({ fitAnalysis: result, lastUpdated: Date.now() }),
@@ -131,6 +155,7 @@ export const useResumeBuilderV3Store = create<ResumeBuilderV3State>()(
         step: state.step,
         resumeText: state.resumeText,
         jobDescription: state.jobDescription,
+        quickScoreData: state.quickScoreData,
         fitAnalysis: state.fitAnalysis,
         standards: state.standards,
         questions: state.questions,
