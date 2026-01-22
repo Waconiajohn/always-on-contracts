@@ -3,8 +3,11 @@ import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { ModernScoreDisplay } from '@/components/quick-score/ModernScoreDisplay';
-import { ModernScoreBreakdown } from '@/components/quick-score/ModernScoreBreakdown';
+import { HeroScoreDisplay } from '@/components/quick-score/HeroScoreDisplay';
+import { ScoreBreakdownGrid } from '@/components/quick-score/ScoreBreakdownGrid';
+import { KeywordAnalysisPanel } from '@/components/quick-score/KeywordAnalysisPanel';
+import { ActionCards } from '@/components/quick-score/ActionCards';
+import { BuilderGateway } from '@/components/quick-score/BuilderGateway';
 import { ModernGapAnalysis } from '@/components/quick-score/ModernGapAnalysis';
 import { invokeEdgeFunction } from '@/lib/edgeFunction';
 import { useToast } from '@/hooks/use-toast';
@@ -13,8 +16,6 @@ import {
   Upload,
   FileText,
   Loader2,
-  Sparkles,
-  ArrowRight,
   CheckCircle2,
   Zap
 } from 'lucide-react';
@@ -177,6 +178,17 @@ export default function QuickScore() {
         resumeText,
         jobDescription,
         scoreResult,
+        identifiedGaps: scoreResult?.priorityFixes?.map(fix => ({
+          type: fix.category,
+          issue: fix.issue,
+          recommendation: fix.fix,
+          impact: fix.impact,
+          priority: fix.priority
+        })),
+        keywordAnalysis: {
+          matched: scoreResult?.breakdown?.jdMatch?.matchedKeywords || [],
+          missing: scoreResult?.breakdown?.jdMatch?.missingKeywords || []
+        },
         jobTitle: scoreResult?.detected?.role,
         industry: scoreResult?.detected?.industry
       }
@@ -330,8 +342,8 @@ export default function QuickScore() {
               exit={{ opacity: 0 }}
               className="space-y-8"
             >
-              {/* Main Score */}
-              <ModernScoreDisplay
+              {/* Hero Score */}
+              <HeroScoreDisplay
                 score={scoreResult.overallScore}
                 tier={scoreResult.tier}
                 pointsToNextTier={scoreResult.pointsToNextTier}
@@ -345,90 +357,31 @@ export default function QuickScore() {
                 <Badge variant="outline" className="font-normal">{scoreResult.detected.level}</Badge>
               </div>
 
-              {/* Conversion Message */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="text-center py-4 border-y border-border"
-              >
-                <p className="text-muted-foreground">
-                  Right now, your résumé makes you look <span className="font-medium text-foreground">qualified</span>.
-                  <br />
-                  Our goal: make you <span className="font-medium text-primary">impossible to ignore</span>.
-                </p>
-              </motion.div>
+              {/* Score Breakdown Grid */}
+              <ScoreBreakdownGrid scores={scoreResult.scores} />
 
-              {/* Score Breakdown */}
-              <ModernScoreBreakdown
-                scores={scoreResult.scores}
-                breakdown={scoreResult.breakdown}
+              {/* Keyword Analysis */}
+              <KeywordAnalysisPanel
+                matchedKeywords={scoreResult.breakdown?.jdMatch?.matchedKeywords || []}
+                missingKeywords={scoreResult.breakdown?.jdMatch?.missingKeywords || []}
               />
 
-              {/* Quick Wins */}
-              {(scoreResult.quickWins?.length || 0) > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
-                  className="border border-border rounded-lg bg-background p-4"
-                >
-                  <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3 flex items-center gap-2">
-                    <Sparkles className="h-4 w-4" />
-                    Quick Wins
-                  </h3>
-                  <ol className="space-y-2">
-                    {scoreResult.quickWins?.map((win, i) => (
-                      <li key={i} className="flex items-start gap-3 text-sm">
-                        <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-medium flex-shrink-0">
-                          {i + 1}
-                        </span>
-                        <span>{win}</span>
-                      </li>
-                    ))}
-                  </ol>
-                </motion.div>
+              {/* Action Cards (Top Improvements) */}
+              {(scoreResult.priorityFixes?.length || 0) > 0 && (
+                <ActionCards priorityFixes={scoreResult.priorityFixes || []} />
               )}
 
-              {/* Gap Analysis */}
+              {/* Gap Analysis - Collapsible for detailed view */}
               {scoreResult.gapAnalysis && (
                 <ModernGapAnalysis gapAnalysis={scoreResult.gapAnalysis} />
               )}
 
-              {/* CTA Section */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-                className="text-center py-8 space-y-6"
-              >
-                <div className="space-y-2">
-                  <p className="text-lg font-medium">
-                    You're <span className="text-primary">{100 - scoreResult.overallScore} points</span> away from "must-interview" status
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Our AI will transform your resume to address every gap—without fabricating anything
-                  </p>
-                </div>
-                
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Button
-                    variant="outline"
-                    onClick={handleStartOver}
-                  >
-                    Score Another Résumé
-                  </Button>
-                  <Button
-                    size="lg"
-                    onClick={handleFixResume}
-                    className="gap-2"
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    Build My Must-Interview Résumé
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </motion.div>
+              {/* Builder Gateway CTA */}
+              <BuilderGateway
+                score={scoreResult.overallScore}
+                onStartBuilder={handleFixResume}
+                onScoreAnother={handleStartOver}
+              />
 
               {/* Analysis time */}
               <p className="text-center text-xs text-muted-foreground">

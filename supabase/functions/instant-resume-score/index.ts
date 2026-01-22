@@ -138,10 +138,10 @@ Return JSON: { "role": "...", "industry": "...", "level": "..." }`;
       }
     }
 
-    // STEP 2: Comprehensive structured gap analysis
+    // STEP 2: Comprehensive structured gap analysis with keyword frequency
     const systemPrompt = `You are an expert resume analyst. Analyze the resume against the job description and return ONLY valid JSON.
 
-IMPORTANT: Keep your response concise. Limit arrays to 5 items max.
+IMPORTANT: Keep your response concise. Limit arrays to 8 items max for keywords, 5 for others.
 
 Return this EXACT JSON structure:
 {
@@ -153,8 +153,8 @@ Return this EXACT JSON structure:
   },
   "breakdown": {
     "jdMatch": {
-      "matchedKeywords": [{"keyword": "string", "priority": "critical|high|medium"}],
-      "missingKeywords": [{"keyword": "string", "priority": "critical|high|medium", "prevalence": "string"}],
+      "matchedKeywords": [{"keyword": "string", "priority": "critical|high|medium", "frequency": 1}],
+      "missingKeywords": [{"keyword": "string", "priority": "critical|high|medium", "frequency": 1, "prevalence": "string"}],
       "skillsMatch": 0-100,
       "experienceMatch": 0-100
     },
@@ -186,7 +186,8 @@ Return this EXACT JSON structure:
   "quickWins": ["string"]
 }
 
-Keep arrays SHORT (max 5 items). Be concise.`;
+KEYWORD FREQUENCY: Count how many times each keyword appears in the job description. Include "frequency" field for each keyword.
+Keep arrays SHORT (max 8 items for keywords, 5 for others). Be concise.`;
 
     const userPrompt = `ROLE: ${detectedRole} | INDUSTRY: ${detectedIndustry} | LEVEL: ${detectedLevel}
 
