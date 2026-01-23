@@ -138,88 +138,126 @@ Return JSON: { "role": "...", "industry": "...", "level": "..." }`;
       }
     }
 
-    // STEP 2: Comprehensive structured gap analysis with keyword frequency and context
-    const systemPrompt = `You are an expert resume analyst. Analyze the resume against the job description and return ONLY valid JSON.
-
-CRITICAL EXTRACTION REQUIREMENTS - EXTRACT EVERYTHING:
-1. Extract ALL technical skills, tools, software, and technologies mentioned in the JD
-2. Extract ALL soft skills and competencies (communication, leadership, problem-solving, etc.)
-3. Extract ALL certifications, qualifications, and requirements
-4. Extract ALL key phrases that describe job requirements (e.g., "drilling budget", "regulatory agency approval", "cross-functional teams")
-5. Include role-specific terminology and industry jargon
-6. Do NOT limit the number of keywords - return EVERY relevant keyword and phrase
-
-CRITICAL FOR KEYWORDS: For each keyword, extract the EXACT sentence from the job description where it appears (jdContext).
-For matched keywords, also extract the EXACT sentence from the resume where it appears (resumeContext).
-For missing keywords, include a suggestedPhrasing that the candidate could add to their resume.
-
-Return this EXACT JSON structure:
-{
-  "scores": {
-    "jdMatch": { "score": 0-100, "weight": 60 },
-    "industryBenchmark": { "score": 0-100, "weight": 20 },
-    "atsCompliance": { "score": 0-100, "weight": 12 },
-    "humanVoice": { "score": 0-100, "weight": 8 }
-  },
-  "breakdown": {
-    "jdMatch": {
-      "matchedKeywords": [
-        {
-          "keyword": "string",
-          "priority": "critical|high|medium",
-          "frequency": 1,
-          "jdContext": "Exact sentence from JD containing this keyword",
-          "resumeContext": "Exact sentence from resume where this keyword appears"
+    // STEP 2: Use tool calling for reliable structured output
+    const scoringTool = {
+      type: "function" as const,
+      function: {
+        name: "return_score_analysis",
+        description: "Return the complete resume score analysis with all required fields",
+        parameters: {
+          type: "object",
+          properties: {
+            scores: {
+              type: "object",
+              properties: {
+                jdMatch: { type: "object", properties: { score: { type: "number" }, weight: { type: "number" } }, required: ["score", "weight"] },
+                industryBenchmark: { type: "object", properties: { score: { type: "number" }, weight: { type: "number" } }, required: ["score", "weight"] },
+                atsCompliance: { type: "object", properties: { score: { type: "number" }, weight: { type: "number" } }, required: ["score", "weight"] },
+                humanVoice: { type: "object", properties: { score: { type: "number" }, weight: { type: "number" } }, required: ["score", "weight"] }
+              },
+              required: ["jdMatch", "industryBenchmark", "atsCompliance", "humanVoice"]
+            },
+            breakdown: {
+              type: "object",
+              properties: {
+                jdMatch: {
+                  type: "object",
+                  properties: {
+                    matchedKeywords: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          keyword: { type: "string" },
+                          priority: { type: "string", enum: ["critical", "high", "medium"] },
+                          frequency: { type: "number" },
+                          jdContext: { type: "string", description: "Short phrase (max 15 words) from JD" },
+                          resumeContext: { type: "string", description: "Short phrase (max 15 words) from resume" }
+                        },
+                        required: ["keyword", "priority"]
+                      },
+                      maxItems: 20
+                    },
+                    missingKeywords: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          keyword: { type: "string" },
+                          priority: { type: "string", enum: ["critical", "high", "medium"] },
+                          frequency: { type: "number" },
+                          prevalence: { type: "string" },
+                          jdContext: { type: "string", description: "Short phrase (max 15 words) from JD" },
+                          suggestedPhrasing: { type: "string" }
+                        },
+                        required: ["keyword", "priority"]
+                      },
+                      maxItems: 15
+                    },
+                    skillsMatch: { type: "number" },
+                    experienceMatch: { type: "number" }
+                  },
+                  required: ["matchedKeywords", "missingKeywords", "skillsMatch", "experienceMatch"]
+                },
+                industryBenchmark: {
+                  type: "object",
+                  properties: {
+                    roleStandards: { type: "array", items: { type: "string" } },
+                    meetingStandards: { type: "array", items: { type: "string" } },
+                    belowStandards: { type: "array", items: { type: "string" } },
+                    competitiveRank: { type: "string" }
+                  },
+                  required: ["roleStandards", "meetingStandards", "belowStandards", "competitiveRank"]
+                },
+                atsCompliance: {
+                  type: "object",
+                  properties: {
+                    headerIssues: { type: "array", items: { type: "string" } },
+                    formatIssues: { type: "array", items: { type: "string" } },
+                    keywordPlacement: { type: "string", enum: ["good", "poor", "unknown"] }
+                  },
+                  required: ["headerIssues", "formatIssues", "keywordPlacement"]
+                },
+                humanVoice: {
+                  type: "object",
+                  properties: {
+                    aiProbability: { type: "number" },
+                    concerns: { type: "array", items: { type: "string" } },
+                    humanElements: { type: "array", items: { type: "string" } }
+                  },
+                  required: ["aiProbability", "concerns", "humanElements"]
+                }
+              },
+              required: ["jdMatch", "industryBenchmark", "atsCompliance", "humanVoice"]
+            },
+            gapAnalysis: {
+              type: "object",
+              properties: {
+                fullMatches: { type: "array", items: { type: "object", properties: { requirement: { type: "string" }, evidence: { type: "string" } } }, maxItems: 10 },
+                partialMatches: { type: "array", items: { type: "object", properties: { requirement: { type: "string" }, currentStatus: { type: "string" }, recommendation: { type: "string" } } }, maxItems: 8 },
+                missingRequirements: { type: "array", items: { type: "object", properties: { requirement: { type: "string" }, workaround: { type: "string" } } }, maxItems: 8 },
+                overqualifications: { type: "array", items: { type: "object", properties: { experience: { type: "string" }, recommendation: { type: "string" } } }, maxItems: 3 },
+                irrelevantContent: { type: "array", items: { type: "object", properties: { content: { type: "string" }, recommendation: { type: "string" } } }, maxItems: 3 },
+                gapSummary: { type: "array", items: { type: "string" }, maxItems: 5 }
+              },
+              required: ["fullMatches", "partialMatches", "missingRequirements", "gapSummary"]
+            },
+            quickWins: { type: "array", items: { type: "string" }, maxItems: 5 }
+          },
+          required: ["scores", "breakdown", "gapAnalysis", "quickWins"]
         }
-      ],
-      "missingKeywords": [
-        {
-          "keyword": "string",
-          "priority": "critical|high|medium",
-          "frequency": 1,
-          "prevalence": "string",
-          "jdContext": "Exact sentence from JD containing this keyword",
-          "suggestedPhrasing": "A bullet point the candidate could add to address this keyword"
-        }
-      ],
-      "skillsMatch": 0-100,
-      "experienceMatch": 0-100
-    },
-    "industryBenchmark": {
-      "roleStandards": ["string"],
-      "meetingStandards": ["string"],
-      "belowStandards": ["string"],
-      "competitiveRank": "string"
-    },
-    "atsCompliance": {
-      "headerIssues": ["string"],
-      "formatIssues": ["string"],
-      "keywordPlacement": "good|poor|unknown"
-    },
-    "humanVoice": {
-      "aiProbability": 0-100,
-      "concerns": ["string"],
-      "humanElements": ["string"]
-    }
-  },
-  "gapAnalysis": {
-    "fullMatches": [{"requirement": "string", "evidence": "string"}],
-    "partialMatches": [{"requirement": "string", "currentStatus": "string", "recommendation": "string"}],
-    "missingRequirements": [{"requirement": "string", "workaround": "string"}],
-    "overqualifications": [{"experience": "string", "recommendation": "string"}],
-    "irrelevantContent": [{"content": "string", "recommendation": "string"}],
-    "gapSummary": ["string"]
-  },
-  "quickWins": ["string"]
-}
+      }
+    };
 
-KEYWORD CONTEXT EXTRACTION RULES:
-1. jdContext: Extract the most relevant sentence containing the keyword from the job description
-2. resumeContext: Extract the sentence containing the keyword from the resume (for matched keywords only)
-3. suggestedPhrasing: Write a professional bullet point incorporating the missing keyword with metrics if possible
-4. Keep context sentences SHORT (under 30 words each)
+    const systemPrompt = `You are an expert resume analyst. Analyze the resume against the job description.
 
-REMEMBER: Extract ALL keywords and phrases. Do NOT limit the count.`;
+EXTRACTION RULES:
+1. Extract the TOP 20 most important matched keywords (critical/high priority first)
+2. Extract the TOP 15 most important missing keywords (critical/high priority first)
+3. For context fields, use SHORT phrases (max 15 words) - not full sentences
+4. Focus on technical skills, certifications, key competencies, and industry-specific terms
+
+SCORING WEIGHTS: jdMatch=60%, industryBenchmark=20%, atsCompliance=12%, humanVoice=8%`;
 
     const userPrompt = `ROLE: ${detectedRole} | INDUSTRY: ${detectedIndustry} | LEVEL: ${detectedLevel}
 
@@ -229,33 +267,77 @@ ${jobDescription.substring(0, 4000)}
 RESUME:
 ${resumeText.substring(0, 5000)}
 
-Analyze thoroughly and return JSON with ALL keywords found in the job description.`;
+Analyze and return structured analysis via the return_score_analysis function.`;
 
-    const { response, metrics } = await callLovableAI({
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ],
-      model: LOVABLE_AI_MODELS.DEFAULT,
-      temperature: 0.1,
-      max_tokens: 12000,
-      response_format: { type: 'json_object' }
-    }, 'instant-resume-score');
+    let scoreData: any;
+    let metrics: any;
 
-    await logAIUsage(metrics);
+    try {
+      const result = await callLovableAI({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        model: LOVABLE_AI_MODELS.DEFAULT,
+        temperature: 0.1,
+        max_tokens: 8000,
+        tools: [scoringTool],
+        tool_choice: { type: "function", function: { name: "return_score_analysis" } }
+      }, 'instant-resume-score');
 
-    const rawContent = response.choices[0].message.content;
-    
-    // Use robust extractJSON utility to handle markdown fences and other formatting
-    const parseResult = extractJSON(rawContent);
-    if (!parseResult.success || !parseResult.data) {
-      console.error('Failed to parse score data:', rawContent.substring(0, 500));
-      console.error('Parse error:', parseResult.error);
-      throw new Error('Failed to parse scoring response');
+      metrics = result.metrics;
+      await logAIUsage(metrics);
+
+      // Extract from tool call response
+      const toolCall = result.response.choices[0]?.message?.tool_calls?.[0];
+      if (toolCall?.function?.arguments) {
+        const args = typeof toolCall.function.arguments === 'string' 
+          ? JSON.parse(toolCall.function.arguments) 
+          : toolCall.function.arguments;
+        scoreData = args;
+        console.log('[instant-resume-score] Tool call parsing successful');
+      } else {
+        // Fallback: try to parse from content
+        const rawContent = result.response.choices[0]?.message?.content || '';
+        const parseResult = extractJSON(rawContent);
+        if (!parseResult.success || !parseResult.data) {
+          throw new Error('No tool call and content parse failed');
+        }
+        scoreData = parseResult.data;
+        console.log('[instant-resume-score] Content fallback parsing successful');
+      }
+    } catch (primaryError) {
+      console.error('[instant-resume-score] Primary model failed:', primaryError);
+      
+      // Fallback to simpler model with reduced prompt
+      console.log('[instant-resume-score] Trying fallback model...');
+      const fallbackResult = await callLovableAI({
+        messages: [
+          { role: 'system', content: 'You are a resume analyst. Return JSON with scores and analysis.' },
+          { role: 'user', content: `Analyze this resume against the job description. Return JSON with: scores (jdMatch, industryBenchmark, atsCompliance, humanVoice each with score 0-100 and weight), breakdown (jdMatch with matchedKeywords array and missingKeywords array), gapAnalysis (fullMatches, partialMatches, missingRequirements arrays), quickWins array.
+
+JOB: ${jobDescription.substring(0, 2000)}
+
+RESUME: ${resumeText.substring(0, 3000)}` }
+        ],
+        model: LOVABLE_AI_MODELS.FAST,
+        temperature: 0.1,
+        max_tokens: 4000,
+        response_format: { type: 'json_object' }
+      }, 'instant-resume-score-fallback');
+
+      metrics = fallbackResult.metrics;
+      await logAIUsage(metrics);
+
+      const rawContent = fallbackResult.response.choices[0]?.message?.content || '';
+      const parseResult = extractJSON(rawContent);
+      if (!parseResult.success || !parseResult.data) {
+        console.error('[instant-resume-score] Fallback also failed:', rawContent.substring(0, 500));
+        throw new Error('Failed to parse scoring response after fallback');
+      }
+      scoreData = parseResult.data;
+      console.log('[instant-resume-score] Fallback parsing successful');
     }
-    
-    const scoreData = parseResult.data;
-    console.log('[instant-resume-score] Parsing successful');
 
     // Calculate weighted overall score (60/20/12/8)
     const weightedScore = 
