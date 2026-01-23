@@ -1,14 +1,13 @@
 // =====================================================
-// STEP 3: Edit & Optimize - Unified Fit Report
+// STEP 3: Edit & Optimize - Side-by-Side with Context Panel
 // =====================================================
-// Single scrollable report where each issue has its action inline
-// No navigation. No cognitive overhead. See problem → fix problem → move on.
+// Resume editor on the left, context-aware gap sidebar on the right
+// No tabs - everything visible at once. Click a section to see relevant gaps.
 // =====================================================
 
 import { useRef, useState, useEffect, useCallback } from "react";
 import { useResumeBuilderV3Store } from "@/stores/resumeBuilderV3Store";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Copy,
   Sparkles,
@@ -20,7 +19,6 @@ import { PrintableResume } from "./PrintableResume";
 import { SuccessAnimation, FadeIn } from "./StepTransition";
 import { formatResumeAsText } from "./utils/formatters";
 import { VersionHistory, safeParseVersions } from "./components/VersionHistory";
-import { FitReport } from "./FitReport";
 import { MAX_VERSION_HISTORY } from "./constants";
 import { logger } from "@/lib/logger";
 import type { ResumeVersion, OptimizedResume } from "@/types/resume-builder-v3";
@@ -28,6 +26,9 @@ import { EnrichmentPrompt } from "@/components/master-resume/EnrichmentPrompt";
 import { useMasterResume } from "@/hooks/useMasterResume";
 import { useEnrichment } from "@/hooks/useEnrichment";
 import type { EnrichmentSuggestion } from "@/types/master-resume";
+import { ContextPanel } from "./components/ContextPanel";
+import type { FocusedSectionType } from "@/lib/gapSectionMatcher";
+import { cn } from "@/lib/utils";
 
 // Helper functions for safe localStorage access
 const safeGetVersions = (): ResumeVersion[] => {
@@ -79,7 +80,8 @@ export function EditAndOptimizeStep() {
   const [versions, setVersions] = useState<ResumeVersion[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [aiEnhancementsCount, setAiEnhancementsCount] = useState(0);
-  const [activeTab, setActiveTab] = useState<"report" | "preview">("report");
+  const [focusedSection, setFocusedSection] = useState<FocusedSectionType>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
   // Master Resume enrichment
   const { masterResume, enrichMasterResume, isEnriching } = useMasterResume();
@@ -112,7 +114,6 @@ export function EditAndOptimizeStep() {
     
     setFinalResume(updatedResume);
     setAiEnhancementsCount(prev => prev + 1);
-    setActiveTab("preview");
   }, [finalResume, setFinalResume]);
 
   // Handler for adding new bullets
@@ -138,7 +139,6 @@ export function EditAndOptimizeStep() {
     
     setFinalResume(updatedResume);
     setAiEnhancementsCount(prev => prev + 1);
-    setActiveTab("preview");
   }, [finalResume, setFinalResume]);
 
   // Handler for summary updates
@@ -156,7 +156,6 @@ export function EditAndOptimizeStep() {
     
     setFinalResume(updatedResume);
     setAiEnhancementsCount(prev => prev + 1);
-    setActiveTab("preview");
   }, [finalResume, setFinalResume]);
 
   // Handler for skill additions
@@ -179,7 +178,6 @@ export function EditAndOptimizeStep() {
     
     setFinalResume(updatedResume);
     setAiEnhancementsCount(prev => prev + 1);
-    setActiveTab("preview");
   }, [finalResume, setFinalResume]);
   
   // Track saved fingerprints to prevent race conditions
@@ -357,78 +355,61 @@ export function EditAndOptimizeStep() {
     }
   };
 
+  // Section click handler
+  const handleSectionClick = (section: FocusedSectionType) => {
+    setFocusedSection(section);
+  };
+
   return (
-    <div className="space-y-6 no-print max-w-3xl mx-auto px-4">
+    <div className="no-print flex h-[calc(100vh-12rem)]">
       {/* Hidden printable version */}
       <div className="hidden print:block">
         <PrintableResume ref={printRef} resume={finalResume} />
       </div>
 
-      {/* Minimal Header */}
-      <SuccessAnimation>
-        <div className="flex items-center justify-between py-4 border-b border-border">
-          <div>
-            <h1 className="text-xl font-semibold text-foreground">Resume Analysis</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {finalResume.header.name}
-            </p>
+      {/* Main Content Area */}
+      <div className="flex-1 overflow-hidden flex flex-col">
+        {/* Header */}
+        <SuccessAnimation>
+          <div className="flex items-center justify-between py-4 px-6 border-b border-border flex-shrink-0">
+            <div>
+              <h1 className="text-xl font-semibold text-foreground">Edit & Optimize</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Click a section to see relevant improvements
+              </p>
+            </div>
+            
+            {/* Action buttons */}
+            <div className="flex items-center gap-2">
+              {aiEnhancementsCount > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  {aiEnhancementsCount} changes
+                </span>
+              )}
+              <VersionHistory versions={versions} currentVersion={finalResume} />
+              <Button variant="outline" size="sm" onClick={handleSaveVersion} disabled={isSaving}>
+                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleCopyText}>
+                <Copy className="h-4 w-4" />
+              </Button>
+              <ExportOptionsV3 resume={finalResume} />
+            </div>
           </div>
-          
-          {/* Action buttons */}
-          <div className="flex items-center gap-2">
-            {aiEnhancementsCount > 0 && (
-              <span className="text-xs text-muted-foreground">
-                {aiEnhancementsCount} changes
-              </span>
-            )}
-            <VersionHistory versions={versions} currentVersion={finalResume} />
-            <Button variant="outline" size="sm" onClick={handleSaveVersion} disabled={isSaving}>
-              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleCopyText}>
-              <Copy className="h-4 w-4" />
-            </Button>
-            <ExportOptionsV3 resume={finalResume} />
-          </div>
-        </div>
-      </SuccessAnimation>
+        </SuccessAnimation>
 
-      {/* Tab Navigation - Clean and minimal */}
-      <FadeIn delay={0.1}>
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "report" | "preview")} className="w-full">
-          <TabsList className="bg-transparent border-b border-border rounded-none w-full justify-start gap-4 p-0 h-auto">
-            <TabsTrigger 
-              value="report" 
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent px-0 pb-3 pt-0 font-medium"
-            >
-              Fit Analysis
-            </TabsTrigger>
-            <TabsTrigger 
-              value="preview" 
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent px-0 pb-3 pt-0 font-medium"
-            >
-              Resume Preview
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Fit Report Tab */}
-          <TabsContent value="report" className="mt-8">
-            <FitReport
-              fitAnalysis={fitAnalysis}
-              finalResume={finalResume}
-              jobDescription={jobDescription}
-              onBulletUpdate={handleBulletUpdate}
-              onBulletAdd={handleBulletAdd}
-              onSkillAdd={handleSkillAdd}
-              onSummaryUpdate={handleSummaryUpdate}
-            />
-          </TabsContent>
-
-          {/* Resume Preview Tab */}
-          <TabsContent value="preview" className="mt-8">
-            <div className="space-y-6">
+        {/* Resume Editor - Scrollable */}
+        <FadeIn delay={0.1}>
+          <div className="flex-1 overflow-y-auto px-6 py-6">
+            <div className="max-w-2xl mx-auto space-y-6">
               {/* Header */}
-              <div className="text-center pb-6 border-b border-border">
+              <div 
+                className={cn(
+                  "text-center pb-6 border-b border-border cursor-pointer rounded-lg p-4 -m-4 transition-colors",
+                  focusedSection === null && "ring-2 ring-primary/20"
+                )}
+                onClick={() => handleSectionClick(null)}
+              >
                 <h2 className="text-2xl font-semibold text-foreground">{finalResume.header.name}</h2>
                 <p className="text-muted-foreground mt-1">{finalResume.header.title}</p>
                 {finalResume.header.contact && (
@@ -437,7 +418,13 @@ export function EditAndOptimizeStep() {
               </div>
 
               {/* Summary */}
-              <div>
+              <div 
+                className={cn(
+                  "cursor-pointer rounded-lg p-4 -mx-4 transition-colors hover:bg-muted/30",
+                  focusedSection === 'summary' && "ring-2 ring-primary bg-primary/5"
+                )}
+                onClick={() => handleSectionClick('summary')}
+              >
                 <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
                   Professional Summary
                 </h4>
@@ -449,9 +436,16 @@ export function EditAndOptimizeStep() {
                 <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-4">
                   Experience
                 </h4>
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {finalResume.experience.map((exp, index) => (
-                    <div key={`exp-${index}`}>
+                    <div 
+                      key={`exp-${index}`}
+                      className={cn(
+                        "cursor-pointer rounded-lg p-4 -mx-4 transition-colors hover:bg-muted/30",
+                        focusedSection === `experience-${index}` && "ring-2 ring-primary bg-primary/5"
+                      )}
+                      onClick={() => handleSectionClick(`experience-${index}` as FocusedSectionType)}
+                    >
                       <div className="flex items-start justify-between mb-2">
                         <div>
                           <p className="font-semibold text-foreground">{exp.title}</p>
@@ -473,7 +467,13 @@ export function EditAndOptimizeStep() {
               </div>
 
               {/* Skills */}
-              <div>
+              <div 
+                className={cn(
+                  "cursor-pointer rounded-lg p-4 -mx-4 transition-colors hover:bg-muted/30",
+                  focusedSection === 'skills' && "ring-2 ring-primary bg-primary/5"
+                )}
+                onClick={() => handleSectionClick('skills')}
+              >
                 <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
                   Skills
                 </h4>
@@ -491,7 +491,13 @@ export function EditAndOptimizeStep() {
 
               {/* Education */}
               {finalResume.education && finalResume.education.length > 0 && (
-                <div>
+                <div 
+                  className={cn(
+                    "cursor-pointer rounded-lg p-4 -mx-4 transition-colors hover:bg-muted/30",
+                    focusedSection === 'education' && "ring-2 ring-primary bg-primary/5"
+                  )}
+                  onClick={() => handleSectionClick('education')}
+                >
                   <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
                     Education
                   </h4>
@@ -511,7 +517,7 @@ export function EditAndOptimizeStep() {
 
               {/* Certifications */}
               {finalResume.certifications && finalResume.certifications.length > 0 && (
-                <div>
+                <div className="p-4 -mx-4">
                   <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
                     Certifications
                   </h4>
@@ -536,18 +542,32 @@ export function EditAndOptimizeStep() {
                 </div>
               )}
             </div>
-          </TabsContent>
-        </Tabs>
-      </FadeIn>
-      
-      {/* Keyboard shortcuts hint */}
-      <div className="text-center text-[10px] text-muted-foreground mt-4 py-2 border-t">
-        <span className="inline-flex items-center gap-3">
-          <span><kbd className="px-1.5 py-0.5 text-[9px] bg-muted rounded">⌘/Ctrl</kbd> + <kbd className="px-1.5 py-0.5 text-[9px] bg-muted rounded">S</kbd> Save</span>
-          <span><kbd className="px-1.5 py-0.5 text-[9px] bg-muted rounded">⌘/Ctrl</kbd> + <kbd className="px-1.5 py-0.5 text-[9px] bg-muted rounded">P</kbd> Print</span>
-          <span><kbd className="px-1.5 py-0.5 text-[9px] bg-muted rounded">⌘/Ctrl</kbd> + <kbd className="px-1.5 py-0.5 text-[9px] bg-muted rounded">Shift</kbd> + <kbd className="px-1.5 py-0.5 text-[9px] bg-muted rounded">C</kbd> Copy</span>
-        </span>
+          </div>
+        </FadeIn>
+
+        {/* Keyboard shortcuts hint */}
+        <div className="text-center text-[10px] text-muted-foreground py-2 border-t flex-shrink-0">
+          <span className="inline-flex items-center gap-3">
+            <span><kbd className="px-1.5 py-0.5 text-[9px] bg-muted rounded">⌘/Ctrl</kbd> + <kbd className="px-1.5 py-0.5 text-[9px] bg-muted rounded">S</kbd> Save</span>
+            <span><kbd className="px-1.5 py-0.5 text-[9px] bg-muted rounded">⌘/Ctrl</kbd> + <kbd className="px-1.5 py-0.5 text-[9px] bg-muted rounded">P</kbd> Print</span>
+            <span><kbd className="px-1.5 py-0.5 text-[9px] bg-muted rounded">⌘/Ctrl</kbd> + <kbd className="px-1.5 py-0.5 text-[9px] bg-muted rounded">Shift</kbd> + <kbd className="px-1.5 py-0.5 text-[9px] bg-muted rounded">C</kbd> Copy</span>
+          </span>
+        </div>
       </div>
+
+      {/* Context Panel - Right Sidebar */}
+      <ContextPanel
+        focusedSection={focusedSection}
+        fitAnalysis={fitAnalysis}
+        finalResume={finalResume}
+        jobDescription={jobDescription}
+        onBulletUpdate={handleBulletUpdate}
+        onBulletAdd={handleBulletAdd}
+        onSkillAdd={handleSkillAdd}
+        onSummaryUpdate={handleSummaryUpdate}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+      />
       
       {/* Enrichment Prompt Dialog */}
       <EnrichmentPrompt
