@@ -85,41 +85,52 @@ function normalizeKeywords(input: unknown): Array<{
   resumeContext?: string;
   suggestedPhrasing?: string;
 }> {
-  if (!Array.isArray(input)) return [];
+  if (!Array.isArray(input)) {
+    console.warn('[QuickScore] Keywords not an array:', typeof input);
+    return [];
+  }
 
   return (input as KeywordLike[])
-    .map((item) => {
+    .map((item, index) => {
+      // Handle plain strings
       if (typeof item === 'string') {
         const keyword = item.trim();
         if (!keyword) return null;
         return { keyword, priority: 'high' as const };
       }
 
+      // Handle objects - check multiple possible property names AI might use
       if (item && typeof item === 'object') {
-        const keyword = (item.keyword ?? '').trim();
-        if (!keyword) return null;
+        const itemObj = item as Record<string, unknown>;
+        const keyword = (
+          itemObj.keyword || itemObj.name || itemObj.term || 
+          itemObj.skill || itemObj.text || itemObj.value || ''
+        ).toString().trim();
+        
+        if (!keyword) {
+          console.warn(`[QuickScore] Empty keyword at index ${index}:`, item);
+          return null;
+        }
+        
+        const priority = (['critical', 'high', 'medium'].includes(item.priority as string) 
+          ? item.priority 
+          : 'high') as 'critical' | 'high' | 'medium';
+          
         return {
           keyword,
-          priority: item.priority ?? 'high',
+          priority,
           prevalence: item.prevalence,
           frequency: item.frequency,
-          jdContext: item.jdContext,
+          jdContext: item.jdContext || (itemObj.context as string | undefined),
           resumeContext: item.resumeContext,
-          suggestedPhrasing: item.suggestedPhrasing,
+          suggestedPhrasing: item.suggestedPhrasing || (itemObj.suggestion as string | undefined),
         };
       }
 
+      console.warn(`[QuickScore] Invalid keyword type at index ${index}:`, typeof item);
       return null;
     })
-    .filter(Boolean) as Array<{
-    keyword: string;
-    priority: 'critical' | 'high' | 'medium';
-    prevalence?: string;
-    frequency?: number;
-    jdContext?: string;
-    resumeContext?: string;
-    suggestedPhrasing?: string;
-  }>;
+    .filter((k): k is NonNullable<typeof k> => k !== null && k.keyword.length > 0);
 }
 
 export default function QuickScore() {
@@ -214,6 +225,22 @@ export default function QuickScore() {
       if (!data?.success) {
         throw new Error(data?.error || 'Analysis returned unsuccessful result');
       }
+
+      // Debug logging to track data shape issues in production
+      console.log('[QuickScore] API Response Shape:', {
+        hasBreakdown: !!data.breakdown,
+        rawMatchedCount: data.breakdown?.jdMatch?.matchedKeywords?.length,
+        rawMissingCount: data.breakdown?.jdMatch?.missingKeywords?.length,
+        firstMatchedRaw: data.breakdown?.jdMatch?.matchedKeywords?.[0],
+        firstMissingRaw: data.breakdown?.jdMatch?.missingKeywords?.[0],
+        priorityFixesCount: data.priorityFixes?.length,
+        firstPriorityFix: data.priorityFixes?.[0],
+        gapAnalysis: {
+          fullMatches: data.gapAnalysis?.fullMatches?.length,
+          partialMatches: data.gapAnalysis?.partialMatches?.length,
+          missingReqs: data.gapAnalysis?.missingRequirements?.length
+        }
+      });
 
       setScoreResult(data);
       setStep('results');
