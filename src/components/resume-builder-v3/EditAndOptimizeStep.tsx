@@ -34,6 +34,7 @@ import { useMasterResume } from "@/hooks/useMasterResume";
 import { useEnrichment } from "@/hooks/useEnrichment";
 import type { EnrichmentSuggestion } from "@/types/master-resume";
 import { AnalysisDrawer } from "./components/AnalysisDrawer";
+import { HiringManagerReview } from "./components/HiringManagerReview";
 
 // Helper functions for safe localStorage access
 const safeGetVersions = (): ResumeVersion[] => {
@@ -431,6 +432,11 @@ export function EditAndOptimizeStep() {
             <Button variant="outline" size="sm" onClick={handleCopyText}>
               <Copy className="h-4 w-4" />
             </Button>
+            <HiringManagerReview
+              resume={finalResume}
+              jobDescription={jobDescription}
+              onSkillAdd={handleSkillAdd}
+            />
             <ExportOptionsV3 resume={finalResume} />
           </div>
         </div>
