@@ -157,31 +157,23 @@ export function ResumeBuilderV3() {
     setHasCheckedSession(true);
   }, [isHydrated, hasCheckedSession, hasHandledNavState, fitAnalysis, step, resumeText.length, jobDescription.length]);
 
-  // Step prerequisite validation for 3-step flow
+  // Step prerequisite validation for 3-step flow - with defensive fallbacks
   useEffect(() => {
     if (!isHydrated) return;
     
-    // Step 2 requires questions
+    // Step 2 requires questions - redirect gracefully without loop
     if (step === 2 && (!questions || !questions.questions || questions.questions.length === 0)) {
-      console.warn('[Resume Builder] Step 2 without questions, redirecting');
-      if (fitAnalysis) {
-        setStep(1);
-      } else {
-        reset();
-      }
+      console.warn('[Resume Builder] Step 2 without questions, going back to step 1');
+      setStep(1);
       return;
     }
     
-    // Step 3 requires final resume
+    // Step 3 requires final resume - redirect gracefully
     if (step === 3 && !finalResume) {
-      console.warn('[Resume Builder] Step 3 without resume, redirecting');
-      if (questions?.questions?.length) {
-        setStep(2);
-      } else {
-        reset();
-      }
+      console.warn('[Resume Builder] Step 3 without resume, going back');
+      setStep(questions?.questions?.length ? 2 : 1);
     }
-  }, [isHydrated, step, questions, finalResume, fitAnalysis, setStep, reset]);
+  }, [isHydrated, step, questions, finalResume, setStep]);
 
   const progressValue = ((step - 1) / (TOTAL_STEPS - 1)) * 100;
 

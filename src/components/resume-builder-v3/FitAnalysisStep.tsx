@@ -68,40 +68,39 @@ export function FitAnalysisStep() {
   const handleContinue = async () => {
     setLoading(true);
 
-    const standardsResult = await callApi<StandardsResult>({
-      step: "standards",
-      body: {
-        resumeText,
-        jobDescription,
-        fitAnalysis,
-      },
-      successMessage: "Standards analysis complete!",
-    });
+    try {
+      // Single combined API call - standards + questions together
+      // This prevents the double-analysis issue and white screen from partial failures
+      const [standardsResult, questionsResult] = await Promise.all([
+        callApi<StandardsResult>({
+          step: "standards",
+          body: {
+            resumeText,
+            jobDescription,
+            fitAnalysis,
+          },
+        }),
+        callApi<QuestionsResult>({
+          step: "questions",
+          body: {
+            resumeText,
+            jobDescription,
+            fitAnalysis,
+          },
+        }),
+      ]);
 
-    if (!standardsResult) {
+      // Only proceed if BOTH succeed - prevents partial state
+      if (standardsResult && questionsResult) {
+        setStandards(standardsResult);
+        setQuestions(questionsResult);
+        setStep(2);
+      }
+    } catch (error) {
+      console.error('[FitAnalysisStep] API error:', error);
+    } finally {
       setLoading(false);
-      return;
     }
-    
-    setStandards(standardsResult);
-
-    const questionsResult = await callApi<QuestionsResult>({
-      step: "questions",
-      body: {
-        resumeText,
-        jobDescription,
-        fitAnalysis,
-        standards: standardsResult,
-      },
-      successMessage: "Interview questions ready!",
-    });
-
-    if (questionsResult) {
-      setQuestions(questionsResult);
-      setStep(2);
-    }
-    
-    setLoading(false);
   };
 
   const score = fitAnalysis.fit_score;
