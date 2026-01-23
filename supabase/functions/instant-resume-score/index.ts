@@ -22,6 +22,91 @@ function getScoreTier(score: number): ScoreTier {
   return { tier: 'ON_FIRE', emoji: '🚀', color: '#DC2626', message: 'Exceptional match - top candidate!' };
 }
 
+// Normalize keyword arrays to ensure consistent structure
+// AI may return keywords with various property names (name, term, skill, text, value)
+function normalizeKeywordArray(arr: unknown): Array<{
+  keyword: string;
+  priority: 'critical' | 'high' | 'medium';
+  frequency?: number;
+  jdContext?: string;
+  resumeContext?: string;
+  suggestedPhrasing?: string;
+}> {
+  if (!Array.isArray(arr)) {
+    console.warn('[instant-resume-score] Keywords not an array:', typeof arr);
+    return [];
+  }
+
+  return arr
+    .map((item, index) => {
+      // Handle plain strings
+      if (typeof item === 'string') {
+        const keyword = item.trim();
+        return keyword ? { keyword, priority: 'high' as const } : null;
+      }
+
+      // Handle objects with various property names AI might use
+      if (item && typeof item === 'object') {
+        const keyword = (
+          item.keyword || item.name || item.term || 
+          item.skill || item.text || item.value || ''
+        ).toString().trim();
+        
+        if (!keyword) {
+          console.warn(`[instant-resume-score] Empty keyword at index ${index}:`, JSON.stringify(item).substring(0, 100));
+          return null;
+        }
+        
+        const priority = ['critical', 'high', 'medium'].includes(item.priority) 
+          ? item.priority as 'critical' | 'high' | 'medium'
+          : 'high';
+
+        return {
+          keyword,
+          priority,
+          frequency: typeof item.frequency === 'number' ? item.frequency : undefined,
+          jdContext: typeof item.jdContext === 'string' ? item.jdContext : 
+                     typeof item.context === 'string' ? item.context : undefined,
+          resumeContext: typeof item.resumeContext === 'string' ? item.resumeContext : undefined,
+          suggestedPhrasing: typeof item.suggestedPhrasing === 'string' ? item.suggestedPhrasing :
+                             typeof item.suggestion === 'string' ? item.suggestion : undefined,
+        };
+      }
+      
+      console.warn(`[instant-resume-score] Invalid keyword type at index ${index}:`, typeof item);
+      return null;
+    })
+    .filter((k): k is NonNullable<typeof k> => k !== null && k.keyword.length > 0);
+}
+
+// Normalize gap analysis arrays to ensure required fields exist
+function normalizeGapArray<T extends Record<string, unknown>>(
+  arr: unknown, 
+  requiredFields: string[]
+): T[] {
+  if (!Array.isArray(arr)) {
+    console.warn('[instant-resume-score] Gap array not an array:', typeof arr);
+    return [];
+  }
+
+  return arr.filter((item, index) => {
+    if (!item || typeof item !== 'object') {
+      console.warn(`[instant-resume-score] Invalid gap item at index ${index}:`, typeof item);
+      return false;
+    }
+    
+    // Check all required fields are non-empty strings
+    for (const field of requiredFields) {
+      const value = (item as Record<string, unknown>)[field];
+      if (!value || (typeof value === 'string' && !value.trim())) {
+        console.warn(`[instant-resume-score] Missing ${field} in gap item at index ${index}:`, JSON.stringify(item).substring(0, 100));
+        return false;
+      }
+    }
+    return true;
+  }) as T[];
+}
+
 serve(async (req) => {
   const requestOrigin = req.headers.get('origin');
   const corsHeaders = getCorsHeaders(requestOrigin);
@@ -360,21 +445,51 @@ RESUME: ${resumeText.substring(0, 3000)}` }
 
     const executionTime = Date.now() - startTime;
 
-    // Ensure gapAnalysis has all required fields with defaults
+    // Normalize and validate gapAnalysis arrays
     const gapAnalysis = {
-      fullMatches: scoreData.gapAnalysis?.fullMatches || [],
-      partialMatches: scoreData.gapAnalysis?.partialMatches || [],
-      missingRequirements: scoreData.gapAnalysis?.missingRequirements || [],
-      overqualifications: scoreData.gapAnalysis?.overqualifications || [],
-      irrelevantContent: scoreData.gapAnalysis?.irrelevantContent || [],
-      gapSummary: scoreData.gapAnalysis?.gapSummary || []
+      fullMatches: normalizeGapArray<{ requirement: string; evidence: string }>(
+        scoreData.gapAnalysis?.fullMatches, 
+        ['requirement', 'evidence']
+      ),
+      partialMatches: normalizeGapArray<{ requirement: string; currentStatus: string; recommendation: string }>(
+        scoreData.gapAnalysis?.partialMatches,
+        ['requirement', 'currentStatus', 'recommendation']
+      ),
+      missingRequirements: normalizeGapArray<{ requirement: string; workaround: string }>(
+        scoreData.gapAnalysis?.missingRequirements,
+        ['requirement', 'workaround']
+      ),
+      overqualifications: normalizeGapArray<{ experience: string; recommendation: string }>(
+        scoreData.gapAnalysis?.overqualifications,
+        ['experience']
+      ),
+      irrelevantContent: normalizeGapArray<{ content: string; recommendation: string }>(
+        scoreData.gapAnalysis?.irrelevantContent,
+        ['content']
+      ),
+      gapSummary: Array.isArray(scoreData.gapAnalysis?.gapSummary)
+        ? scoreData.gapAnalysis.gapSummary.filter((s: unknown) => typeof s === 'string' && s.trim())
+        : []
     };
 
-    // Ensure breakdown has all required fields with defaults
+    // Normalize and validate keyword arrays
+    const normalizedMatchedKeywords = normalizeKeywordArray(scoreData.breakdown?.jdMatch?.matchedKeywords);
+    const normalizedMissingKeywords = normalizeKeywordArray(scoreData.breakdown?.jdMatch?.missingKeywords);
+
+    console.log('[instant-resume-score] Normalized keywords:', {
+      matchedRaw: scoreData.breakdown?.jdMatch?.matchedKeywords?.length || 0,
+      matchedNormalized: normalizedMatchedKeywords.length,
+      missingRaw: scoreData.breakdown?.jdMatch?.missingKeywords?.length || 0,
+      missingNormalized: normalizedMissingKeywords.length,
+      firstMatchedKw: normalizedMatchedKeywords[0]?.keyword,
+      firstMissingKw: normalizedMissingKeywords[0]?.keyword
+    });
+
+    // Ensure breakdown has all required fields with normalized keywords
     const breakdown = {
       jdMatch: {
-        matchedKeywords: scoreData.breakdown?.jdMatch?.matchedKeywords || [],
-        missingKeywords: scoreData.breakdown?.jdMatch?.missingKeywords || [],
+        matchedKeywords: normalizedMatchedKeywords,
+        missingKeywords: normalizedMissingKeywords,
         skillsMatch: scoreData.breakdown?.jdMatch?.skillsMatch || 0,
         experienceMatch: scoreData.breakdown?.jdMatch?.experienceMatch || 0
       },
