@@ -224,6 +224,7 @@ Return JSON: { "role": "...", "industry": "...", "level": "..." }`;
     }
 
     // STEP 2: Use tool calling for reliable structured output
+    // SIMPLIFIED: No context extraction to reduce token usage
     const scoringTool = {
       type: "function" as const,
       function: {
@@ -253,11 +254,8 @@ Return JSON: { "role": "...", "industry": "...", "level": "..." }`;
                       items: {
                         type: "object",
                         properties: {
-                          keyword: { type: "string" },
-                          priority: { type: "string", enum: ["critical", "high", "medium"] },
-                          frequency: { type: "number" },
-                          jdContext: { type: "string", description: "Short phrase (max 15 words) from JD" },
-                          resumeContext: { type: "string", description: "Short phrase (max 15 words) from resume" }
+                          keyword: { type: "string", description: "The keyword or skill (1-4 words)" },
+                          priority: { type: "string", enum: ["critical", "high", "medium"] }
                         },
                         required: ["keyword", "priority"]
                       },
@@ -268,12 +266,8 @@ Return JSON: { "role": "...", "industry": "...", "level": "..." }`;
                       items: {
                         type: "object",
                         properties: {
-                          keyword: { type: "string" },
-                          priority: { type: "string", enum: ["critical", "high", "medium"] },
-                          frequency: { type: "number" },
-                          prevalence: { type: "string" },
-                          jdContext: { type: "string", description: "Short phrase (max 15 words) from JD" },
-                          suggestedPhrasing: { type: "string" }
+                          keyword: { type: "string", description: "The keyword or skill (1-4 words)" },
+                          priority: { type: "string", enum: ["critical", "high", "medium"] }
                         },
                         required: ["keyword", "priority"]
                       },
@@ -334,13 +328,15 @@ Return JSON: { "role": "...", "industry": "...", "level": "..." }`;
       }
     };
 
+    // SIMPLIFIED PROMPT: No context extraction - just keywords
     const systemPrompt = `You are an expert resume analyst. Analyze the resume against the job description.
 
 EXTRACTION RULES:
 1. Extract the TOP 20 most important matched keywords (critical/high priority first)
 2. Extract the TOP 15 most important missing keywords (critical/high priority first)
-3. For context fields, use SHORT phrases (max 15 words) - not full sentences
+3. Keywords should be single terms or short phrases (1-4 words max)
 4. Focus on technical skills, certifications, key competencies, and industry-specific terms
+5. DO NOT include context phrases - just the keyword itself
 
 SCORING WEIGHTS: jdMatch=60%, industryBenchmark=20%, atsCompliance=12%, humanVoice=8%`;
 
