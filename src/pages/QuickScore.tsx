@@ -64,6 +64,64 @@ interface ScoreResult {
   executionTimeMs: number;
 }
 
+type KeywordLike =
+  | string
+  | {
+      keyword?: string;
+      priority?: 'critical' | 'high' | 'medium';
+      prevalence?: string;
+      frequency?: number;
+      jdContext?: string;
+      resumeContext?: string;
+      suggestedPhrasing?: string;
+    };
+
+function normalizeKeywords(input: unknown): Array<{
+  keyword: string;
+  priority: 'critical' | 'high' | 'medium';
+  prevalence?: string;
+  frequency?: number;
+  jdContext?: string;
+  resumeContext?: string;
+  suggestedPhrasing?: string;
+}> {
+  if (!Array.isArray(input)) return [];
+
+  return (input as KeywordLike[])
+    .map((item) => {
+      if (typeof item === 'string') {
+        const keyword = item.trim();
+        if (!keyword) return null;
+        return { keyword, priority: 'high' as const };
+      }
+
+      if (item && typeof item === 'object') {
+        const keyword = (item.keyword ?? '').trim();
+        if (!keyword) return null;
+        return {
+          keyword,
+          priority: item.priority ?? 'high',
+          prevalence: item.prevalence,
+          frequency: item.frequency,
+          jdContext: item.jdContext,
+          resumeContext: item.resumeContext,
+          suggestedPhrasing: item.suggestedPhrasing,
+        };
+      }
+
+      return null;
+    })
+    .filter(Boolean) as Array<{
+    keyword: string;
+    priority: 'critical' | 'high' | 'medium';
+    prevalence?: string;
+    frequency?: number;
+    jdContext?: string;
+    resumeContext?: string;
+    suggestedPhrasing?: string;
+  }>;
+}
+
 export default function QuickScore() {
   const [step, setStep] = useState<Step>('upload');
   const [resumeText, setResumeText] = useState('');
@@ -179,6 +237,9 @@ export default function QuickScore() {
   };
 
   const handleFixResume = (focusedKeyword?: KeywordWithContext) => {
+    const matchedKeywords = normalizeKeywords(scoreResult?.breakdown?.jdMatch?.matchedKeywords);
+    const missingKeywords = normalizeKeywords(scoreResult?.breakdown?.jdMatch?.missingKeywords);
+
     navigate('/resume-builder', {
       state: {
         fromQuickScore: true,
@@ -193,8 +254,8 @@ export default function QuickScore() {
           priority: fix.priority
         })),
         keywordAnalysis: {
-          matched: scoreResult?.breakdown?.jdMatch?.matchedKeywords || [],
-          missing: scoreResult?.breakdown?.jdMatch?.missingKeywords || []
+          matched: matchedKeywords,
+          missing: missingKeywords
         },
         jobTitle: scoreResult?.detected?.role,
         industry: scoreResult?.detected?.industry,
@@ -214,6 +275,9 @@ export default function QuickScore() {
   };
 
   const handleFixIssue = (fix: PriorityFix) => {
+    const matchedKeywords = normalizeKeywords(scoreResult?.breakdown?.jdMatch?.matchedKeywords);
+    const missingKeywords = normalizeKeywords(scoreResult?.breakdown?.jdMatch?.missingKeywords);
+
     navigate('/resume-builder', {
       state: {
         fromQuickScore: true,
@@ -228,8 +292,8 @@ export default function QuickScore() {
           priority: f.priority
         })),
         keywordAnalysis: {
-          matched: scoreResult?.breakdown?.jdMatch?.matchedKeywords || [],
-          missing: scoreResult?.breakdown?.jdMatch?.missingKeywords || []
+          matched: matchedKeywords,
+          missing: missingKeywords
         },
         jobTitle: scoreResult?.detected?.role,
         industry: scoreResult?.detected?.industry,
@@ -244,9 +308,12 @@ export default function QuickScore() {
   };
 
   // Calculate gap count for BuilderGateway
+  const matchedKeywordsForUi = normalizeKeywords(scoreResult?.breakdown?.jdMatch?.matchedKeywords);
+  const missingKeywordsForUi = normalizeKeywords(scoreResult?.breakdown?.jdMatch?.missingKeywords);
+
   const gapCount = scoreResult 
     ? (scoreResult.priorityFixes?.length || 0) + 
-      (scoreResult.breakdown?.jdMatch?.missingKeywords?.length || 0)
+      missingKeywordsForUi.length
     : 0;
 
   return (
@@ -415,13 +482,13 @@ export default function QuickScore() {
               <div className="grid grid-cols-4 gap-4 p-4 rounded-lg border border-border bg-card">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-primary">
-                    {scoreResult.breakdown?.jdMatch?.matchedKeywords?.length || 0}
+                    {matchedKeywordsForUi.length}
                   </div>
                   <div className="text-xs text-muted-foreground">Keywords Matched</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-destructive">
-                    {scoreResult.breakdown?.jdMatch?.missingKeywords?.length || 0}
+                    {missingKeywordsForUi.length}
                   </div>
                   <div className="text-xs text-muted-foreground">Keywords Missing</div>
                 </div>
@@ -447,8 +514,8 @@ export default function QuickScore() {
 
               {/* Keyword Analysis - ALL keywords shown */}
               <KeywordAnalysisPanel
-                matchedKeywords={scoreResult.breakdown?.jdMatch?.matchedKeywords || []}
-                missingKeywords={scoreResult.breakdown?.jdMatch?.missingKeywords || []}
+                matchedKeywords={matchedKeywordsForUi}
+                missingKeywords={missingKeywordsForUi}
                 onAddToResume={handleAddKeywordToResume}
               />
 
