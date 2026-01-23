@@ -9,12 +9,17 @@ import { useRef, useState, useEffect, useCallback } from "react";
 import { useResumeBuilderV3Store } from "@/stores/resumeBuilderV3Store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Copy,
   Sparkles,
   Loader2,
   Target,
+  X,
+  Plus,
 } from "lucide-react";
+import { SummaryEditor } from "./components/SummaryEditor";
+import { BulletEditor } from "./components/BulletEditor";
 import { toast } from "sonner";
 import { ExportOptionsV3 } from "./ExportOptionsV3";
 import { PrintableResume } from "./PrintableResume";
@@ -163,6 +168,7 @@ export function EditAndOptimizeStep() {
     
     // Avoid duplicates
     if (finalResume.skills.some(s => s.toLowerCase() === skill.toLowerCase())) {
+      toast.info("Skill already exists");
       return;
     }
     
@@ -177,7 +183,28 @@ export function EditAndOptimizeStep() {
     
     setFinalResume(updatedResume);
     setAiEnhancementsCount(prev => prev + 1);
+    toast.success(`Added skill: ${skill}`);
   }, [finalResume, setFinalResume]);
+  
+  // Handler for skill removal
+  const handleSkillRemove = useCallback((skillIndex: number) => {
+    if (!finalResume) return;
+    
+    const removedSkill = finalResume.skills[skillIndex];
+    const updatedResume: OptimizedResume = {
+      ...finalResume,
+      skills: finalResume.skills.filter((_, idx) => idx !== skillIndex),
+      improvements_made: [
+        ...finalResume.improvements_made,
+        `Removed skill: ${removedSkill}`,
+      ],
+    };
+    
+    setFinalResume(updatedResume);
+  }, [finalResume, setFinalResume]);
+  
+  // State for new skill input
+  const [newSkillInput, setNewSkillInput] = useState("");
   
   // Track saved fingerprints to prevent race conditions
   const savedFingerprintRef = useRef<string | null>(null);
@@ -422,12 +449,16 @@ export function EditAndOptimizeStep() {
               )}
             </div>
 
-            {/* Summary */}
+            {/* Summary - Interactive Editor */}
             <div className="rounded-lg p-4 -mx-4 hover:bg-muted/20 transition-colors">
               <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
                 Professional Summary
               </h4>
-              <p className="text-foreground leading-relaxed">{finalResume.summary}</p>
+              <SummaryEditor
+                summary={finalResume.summary}
+                jobDescription={jobDescription}
+                onSummaryUpdate={handleSummaryUpdate}
+              />
             </div>
 
             {/* Experience */}
@@ -448,33 +479,73 @@ export function EditAndOptimizeStep() {
                       </div>
                       <p className="text-sm text-muted-foreground">{exp.dates}</p>
                     </div>
-                    <ul className="space-y-2">
+                    <div className="space-y-1">
                       {exp.bullets.map((bullet, bIdx) => (
-                        <li key={`bullet-${index}-${bIdx}`} className="text-foreground flex items-start gap-2">
-                          <span className="text-muted-foreground mt-1.5">•</span>
-                          <span>{bullet}</span>
-                        </li>
+                        <BulletEditor
+                          key={`bullet-${index}-${bIdx}`}
+                          bullet={bullet}
+                          experienceIndex={index}
+                          bulletIndex={bIdx}
+                          jobDescription={jobDescription}
+                          fitAnalysis={fitAnalysis}
+                          onBulletUpdate={handleBulletUpdate}
+                        />
                       ))}
-                    </ul>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Skills */}
+            {/* Skills - Editable */}
             <div className="rounded-lg p-4 -mx-4 hover:bg-muted/20 transition-colors">
               <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
                 Skills
               </h4>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 mb-3">
                 {finalResume.skills.map((skill, index) => (
-                  <span 
-                    key={`skill-${index}`} 
-                    className="px-3 py-1 bg-muted rounded-full text-sm text-foreground"
-                  >
-                    {skill}
-                  </span>
+                  <div key={`skill-${index}`} className="group relative">
+                    <span className="px-3 py-1 bg-muted rounded-full text-sm text-foreground inline-flex items-center gap-1.5 pr-7">
+                      {skill}
+                    </span>
+                    <button
+                      onClick={() => handleSkillRemove(index)}
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity h-4 w-4 flex items-center justify-center rounded-full bg-destructive/80 hover:bg-destructive text-destructive-foreground text-xs"
+                      title="Remove skill"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
                 ))}
+              </div>
+              {/* Add new skill input */}
+              <div className="flex items-center gap-2 max-w-xs">
+                <Input
+                  value={newSkillInput}
+                  onChange={(e) => setNewSkillInput(e.target.value)}
+                  placeholder="Add a skill..."
+                  className="h-8 text-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && newSkillInput.trim()) {
+                      handleSkillAdd(newSkillInput.trim());
+                      setNewSkillInput("");
+                    }
+                  }}
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-2"
+                  onClick={() => {
+                    if (newSkillInput.trim()) {
+                      handleSkillAdd(newSkillInput.trim());
+                      setNewSkillInput("");
+                    }
+                  }}
+                  disabled={!newSkillInput.trim()}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
               </div>
             </div>
 
