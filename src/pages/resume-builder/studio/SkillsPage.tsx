@@ -4,7 +4,7 @@ import { ResumeBuilderShell } from '@/components/resume-builder/ResumeBuilderShe
 import { Badge } from '@/components/ui/badge';
 
 export default function SkillsPage() {
-  const { projectId } = useParams<{ projectId: string }>();
+  const { projectId: _projectId } = useParams<{ projectId: string }>();
 
   return (
     <ResumeBuilderShell>

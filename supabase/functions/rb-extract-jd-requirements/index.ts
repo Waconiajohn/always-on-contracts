@@ -1,0 +1,200 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+interface ExtractRequirementsRequest {
+  project_id: string;
+  jd_text: string;
+  role_title: string;
+  seniority_level: string;
+}
+
+interface RequirementItem {
+  text: string;
+  weight: number;
+  exact_phrases: string[];
+  synonyms: string[];
+  section_hint: "Summary" | "Skills" | "Experience" | "Education";
+}
+
+interface ExtractedRequirements {
+  hard_skills: RequirementItem[];
+  tools_tech: RequirementItem[];
+  domain_knowledge: RequirementItem[];
+  responsibilities: RequirementItem[];
+  outcomes_metrics: RequirementItem[];
+  education_certs: RequirementItem[];
+  titles_seniority: RequirementItem[];
+  soft_skills: RequirementItem[];
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "No authorization header" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(
+      authHeader.replace("Bearer ", "")
+    );
+
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { project_id, jd_text, role_title, seniority_level } = await req.json() as ExtractRequirementsRequest;
+
+    if (!project_id || !jd_text) {
+      return new Response(JSON.stringify({ error: "Missing required fields" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const systemPrompt = `You are an expert at extracting requirements from job descriptions.
+Extract ALL requirements and categorize them. For each requirement:
+- Assign a weight (1-5): 5 = explicitly required/must-have, 3 = preferred/nice-to-have, 1 = implied
+- Extract exact phrases used in the JD
+- Suggest synonyms/variations
+- Indicate which resume section should address it
+
+Respond ONLY with valid JSON:
+{
+  "hard_skills": [{ "text": "...", "weight": 1-5, "exact_phrases": [...], "synonyms": [...], "section_hint": "Skills|Experience" }],
+  "tools_tech": [...],
+  "domain_knowledge": [...],
+  "responsibilities": [...],
+  "outcomes_metrics": [...],
+  "education_certs": [...],
+  "titles_seniority": [...],
+  "soft_skills": [...]
+}
+
+Be thorough - extract everything that could be matched against a resume.`;
+
+    const userPrompt = `Extract requirements from this ${seniority_level} ${role_title} job description:\n\n${jd_text}`;
+
+    const { response, metrics } = await callLovableAI(
+      {
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        model: LOVABLE_AI_MODELS.DEFAULT,
+        temperature: 0.2,
+        response_format: { type: "json_object" },
+      },
+      "rb-extract-jd-requirements",
+      user.id
+    );
+
+    await logAIUsage(metrics);
+
+    const content = response.choices?.[0]?.message?.content;
+
+    if (!content) {
+      return new Response(JSON.stringify({ error: "No response from AI" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const parseResult = extractJSON(content);
+    if (!parseResult.success || !parseResult.data) {
+      console.error("Failed to parse AI response:", content);
+      return new Response(JSON.stringify({ error: "Invalid AI response format" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const result = parseResult.data as ExtractedRequirements;
+
+    // Save requirements to database
+    const categoryMapping: Record<string, string> = {
+      hard_skills: "hard_skill",
+      tools_tech: "tool",
+      domain_knowledge: "domain",
+      responsibilities: "responsibility",
+      outcomes_metrics: "outcome",
+      education_certs: "education",
+      titles_seniority: "title",
+      soft_skills: "soft_skill",
+    };
+
+    const requirementsToInsert: {
+      project_id: string;
+      category: string;
+      text: string;
+      weight: number;
+      exact_phrases: string[];
+      synonyms: string[];
+      section_hint: string;
+    }[] = [];
+
+    for (const [key, category] of Object.entries(categoryMapping)) {
+      const items = result[key as keyof ExtractedRequirements] || [];
+      for (const item of items) {
+        requirementsToInsert.push({
+          project_id,
+          category,
+          text: item.text,
+          weight: item.weight,
+          exact_phrases: item.exact_phrases || [],
+          synonyms: item.synonyms || [],
+          section_hint: item.section_hint || "Experience",
+        });
+      }
+    }
+
+    if (requirementsToInsert.length > 0) {
+      const { error: insertError } = await supabase
+        .from("rb_jd_requirements")
+        .insert(requirementsToInsert);
+
+      if (insertError) {
+        console.error("Error inserting requirements:", insertError);
+        return new Response(JSON.stringify({ error: "Failed to save requirements" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    return new Response(JSON.stringify({ 
+      success: true, 
+      requirements_count: requirementsToInsert.length,
+      result 
+    }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error("Error in rb-extract-jd-requirements:", error);
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});
