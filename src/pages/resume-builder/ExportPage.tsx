@@ -8,11 +8,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
+import { saveAs } from 'file-saver';
 import { 
-   
   Copy, 
   FileText, 
-  Code,
+  Download,
   Loader2,
   CheckCircle2,
   ArrowLeft
@@ -27,6 +28,7 @@ export default function ExportPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [plainText, setPlainText] = useState('');
   const [copied, setCopied] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -117,6 +119,86 @@ export default function ExportPage() {
     toast.success('Downloaded as TXT');
   };
 
+  const handleDownloadDocx = async () => {
+    if (!versions.length) {
+      toast.error('No content to export');
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      const sectionOrder = ['summary', 'skills', 'experience', 'education'];
+      const sectionTitles: Record<string, string> = {
+        summary: 'PROFESSIONAL SUMMARY',
+        skills: 'SKILLS & COMPETENCIES',
+        experience: 'PROFESSIONAL EXPERIENCE',
+        education: 'EDUCATION & CERTIFICATIONS',
+      };
+
+      const sortedVersions = [...versions].sort((a, b) => {
+        const aIndex = sectionOrder.indexOf(a.section_name);
+        const bIndex = sectionOrder.indexOf(b.section_name);
+        return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
+      });
+
+      const children: (typeof Paragraph.prototype)[] = [];
+
+      // Add header if project has role title
+      if (project?.role_title) {
+        children.push(
+          new Paragraph({
+            text: project.role_title,
+            heading: HeadingLevel.TITLE,
+            alignment: AlignmentType.CENTER,
+          })
+        );
+        children.push(new Paragraph({ text: '' }));
+      }
+
+      // Add each section
+      for (const version of sortedVersions) {
+        const title = sectionTitles[version.section_name] || version.section_name.toUpperCase();
+        
+        children.push(
+          new Paragraph({
+            text: title,
+            heading: HeadingLevel.HEADING_1,
+          })
+        );
+
+        // Split content into paragraphs/bullets
+        const lines = version.content.split('\n').filter(line => line.trim());
+        for (const line of lines) {
+          const isBullet = line.trim().startsWith('•') || line.trim().startsWith('-');
+          children.push(
+            new Paragraph({
+              children: [new TextRun(line.replace(/^[•-]\s*/, ''))],
+              bullet: isBullet ? { level: 0 } : undefined,
+            })
+          );
+        }
+
+        children.push(new Paragraph({ text: '' }));
+      }
+
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children,
+        }],
+      });
+
+      const blob = await Packer.toBlob(doc);
+      saveAs(blob, `${project?.role_title?.replace(/\s+/g, '_') || 'resume'}_tailored.docx`);
+      toast.success('Downloaded as DOCX');
+    } catch (err) {
+      console.error('DOCX export error:', err);
+      toast.error('Failed to generate DOCX');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const handleMarkComplete = async () => {
     if (!projectId) return;
 
@@ -164,7 +246,7 @@ export default function ExportPage() {
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base">
                 {copied ? (
-                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+                  <CheckCircle2 className="h-5 w-5 text-primary" />
                 ) : (
                   <Copy className="h-5 w-5" />
                 )}
@@ -192,11 +274,18 @@ export default function ExportPage() {
             </CardContent>
           </Card>
 
-          <Card className="opacity-50">
+          <Card 
+            className={`cursor-pointer hover:border-primary transition-colors ${isExporting ? 'opacity-50' : ''}`} 
+            onClick={!isExporting ? handleDownloadDocx : undefined}
+          >
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base">
-                <Code className="h-5 w-5" />
-                DOCX (Coming Soon)
+                {isExporting ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Download className="h-5 w-5" />
+                )}
+                Download DOCX
               </CardTitle>
             </CardHeader>
             <CardContent>
