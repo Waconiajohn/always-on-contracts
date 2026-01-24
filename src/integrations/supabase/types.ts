@@ -3202,6 +3202,313 @@ export type Database = {
         }
         Relationships: []
       }
+      rb_benchmark_requirements: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          project_id: string
+          section_hint: string | null
+          text: string
+          weight: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          project_id: string
+          section_hint?: string | null
+          text: string
+          weight?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          project_id?: string
+          section_hint?: string | null
+          text?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rb_benchmark_requirements_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "rb_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rb_documents: {
+        Row: {
+          created_at: string
+          file_name: string
+          id: string
+          parsed_json: Json | null
+          project_id: string
+          raw_text: string | null
+          span_index: Json | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          id?: string
+          parsed_json?: Json | null
+          project_id: string
+          raw_text?: string | null
+          span_index?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          id?: string
+          parsed_json?: Json | null
+          project_id?: string
+          raw_text?: string | null
+          span_index?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rb_documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "rb_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rb_evidence: {
+        Row: {
+          category: string
+          claim_text: string
+          confidence: string
+          created_at: string
+          evidence_quote: string
+          id: string
+          is_active: boolean
+          project_id: string
+          source: string
+          span_location: Json | null
+        }
+        Insert: {
+          category: string
+          claim_text: string
+          confidence?: string
+          created_at?: string
+          evidence_quote: string
+          id?: string
+          is_active?: boolean
+          project_id: string
+          source?: string
+          span_location?: Json | null
+        }
+        Update: {
+          category?: string
+          claim_text?: string
+          confidence?: string
+          created_at?: string
+          evidence_quote?: string
+          id?: string
+          is_active?: boolean
+          project_id?: string
+          source?: string
+          span_location?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rb_evidence_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "rb_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rb_jd_requirements: {
+        Row: {
+          category: string
+          created_at: string
+          exact_phrases: Json | null
+          id: string
+          project_id: string
+          section_hint: string | null
+          synonyms: Json | null
+          text: string
+          weight: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          exact_phrases?: Json | null
+          id?: string
+          project_id: string
+          section_hint?: string | null
+          synonyms?: Json | null
+          text: string
+          weight?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          exact_phrases?: Json | null
+          id?: string
+          project_id?: string
+          section_hint?: string | null
+          synonyms?: Json | null
+          text?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rb_jd_requirements_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "rb_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rb_keyword_decisions: {
+        Row: {
+          created_at: string
+          decision: string
+          evidence_id: string | null
+          id: string
+          keyword: string
+          project_id: string
+        }
+        Insert: {
+          created_at?: string
+          decision: string
+          evidence_id?: string | null
+          id?: string
+          keyword: string
+          project_id: string
+        }
+        Update: {
+          created_at?: string
+          decision?: string
+          evidence_id?: string | null
+          id?: string
+          keyword?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rb_keyword_decisions_evidence_id_fkey"
+            columns: ["evidence_id"]
+            isOneToOne: false
+            referencedRelation: "rb_evidence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rb_keyword_decisions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "rb_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rb_projects: {
+        Row: {
+          created_at: string
+          current_score: number | null
+          id: string
+          industry: string | null
+          jd_confidence: number | null
+          jd_text: string | null
+          original_score: number | null
+          role_title: string | null
+          seniority_level: string | null
+          status: string
+          sub_industry: string | null
+          target_confirmed: boolean | null
+          updated_at: string
+          user_id: string
+          user_override_target: Json | null
+        }
+        Insert: {
+          created_at?: string
+          current_score?: number | null
+          id?: string
+          industry?: string | null
+          jd_confidence?: number | null
+          jd_text?: string | null
+          original_score?: number | null
+          role_title?: string | null
+          seniority_level?: string | null
+          status?: string
+          sub_industry?: string | null
+          target_confirmed?: boolean | null
+          updated_at?: string
+          user_id: string
+          user_override_target?: Json | null
+        }
+        Update: {
+          created_at?: string
+          current_score?: number | null
+          id?: string
+          industry?: string | null
+          jd_confidence?: number | null
+          jd_text?: string | null
+          original_score?: number | null
+          role_title?: string | null
+          seniority_level?: string | null
+          status?: string
+          sub_industry?: string | null
+          target_confirmed?: boolean | null
+          updated_at?: string
+          user_id?: string
+          user_override_target?: Json | null
+        }
+        Relationships: []
+      }
+      rb_versions: {
+        Row: {
+          action_source: string
+          content: string
+          created_at: string
+          id: string
+          is_active: boolean
+          project_id: string
+          section_name: string
+          version_number: number
+        }
+        Insert: {
+          action_source: string
+          content: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          project_id: string
+          section_name: string
+          version_number?: number
+        }
+        Update: {
+          action_source?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          project_id?: string
+          section_name?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rb_versions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "rb_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       research_findings: {
         Row: {
           credibility_score: number | null
