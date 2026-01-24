@@ -1,7 +1,7 @@
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ModuleGate } from "@/components/ModuleGate";
 import { ResumeMatchWorkspace } from "@/components/resume-match";
-import { ResumeBuilderErrorBoundary } from "@/components/resume-builder-v3/components/ErrorBoundary";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const ResumeOptimizerContent = () => {
   return (
@@ -15,9 +15,9 @@ export default function ResumeOptimizer() {
   return (
     <ProtectedRoute>
       <ModuleGate module="resume_jobs_studio">
-        <ResumeBuilderErrorBoundary>
+        <ErrorBoundary>
           <ResumeOptimizerContent />
-        </ResumeBuilderErrorBoundary>
+        </ErrorBoundary>
       </ModuleGate>
     </ProtectedRoute>
   );
