@@ -2,12 +2,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState, useCallback } from 'react';
 import { ResumeBuilderShell } from '@/components/resume-builder/ResumeBuilderShell';
 import { KeywordChipGroup, GapCard } from '@/components/resume-builder/KeywordChip';
+import { QuestionCaptureModal } from '@/components/resume-builder/QuestionCaptureModal';
+import { AddBulletForm } from '@/components/resume-builder/AddBulletForm';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowRight, Check, X, AlertCircle, Sparkles, Target, Zap } from 'lucide-react';
+import { ArrowRight, Check, X, AlertCircle, Sparkles, Target, Zap, HelpCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import type { RBKeywordDecision, KeywordDecision } from '@/types/resume-builder';
 
@@ -18,11 +20,20 @@ interface GapAnalysis {
   requirement_id: string;
 }
 
+interface ExperiencePosition {
+  title: string;
+  company: string;
+  index: number;
+}
+
 export default function FixPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const [keywords, setKeywords] = useState<RBKeywordDecision[]>([]);
   const [gaps, setGaps] = useState<GapAnalysis[]>([]);
+  const [questions, setQuestions] = useState<string[]>([]);
+  const [positions, setPositions] = useState<ExperiencePosition[]>([]);
+  const [showQuestions, setShowQuestions] = useState(false);
   const [_loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
@@ -47,7 +58,6 @@ export default function FixPage() {
         .order('priority', { ascending: false });
 
       // Compute gaps (requirements not matched by evidence)
-      // In a full implementation, this would come from gap analysis edge function
       const gapsFromReqs = (reqData || [])
         .filter((r: any) => !r.is_matched)
         .map((r: any) => ({
@@ -58,6 +68,35 @@ export default function FixPage() {
         }));
       
       setGaps(gapsFromReqs);
+
+      // Load document to extract positions
+      const { data: docData } = await supabase
+        .from('rb_documents')
+        .select('parsed_json')
+        .eq('project_id', projectId)
+        .eq('doc_type', 'resume')
+        .single();
+      
+      if (docData?.parsed_json) {
+        const parsed = docData.parsed_json as any;
+        if (parsed.experience && Array.isArray(parsed.experience)) {
+          setPositions(parsed.experience.map((exp: any, i: number) => ({
+            title: exp.title || 'Position',
+            company: exp.company || 'Company',
+            index: i,
+          })));
+        }
+      }
+
+      // Check if there are cached questions from gap analysis
+      // For now, generate sample questions based on unmet gaps
+      const criticalGaps = gapsFromReqs.filter((g: GapAnalysis) => g.severity === 'critical');
+      if (criticalGaps.length > 0) {
+        const generatedQuestions = criticalGaps.slice(0, 3).map((g: GapAnalysis) => 
+          `Do you have experience with ${g.requirement}? If so, describe a specific example.`
+        );
+        setQuestions(generatedQuestions);
+      }
     } catch (err) {
       console.error('Failed to load fix data:', err);
       toast.error('Failed to load data');
@@ -227,6 +266,38 @@ export default function FixPage() {
           </TabsContent>
 
           <TabsContent value="gaps" className="space-y-4">
+            {/* Questions Banner */}
+            {questions.length > 0 && (
+              <Card className="p-4 border-primary/30 bg-primary/5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <HelpCircle className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">We have questions for you</p>
+                      <p className="text-xs text-muted-foreground">
+                        Help us fill gaps by answering {questions.length} question{questions.length > 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  </div>
+                  <Button size="sm" onClick={() => setShowQuestions(true)}>
+                    Answer Questions
+                    <Badge className="ml-2" variant="secondary">{questions.length}</Badge>
+                  </Button>
+                </div>
+              </Card>
+            )}
+
+            {/* Add Bullet Form */}
+            {projectId && (
+              <AddBulletForm
+                projectId={projectId}
+                positions={positions}
+                onBulletAdded={loadData}
+              />
+            )}
+
             {gaps.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12">
@@ -299,6 +370,20 @@ export default function FixPage() {
             )}
           </TabsContent>
         </Tabs>
+
+        {/* Question Capture Modal */}
+        {projectId && (
+          <QuestionCaptureModal
+            open={showQuestions}
+            onOpenChange={setShowQuestions}
+            projectId={projectId}
+            questions={questions}
+            onComplete={() => {
+              loadData();
+              setQuestions([]);
+            }}
+          />
+        )}
       </div>
     </ResumeBuilderShell>
   );
