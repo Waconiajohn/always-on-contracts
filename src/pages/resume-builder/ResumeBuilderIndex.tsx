@@ -3,10 +3,97 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, FileText, ArrowRight, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Plus, FileText, ArrowRight, Loader2, Clock, CheckCircle2, Wand2, AlertCircle, Upload } from "lucide-react";
 import { format } from "date-fns";
 import { ResumeBuilderShell } from "@/components/resume-builder/ResumeBuilderShell";
 import type { RBProject } from "@/types/resume-builder";
+
+type StatusConfig = {
+  label: string;
+  icon: React.ElementType;
+  color: string;
+  badgeVariant: "default" | "secondary" | "destructive" | "outline";
+};
+
+const STATUS_CONFIG: Record<string, StatusConfig> = {
+  upload: { 
+    label: "Resume Upload", 
+    icon: Upload, 
+    color: "text-muted-foreground",
+    badgeVariant: "outline" 
+  },
+  jd: { 
+    label: "Add Job Description", 
+    icon: FileText, 
+    color: "text-muted-foreground",
+    badgeVariant: "outline" 
+  },
+  target: { 
+    label: "Confirm Target", 
+    icon: Clock, 
+    color: "text-amber-500",
+    badgeVariant: "secondary" 
+  },
+  processing: { 
+    label: "Processing", 
+    icon: Loader2, 
+    color: "text-primary animate-spin",
+    badgeVariant: "default" 
+  },
+  report: { 
+    label: "View Report", 
+    icon: FileText, 
+    color: "text-primary",
+    badgeVariant: "default" 
+  },
+  fix: { 
+    label: "Fix Issues", 
+    icon: AlertCircle, 
+    color: "text-amber-500",
+    badgeVariant: "secondary" 
+  },
+  studio: { 
+    label: "Rewrite Studio", 
+    icon: Wand2, 
+    color: "text-primary",
+    badgeVariant: "default" 
+  },
+  review: { 
+    label: "Final Review", 
+    icon: CheckCircle2, 
+    color: "text-primary",
+    badgeVariant: "default" 
+  },
+  export: { 
+    label: "Export", 
+    icon: FileText, 
+    color: "text-primary",
+    badgeVariant: "default" 
+  },
+  complete: { 
+    label: "Complete", 
+    icon: CheckCircle2, 
+    color: "text-primary",
+    badgeVariant: "default" 
+  },
+};
+
+function getStatusConfig(status: string): StatusConfig {
+  return STATUS_CONFIG[status] || { 
+    label: status, 
+    icon: Clock, 
+    color: "text-muted-foreground",
+    badgeVariant: "outline" 
+  };
+}
+
+function getScoreColor(score: number | null): string {
+  if (score === null) return "text-muted-foreground";
+  if (score >= 80) return "text-primary";
+  if (score >= 60) return "text-amber-500";
+  return "text-destructive";
+}
 
 export default function ResumeBuilderIndex() {
   const navigate = useNavigate();
@@ -59,22 +146,6 @@ export default function ResumeBuilderIndex() {
     }
   };
 
-  const getStatusLabel = (status: string) => {
-    const labels: Record<string, string> = {
-      upload: "Resume Upload",
-      jd: "Job Description",
-      target: "Target Confirmation",
-      processing: "Processing",
-      report: "Match Report",
-      fix: "Fix Issues",
-      studio: "Rewrite Studio",
-      review: "Final Review",
-      export: "Export",
-      complete: "Complete",
-    };
-    return labels[status] || status;
-  };
-
   const getNextRoute = (project: RBProject) => {
     return `/resume-builder/${project.id}/${project.status}`;
   };
@@ -125,44 +196,53 @@ export default function ResumeBuilderIndex() {
           </Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {projects.map((project) => (
-              <Card 
-                key={project.id} 
-                className="cursor-pointer hover:border-primary/50 transition-colors"
-                onClick={() => navigate(getNextRoute(project))}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <CardTitle className="text-base">
-                        {project.role_title || "Untitled Project"}
-                      </CardTitle>
-                      <CardDescription className="text-xs">
-                        {project.industry && project.seniority_level
-                          ? `${project.seniority_level} • ${project.industry}`
-                          : "No target set"}
-                      </CardDescription>
-                    </div>
-                    {project.current_score !== null && (
-                      <div className="text-2xl font-semibold tabular-nums text-primary">
-                        {project.current_score}
+            {projects.map((project) => {
+              const statusConfig = getStatusConfig(project.status);
+              const StatusIcon = statusConfig.icon;
+              
+              return (
+                <Card 
+                  key={project.id} 
+                  className="cursor-pointer hover:border-primary/50 transition-colors group"
+                  onClick={() => navigate(getNextRoute(project))}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <CardTitle className="text-base truncate">
+                          {project.role_title || "Untitled Project"}
+                        </CardTitle>
+                        <CardDescription className="text-xs">
+                          {project.industry && project.seniority_level
+                            ? `${project.seniority_level} • ${project.industry}`
+                            : "No target set"}
+                        </CardDescription>
                       </div>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">
-                      {format(new Date(project.updated_at), "MMM d, yyyy")}
-                    </span>
-                    <span className="flex items-center gap-1 text-primary font-medium">
-                      {getStatusLabel(project.status)}
-                      <ArrowRight className="h-3 w-3" />
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                      {project.current_score !== null && (
+                        <div className={`text-2xl font-semibold tabular-nums ${getScoreColor(project.current_score)}`}>
+                          {project.current_score}
+                        </div>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">
+                        {format(new Date(project.updated_at), "MMM d, yyyy")}
+                      </span>
+                      <Badge 
+                        variant={statusConfig.badgeVariant}
+                        className="flex items-center gap-1.5 text-xs"
+                      >
+                        <StatusIcon className={`h-3 w-3 ${statusConfig.color}`} />
+                        {statusConfig.label}
+                        <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
