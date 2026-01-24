@@ -53,7 +53,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const TestingDashboard = lazy(() => import("./pages/TestingDashboard"));
 const ExperimentalLab = lazy(() => import("./pages/ExperimentalLab"));
 const QuickScore = lazy(() => import("./pages/QuickScore"));
-const ResumeBuilderPlaceholder = lazy(() => import("./components/resume-builder/ResumeBuilderPlaceholder").then(m => ({ default: m.ResumeBuilderPlaceholder })));
+
 const ResumeOptimizerMarketing = lazy(() => import("./pages/ResumeOptimizerMarketing"));
 const ResumeTailorV2 = lazy(() => import("./components/v2/V2Page"));
 
