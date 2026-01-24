@@ -1,6 +1,7 @@
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ShieldCheck, ShieldAlert, Shield } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ShieldCheck, ShieldAlert, Shield, FileText, UserPlus } from 'lucide-react';
 import type { RBEvidence } from '@/types/resume-builder';
 
 interface EvidenceSidebarProps {
@@ -9,6 +10,7 @@ interface EvidenceSidebarProps {
 }
 
 type ConfidenceLevel = 'high' | 'medium' | 'low';
+type EvidenceSource = 'extracted' | 'user_provided';
 
 function getConfidenceLevel(confidence: number): ConfidenceLevel {
   if (confidence >= 0.8) return 'high';
@@ -50,6 +52,41 @@ function ConfidenceIndicator({ confidence }: { confidence: number }) {
   );
 }
 
+function SourceBadge({ source }: { source: EvidenceSource }) {
+  const isUserProvided = source === 'user_provided';
+  
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Badge 
+            variant="outline" 
+            className={`text-xs gap-1 ${isUserProvided ? 'border-primary/50 text-primary' : ''}`}
+          >
+            {isUserProvided ? (
+              <>
+                <UserPlus className="h-3 w-3" />
+                You Added
+              </>
+            ) : (
+              <>
+                <FileText className="h-3 w-3" />
+                From Resume
+              </>
+            )}
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent>
+          {isUserProvided 
+            ? 'You provided this information via questions'
+            : 'Extracted from your uploaded resume'
+          }
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 export function EvidenceSidebar({ evidence, maxItems = 10 }: EvidenceSidebarProps) {
   const displayEvidence = evidence.slice(0, maxItems);
   const remainingCount = evidence.length - maxItems;
@@ -87,12 +124,15 @@ export function EvidenceSidebar({ evidence, maxItems = 10 }: EvidenceSidebarProp
                 <p className="text-xs font-medium leading-relaxed line-clamp-3">
                   {item.claim_text}
                 </p>
-                <div className="flex items-center justify-between gap-2">
-                  <Badge variant="outline" className="text-xs truncate max-w-[120px]">
-                    {item.category}
-                  </Badge>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <SourceBadge source={(item.source as EvidenceSource) || 'extracted'} />
                   <ConfidenceIndicator confidence={Number(item.confidence) || 0} />
                 </div>
+                {item.evidence_quote && (
+                  <p className="text-xs text-muted-foreground italic line-clamp-2 border-l-2 border-muted pl-2">
+                    "{item.evidence_quote}"
+                  </p>
+                )}
               </div>
             </Card>
           ))}
