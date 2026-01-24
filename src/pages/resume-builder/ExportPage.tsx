@@ -10,10 +10,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
+import jsPDF from 'jspdf';
 import { 
   Copy, 
   FileText, 
   Download,
+  FileDown,
   Loader2,
   CheckCircle2,
   ArrowLeft
@@ -29,6 +31,7 @@ export default function ExportPage() {
   const [plainText, setPlainText] = useState('');
   const [copied, setCopied] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isPdfExporting, setIsPdfExporting] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -199,6 +202,108 @@ export default function ExportPage() {
     }
   };
 
+  const handleDownloadPdf = async () => {
+    if (!versions.length) {
+      toast.error('No content to export');
+      return;
+    }
+
+    setIsPdfExporting(true);
+    try {
+      const sectionOrder = ['summary', 'skills', 'experience', 'education'];
+      const sectionTitles: Record<string, string> = {
+        summary: 'PROFESSIONAL SUMMARY',
+        skills: 'SKILLS & COMPETENCIES',
+        experience: 'PROFESSIONAL EXPERIENCE',
+        education: 'EDUCATION & CERTIFICATIONS',
+      };
+
+      const sortedVersions = [...versions].sort((a, b) => {
+        const aIndex = sectionOrder.indexOf(a.section_name);
+        const bIndex = sectionOrder.indexOf(b.section_name);
+        return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
+      });
+
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const margin = 20;
+      const maxWidth = pageWidth - margin * 2;
+      let yPosition = 20;
+      const lineHeight = 6;
+      const sectionGap = 10;
+
+      // Add title if project has role title
+      if (project?.role_title) {
+        pdf.setFontSize(18);
+        pdf.setFont('helvetica', 'bold');
+        const titleWidth = pdf.getTextWidth(project.role_title);
+        pdf.text(project.role_title, (pageWidth - titleWidth) / 2, yPosition);
+        yPosition += 12;
+      }
+
+      // Add each section
+      for (const version of sortedVersions) {
+        const title = sectionTitles[version.section_name] || version.section_name.toUpperCase();
+        
+        // Check if we need a new page
+        if (yPosition > 270) {
+          pdf.addPage();
+          yPosition = 20;
+        }
+
+        // Section title
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(title, margin, yPosition);
+        yPosition += lineHeight + 2;
+
+        // Section content
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        
+        const lines = version.content.split('\n').filter(line => line.trim());
+        for (const line of lines) {
+          // Check if we need a new page
+          if (yPosition > 280) {
+            pdf.addPage();
+            yPosition = 20;
+          }
+
+          const isBullet = line.trim().startsWith('•') || line.trim().startsWith('-');
+          const cleanLine = line.replace(/^[•-]\s*/, '');
+          const prefix = isBullet ? '• ' : '';
+          const xOffset = isBullet ? margin + 3 : margin;
+          
+          // Wrap text if needed
+          const wrappedLines = pdf.splitTextToSize(prefix + cleanLine, maxWidth - (isBullet ? 3 : 0));
+          for (const wrappedLine of wrappedLines) {
+            if (yPosition > 280) {
+              pdf.addPage();
+              yPosition = 20;
+            }
+            pdf.text(wrappedLine, xOffset, yPosition);
+            yPosition += lineHeight;
+          }
+        }
+
+        yPosition += sectionGap;
+      }
+
+      pdf.save(`${project?.role_title?.replace(/\s+/g, '_') || 'resume'}_tailored.pdf`);
+      toast.success('Downloaded as PDF');
+    } catch (err) {
+      console.error('PDF export error:', err);
+      toast.error('Failed to generate PDF');
+    } finally {
+      setIsPdfExporting(false);
+    }
+  };
+
   const handleMarkComplete = async () => {
     if (!projectId) return;
 
@@ -241,7 +346,7 @@ export default function ExportPage() {
         </div>
 
         {/* Export Options */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="cursor-pointer hover:border-primary transition-colors" onClick={handleCopy}>
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base">
@@ -291,6 +396,27 @@ export default function ExportPage() {
             <CardContent>
               <CardDescription>
                 Formatted Word document
+              </CardDescription>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className={`cursor-pointer hover:border-primary transition-colors ${isPdfExporting ? 'opacity-50' : ''}`} 
+            onClick={!isPdfExporting ? handleDownloadPdf : undefined}
+          >
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-base">
+                {isPdfExporting ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <FileDown className="h-5 w-5" />
+                )}
+                Download PDF
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription>
+                Professional PDF format
               </CardDescription>
             </CardContent>
           </Card>
