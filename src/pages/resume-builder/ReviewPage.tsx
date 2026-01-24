@@ -15,10 +15,12 @@ import {
   XCircle, 
   Loader2, 
   ArrowRight,
+  ArrowLeft,
   RefreshCw,
   FileCheck,
   ShieldCheck,
-  ShieldAlert
+  ShieldAlert,
+  TrendingUp
 } from 'lucide-react';
 import type { RBProject, RBVersion, RBEvidence } from '@/types/resume-builder';
 
@@ -68,6 +70,9 @@ export default function ReviewPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isRunningCritique, setIsRunningCritique] = useState(false);
   const [isRunningValidation, setIsRunningValidation] = useState(false);
+
+  // Computed score delta
+  const scoreDelta = (project?.current_score ?? 0) - (project?.original_score ?? 0);
 
   useEffect(() => {
     loadData();
@@ -236,37 +241,75 @@ export default function ReviewPage() {
     <ResumeBuilderShell>
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Final Review</h1>
-            <p className="text-muted-foreground">
-              Validate your resume before exporting
-            </p>
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => navigate(`/resume-builder/${projectId}/studio/summary`)}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold">Final Review</h1>
+              <p className="text-muted-foreground">
+                Validate your resume before exporting
+              </p>
+            </div>
           </div>
-          <Button onClick={handleExport} className="gap-2">
-            <FileCheck className="h-4 w-4" />
-            Export Resume
-            <ArrowRight className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate(`/resume-builder/${projectId}/studio/summary`)}
+            >
+              Back to Studio
+            </Button>
+            <Button onClick={handleExport} className="gap-2">
+              <FileCheck className="h-4 w-4" />
+              Export Resume
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
-        {/* Current Score */}
-        <Card>
-          <CardHeader>
+        {/* Score Delta Card */}
+        <Card className={scoreDelta > 0 ? 'border-primary/50 bg-primary/5' : ''}>
+          <CardHeader className="pb-2">
             <CardTitle className="flex items-center justify-between">
               <span>Match Score</span>
-              <span className="text-3xl font-bold text-primary">
-                {project?.current_score ?? project?.original_score ?? '--'}%
-              </span>
+              <div className="flex items-center gap-3">
+                {scoreDelta !== 0 && (
+                  <Badge 
+                    variant={scoreDelta > 0 ? 'default' : 'destructive'}
+                    className="text-sm font-medium"
+                  >
+                    {scoreDelta > 0 ? '+' : ''}{scoreDelta} points
+                  </Badge>
+                )}
+                <span className="text-4xl font-bold tabular-nums text-primary">
+                  {project?.current_score ?? project?.original_score ?? '--'}%
+                </span>
+              </div>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
             <Progress 
               value={project?.current_score ?? project?.original_score ?? 0} 
               className="h-3"
             />
-            <div className="flex justify-between mt-2 text-sm text-muted-foreground">
-              <span>Original: {project?.original_score ?? '--'}%</span>
-              <span>Target: 85%+</span>
+            <div className="flex justify-between text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Original:</span>
+                <span className="font-medium">{project?.original_score ?? '--'}%</span>
+                {scoreDelta > 0 && (
+                  <span className="text-primary flex items-center gap-1">
+                    <TrendingUp className="h-3 w-3" />
+                    Improved
+                  </span>
+                )}
+              </div>
+              <span className={`font-medium ${(project?.current_score ?? 0) >= 85 ? 'text-primary' : 'text-muted-foreground'}`}>
+                Target: 85%+
+              </span>
             </div>
           </CardContent>
         </Card>
