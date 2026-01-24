@@ -29,9 +29,13 @@ interface CritiqueItem {
 interface CritiqueResult {
   overall_score: number;
   hiring_manager_impression: string;
+  would_interview: boolean;
+  interview_reasoning: string;
   strengths: string[];
   weaknesses: string[];
   items: CritiqueItem[];
+  missing_for_role: string[];
+  red_flags: string[];
 }
 
 export default function ReviewPage() {
@@ -100,9 +104,9 @@ export default function ReviewPage() {
       case 'error':
         return <XCircle className="h-4 w-4 text-destructive" />;
       case 'warning':
-        return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+        return <AlertTriangle className="h-4 w-4 text-amber-500" />;
       default:
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+        return <CheckCircle2 className="h-4 w-4 text-primary" />;
     }
   };
 
@@ -194,6 +198,25 @@ export default function ReviewPage() {
 
             {critique && (
               <div className="space-y-6">
+                {/* Interview Decision */}
+                <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50">
+                  <div className={`p-3 rounded-full ${critique.would_interview ? 'bg-primary/20' : 'bg-destructive/20'}`}>
+                    {critique.would_interview ? (
+                      <CheckCircle2 className="h-6 w-6 text-primary" />
+                    ) : (
+                      <XCircle className="h-6 w-6 text-destructive" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium">
+                      {critique.would_interview ? 'Would Interview' : 'Would Not Interview'}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {critique.interview_reasoning}
+                    </p>
+                  </div>
+                </div>
+
                 {/* Overall Impression */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -210,11 +233,11 @@ export default function ReviewPage() {
                 {/* Strengths */}
                 {critique.strengths.length > 0 && (
                   <div className="space-y-2">
-                    <h4 className="font-medium text-green-600">Strengths</h4>
+                    <h4 className="font-medium text-primary">Strengths</h4>
                     <ul className="space-y-1">
                       {critique.strengths.map((s, i) => (
                         <li key={i} className="text-sm flex items-start gap-2">
-                          <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                          <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                           {s}
                         </li>
                       ))}
@@ -225,15 +248,42 @@ export default function ReviewPage() {
                 {/* Weaknesses */}
                 {critique.weaknesses.length > 0 && (
                   <div className="space-y-2">
-                    <h4 className="font-medium text-yellow-600">Areas to Improve</h4>
+                    <h4 className="font-medium text-amber-600 dark:text-amber-500">Areas to Improve</h4>
                     <ul className="space-y-1">
                       {critique.weaknesses.map((w, i) => (
                         <li key={i} className="text-sm flex items-start gap-2">
-                          <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+                          <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
                           {w}
                         </li>
                       ))}
                     </ul>
+                  </div>
+                )}
+
+                {/* Red Flags */}
+                {critique.red_flags && critique.red_flags.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-destructive">Red Flags</h4>
+                    <ul className="space-y-1">
+                      {critique.red_flags.map((flag, i) => (
+                        <li key={i} className="text-sm flex items-start gap-2">
+                          <XCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+                          {flag}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Missing for Role */}
+                {critique.missing_for_role && critique.missing_for_role.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Missing for This Role</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {critique.missing_for_role.map((item, i) => (
+                        <Badge key={i} variant="outline">{item}</Badge>
+                      ))}
+                    </div>
                   </div>
                 )}
 
