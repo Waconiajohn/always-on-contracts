@@ -1,95 +1,62 @@
 import { useParams } from 'react-router-dom';
-import { useEffect, useState } from 'react';
 import { StudioLayout } from '@/components/resume-builder/StudioLayout';
 import { ResumeBuilderShell } from '@/components/resume-builder/ResumeBuilderShell';
 import { RewriteControls } from '@/components/resume-builder/RewriteControls';
 import { VersionHistory } from '@/components/resume-builder/VersionHistory';
 import { Textarea } from '@/components/ui/textarea';
-import { useRewriteSection, useVersionHistory, useSectionContent } from '@/hooks/useRewriteSection';
-import type { ActionSource } from '@/types/resume-builder';
+import { useStudioPageData } from '@/hooks/useStudioPageData';
 
 const SECTION_NAME = 'summary';
 
+function OriginalContentPanel({ content }: { content: string }) {
+  return (
+    <div className="space-y-3">
+      <h3 className="text-sm font-medium text-muted-foreground">Original Summary</h3>
+      {content ? (
+        <p className="text-sm whitespace-pre-wrap">{content}</p>
+      ) : (
+        <p className="text-sm text-muted-foreground italic">
+          No original summary found
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function SummaryPage() {
   const { projectId } = useParams<{ projectId: string }>();
-  const [showHistory, setShowHistory] = useState(false);
 
-  const { content, setContent, originalContent, isLoading: loadingContent, loadContent } = 
-    useSectionContent(projectId || '', SECTION_NAME);
-  const { versions, loadVersions, revertToVersion } = 
-    useVersionHistory(projectId || '', SECTION_NAME);
-  const { rewrite, isLoading: rewriting } = useRewriteSection();
+  const {
+    content,
+    setContent,
+    versions,
+    showHistory,
+    setShowHistory,
+    hasChanges,
+    isLoading,
+    handleRewrite,
+    handleSave,
+    handleRevert,
+  } = useStudioPageData({ projectId: projectId || '', sectionName: SECTION_NAME });
 
-  useEffect(() => {
-    loadContent();
-    loadVersions();
-  }, [loadContent, loadVersions]);
-
-  const handleRewrite = async (action: ActionSource) => {
-    if (!projectId || !content.trim()) return;
-    
-    const result = await rewrite({
-      projectId,
-      sectionName: SECTION_NAME,
-      currentContent: content,
-      actionSource: action,
-    });
-
-    if (result) {
-      setContent(result.rewritten_text);
-      loadVersions();
-    }
-  };
-
-  const handleSave = async () => {
-    // Content is auto-saved when rewritten; this is for manual edits
-    if (!projectId) return;
-    
-    await rewrite({
-      projectId,
-      sectionName: SECTION_NAME,
-      currentContent: content,
-      actionSource: 'manual',
-    });
-    loadVersions();
-  };
-
-  const handleRevert = async (version: typeof versions[0]) => {
-    const success = await revertToVersion(version);
-    if (success) {
-      setContent(version.content);
-      setShowHistory(false);
-    }
-  };
-
-  const hasChanges = content !== originalContent && content.trim().length > 0;
+  // Get original content from first version or empty
+  const originalContent = versions.length > 0 
+    ? versions[versions.length - 1]?.content || '' 
+    : '';
 
   return (
     <ResumeBuilderShell>
       <StudioLayout
-        leftPanel={
-          <div className="space-y-3">
-            <h3 className="text-sm font-medium text-muted-foreground">Original Summary</h3>
-            {originalContent ? (
-              <p className="text-sm whitespace-pre-wrap">{originalContent}</p>
-            ) : (
-              <p className="text-sm text-muted-foreground italic">
-                No original summary found
-              </p>
-            )}
-          </div>
-        }
+        leftPanel={<OriginalContentPanel content={originalContent} />}
       >
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Professional Summary</h2>
-          </div>
+          <h2 className="text-lg font-semibold">Professional Summary</h2>
 
           <RewriteControls
             onRewrite={handleRewrite}
             onShowHistory={() => setShowHistory(true)}
             onSave={handleSave}
-            isLoading={rewriting || loadingContent}
+            isLoading={isLoading}
             hasChanges={hasChanges}
           />
 
@@ -98,7 +65,7 @@ export default function SummaryPage() {
             onChange={(e) => setContent(e.target.value)}
             className="min-h-[200px] text-sm leading-relaxed resize-none"
             placeholder="Your professional summary..."
-            disabled={rewriting || loadingContent}
+            disabled={isLoading}
           />
 
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
