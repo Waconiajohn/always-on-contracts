@@ -64,6 +64,13 @@ const RBJDPage = lazy(() => import("./pages/resume-builder/JDPage"));
 const RBTargetPage = lazy(() => import("./pages/resume-builder/TargetPage"));
 const RBProcessingPage = lazy(() => import("./pages/resume-builder/ProcessingPage"));
 const RBReportPage = lazy(() => import("./pages/resume-builder/ReportPage"));
+const RBFixPage = lazy(() => import("./pages/resume-builder/FixPage"));
+const RBSummaryPage = lazy(() => import("./pages/resume-builder/studio/SummaryPage"));
+const RBSkillsPage = lazy(() => import("./pages/resume-builder/studio/SkillsPage"));
+const RBExperiencePage = lazy(() => import("./pages/resume-builder/studio/ExperiencePage"));
+const RBEducationPage = lazy(() => import("./pages/resume-builder/studio/EducationPage"));
+const RBReviewPage = lazy(() => import("./pages/resume-builder/ReviewPage"));
+const RBExportPage = lazy(() => import("./pages/resume-builder/ExportPage"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -169,6 +176,14 @@ const AppContent = () => {
             <Route path="/resume-builder/:projectId/target" element={<ProtectedRoute><RBTargetPage /></ProtectedRoute>} />
             <Route path="/resume-builder/:projectId/processing" element={<ProtectedRoute><RBProcessingPage /></ProtectedRoute>} />
             <Route path="/resume-builder/:projectId/report" element={<ProtectedRoute><RBReportPage /></ProtectedRoute>} />
+            <Route path="/resume-builder/:projectId/fix" element={<ProtectedRoute><RBFixPage /></ProtectedRoute>} />
+            <Route path="/resume-builder/:projectId/studio/summary" element={<ProtectedRoute><RBSummaryPage /></ProtectedRoute>} />
+            <Route path="/resume-builder/:projectId/studio/skills" element={<ProtectedRoute><RBSkillsPage /></ProtectedRoute>} />
+            <Route path="/resume-builder/:projectId/studio/experience" element={<ProtectedRoute><RBExperiencePage /></ProtectedRoute>} />
+            <Route path="/resume-builder/:projectId/studio/experience/:jobId" element={<ProtectedRoute><RBExperiencePage /></ProtectedRoute>} />
+            <Route path="/resume-builder/:projectId/studio/education" element={<ProtectedRoute><RBEducationPage /></ProtectedRoute>} />
+            <Route path="/resume-builder/:projectId/review" element={<ProtectedRoute><RBReviewPage /></ProtectedRoute>} />
+            <Route path="/resume-builder/:projectId/export" element={<ProtectedRoute><RBExportPage /></ProtectedRoute>} />
             {/* Resume Optimizer Marketing Page */}
             <Route path="/resume-optimizer-info" element={<ResumeOptimizerMarketing />} />
             {/* V2 Resume Tailoring - Benchmark-based scoring */}
