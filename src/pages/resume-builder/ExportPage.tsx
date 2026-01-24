@@ -22,6 +22,21 @@ import {
 } from 'lucide-react';
 import type { RBProject, RBVersion } from '@/types/resume-builder';
 
+type TemplateId = 'executive' | 'standard' | 'ats-safe';
+
+interface Template {
+  id: TemplateId;
+  name: string;
+  description: string;
+  pages: string;
+}
+
+const TEMPLATES: Template[] = [
+  { id: 'executive', name: '1-Page Executive', description: 'Clean, single-page format for senior roles', pages: '1' },
+  { id: 'standard', name: '2-Page Standard', description: 'Full detail with structured sections', pages: '2' },
+  { id: 'ats-safe', name: 'ATS-Safe', description: 'Plain formatting optimized for applicant tracking systems', pages: 'Varies' },
+];
+
 export default function ExportPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
@@ -32,6 +47,7 @@ export default function ExportPage() {
   const [copied, setCopied] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isPdfExporting, setIsPdfExporting] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateId>('standard');
 
   useEffect(() => {
     loadData();
@@ -345,6 +361,37 @@ export default function ExportPage() {
           </Badge>
         </div>
 
+        {/* Template Selection */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Choose Template</CardTitle>
+            <CardDescription>Select a format that fits your needs</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {TEMPLATES.map((template) => (
+                <button
+                  key={template.id}
+                  onClick={() => setSelectedTemplate(template.id)}
+                  className={`p-4 rounded-lg border text-left transition-all ${
+                    selectedTemplate === template.id
+                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-medium text-sm">{template.name}</span>
+                    <Badge variant="outline" className="text-xs">
+                      {template.pages} {template.pages === '1' || template.pages === '2' ? 'page' : ''}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{template.description}</p>
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Export Options */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="cursor-pointer hover:border-primary transition-colors" onClick={handleCopy}>
@@ -395,7 +442,9 @@ export default function ExportPage() {
             </CardHeader>
             <CardContent>
               <CardDescription>
-                Formatted Word document
+                {selectedTemplate === 'executive' ? '1-page executive format' :
+                 selectedTemplate === 'ats-safe' ? 'ATS-optimized Word doc' :
+                 'Standard formatted Word document'}
               </CardDescription>
             </CardContent>
           </Card>
@@ -416,7 +465,9 @@ export default function ExportPage() {
             </CardHeader>
             <CardContent>
               <CardDescription>
-                Professional PDF format
+                {selectedTemplate === 'executive' ? '1-page PDF format' :
+                 selectedTemplate === 'ats-safe' ? 'Simple ATS-safe PDF' :
+                 'Professional PDF format'}
               </CardDescription>
             </CardContent>
           </Card>
