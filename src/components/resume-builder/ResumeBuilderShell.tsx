@@ -3,11 +3,17 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { ChevronRight, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+interface BreadcrumbItem {
+  label: string;
+  href?: string;
+}
+
 interface ResumeBuilderShellProps {
   children: ReactNode;
   title?: string;
   subtitle?: string;
   showBreadcrumb?: boolean;
+  breadcrumbs?: BreadcrumbItem[];
 }
 
 // Breadcrumb path mapping
@@ -31,15 +37,21 @@ export function ResumeBuilderShell({
   children, 
   title, 
   subtitle,
-  showBreadcrumb = true 
+  showBreadcrumb = true,
+  breadcrumbs,
 }: ResumeBuilderShellProps) {
   const navigate = useNavigate();
   const { projectId } = useParams();
   const location = useLocation();
 
-  // Parse current path for breadcrumb
+  // Parse current path for breadcrumb, or use provided breadcrumbs
   const pathParts = location.pathname.split('/').filter(Boolean);
-  const breadcrumbItems = buildBreadcrumb(pathParts, projectId);
+  const breadcrumbItems = breadcrumbs 
+    ? breadcrumbs.map((b, i, arr) => ({ 
+        label: b.label, 
+        path: i < arr.length - 1 ? b.href : undefined 
+      }))
+    : buildBreadcrumb(pathParts, projectId);
 
   return (
     <div className="min-h-screen bg-background">
@@ -95,13 +107,13 @@ export function ResumeBuilderShell({
   );
 }
 
-interface BreadcrumbItem {
+interface InternalBreadcrumbItem {
   label: string;
   path?: string;
 }
 
-function buildBreadcrumb(pathParts: string[], projectId?: string): BreadcrumbItem[] {
-  const items: BreadcrumbItem[] = [];
+function buildBreadcrumb(pathParts: string[], projectId?: string): InternalBreadcrumbItem[] {
+  const items: InternalBreadcrumbItem[] = [];
   
   // Skip 'resume-builder' prefix
   const relevantParts = pathParts.slice(1);
