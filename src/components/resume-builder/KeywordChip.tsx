@@ -153,4 +153,110 @@ export function KeywordChip({
   );
 }
 
+// Additional exports for FixPage
+
+interface KeywordChipGroupProps {
+  title: string;
+  keywords: Array<{ id: string; keyword: string; decision?: string }>;
+  onDecision: (keywordId: string, decision: KeywordDecision) => void;
+  icon: React.ReactNode;
+  emptyMessage?: string;
+}
+
+export function KeywordChipGroup({ 
+  title, 
+  keywords, 
+  onDecision, 
+  icon,
+  emptyMessage = 'None' 
+}: KeywordChipGroupProps) {
+  const { Card } = require('@/components/ui/card');
+  const { Badge } = require('@/components/ui/badge');
+
+  if (keywords.length === 0) {
+    return (
+      <Card className="p-4">
+        <div className="flex items-center gap-2 mb-3">
+          {icon}
+          <h3 className="text-sm font-medium">{title}</h3>
+        </div>
+        <p className="text-xs text-muted-foreground italic">{emptyMessage}</p>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-center gap-2 mb-3">
+        {icon}
+        <h3 className="text-sm font-medium">{title}</h3>
+        <Badge variant="secondary" className="text-xs">{keywords.length}</Badge>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {keywords.map((kw) => (
+          <KeywordChip
+            key={kw.id}
+            keyword={kw.keyword}
+            hasEvidence={true}
+            decision={kw.decision as KeywordDecision}
+            onDecision={(_, decision) => onDecision(kw.id, decision)}
+          />
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+interface GapCardProps {
+  category: string;
+  requirement: string;
+  severity: 'critical' | 'important' | 'nice_to_have';
+  onAddBullet?: () => void;
+}
+
+export function GapCard({ category, requirement, severity, onAddBullet }: GapCardProps) {
+  const { Card } = require('@/components/ui/card');
+  const { Badge } = require('@/components/ui/badge');
+  const { Button } = require('@/components/ui/button');
+  const { AlertCircle, Plus } = require('lucide-react');
+
+  const severityConfig = {
+    critical: { 
+      label: 'Critical',
+      className: 'border-destructive/50 bg-destructive/5'
+    },
+    important: { 
+      label: 'Important',
+      className: 'border-accent/50 bg-accent/5'
+    },
+    nice_to_have: { 
+      label: 'Nice to Have',
+      className: 'border-muted bg-muted/30'
+    },
+  };
+
+  const config = severityConfig[severity];
+
+  return (
+    <Card className={cn('p-4', config.className)}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertCircle className="h-4 w-4" />
+            <Badge variant="outline" className="text-xs">{category}</Badge>
+            <span className="text-xs text-muted-foreground">{config.label}</span>
+          </div>
+          <p className="text-sm">{requirement}</p>
+        </div>
+        {onAddBullet && (
+          <Button variant="outline" size="sm" onClick={onAddBullet}>
+            <Plus className="h-3 w-3 mr-1" />
+            Add Bullet
+          </Button>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 export default KeywordChip;
