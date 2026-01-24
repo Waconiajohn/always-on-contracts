@@ -7,7 +7,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { CommandMenu } from "@/components/CommandMenu";
 import { TopNav } from "@/components/navigation/TopNav";
 import { ProtectedRoute } from "./components/ProtectedRoute";
-import { ModuleGate } from "./components/ModuleGate";
+
 import { AdminRoute } from "./components/admin/AdminRoute";
 import { lazy, Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -53,7 +53,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const TestingDashboard = lazy(() => import("./pages/TestingDashboard"));
 const ExperimentalLab = lazy(() => import("./pages/ExperimentalLab"));
 const QuickScore = lazy(() => import("./pages/QuickScore"));
-const ResumeBuilderV3 = lazy(() => import("./components/resume-builder-v3/ResumeBuilderV3").then(m => ({ default: m.ResumeBuilderV3 })));
+const ResumeBuilderPlaceholder = lazy(() => import("./components/resume-builder/ResumeBuilderPlaceholder").then(m => ({ default: m.ResumeBuilderPlaceholder })));
 const ResumeOptimizerMarketing = lazy(() => import("./pages/ResumeOptimizerMarketing"));
 const ResumeTailorV2 = lazy(() => import("./components/v2/V2Page"));
 
@@ -157,9 +157,7 @@ const AppContent = () => {
             {/* Resume Builder - Primary 4-step flow */}
             <Route path="/resume-builder" element={
               <ProtectedRoute>
-                <ModuleGate module="resume_jobs_studio">
-                  <ResumeBuilderV3 />
-                </ModuleGate>
+                <ResumeBuilderPlaceholder />
               </ProtectedRoute>
             } />
             {/* Resume Optimizer Marketing Page */}
