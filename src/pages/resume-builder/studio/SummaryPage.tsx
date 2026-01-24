@@ -2,10 +2,9 @@ import { useParams } from 'react-router-dom';
 import { StudioLayout } from '@/components/resume-builder/StudioLayout';
 import { ResumeBuilderShell } from '@/components/resume-builder/ResumeBuilderShell';
 import { Textarea } from '@/components/ui/textarea';
-import { Construction } from 'lucide-react';
 
 export default function SummaryPage() {
-  const { projectId } = useParams<{ projectId: string }>();
+  const { projectId: _projectId } = useParams<{ projectId: string }>();
 
   return (
     <ResumeBuilderShell>

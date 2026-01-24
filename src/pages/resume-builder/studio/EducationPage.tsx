@@ -4,7 +4,7 @@ import { ResumeBuilderShell } from '@/components/resume-builder/ResumeBuilderShe
 import { GraduationCap } from 'lucide-react';
 
 export default function EducationPage() {
-  const { projectId } = useParams<{ projectId: string }>();
+  const { projectId: _projectId } = useParams<{ projectId: string }>();
 
   return (
     <ResumeBuilderShell>

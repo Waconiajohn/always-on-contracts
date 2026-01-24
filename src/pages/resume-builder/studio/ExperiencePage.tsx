@@ -3,7 +3,7 @@ import { StudioLayout } from '@/components/resume-builder/StudioLayout';
 import { ResumeBuilderShell } from '@/components/resume-builder/ResumeBuilderShell';
 
 export default function ExperiencePage() {
-  const { projectId, jobId } = useParams<{ projectId: string; jobId?: string }>();
+  const { projectId: _projectId, jobId: _jobId } = useParams<{ projectId: string; jobId?: string }>();
 
   return (
     <ResumeBuilderShell>
