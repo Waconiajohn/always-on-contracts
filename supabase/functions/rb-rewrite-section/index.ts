@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { extractJSON } from '../_shared/json-parser.ts';
+import { SectionRewriteSchema, parseAndValidate } from '../_shared/rb-schemas.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,13 +28,6 @@ interface RewriteSectionRequest {
   action_source: ActionSource;
   micro_edit_instruction?: string;
   selected_text?: string;
-}
-
-interface RewriteResponse {
-  rewritten_text: string;
-  keywords_added: string[];
-  evidence_used: string[];
-  questions: string[];
 }
 
 const tonePresets: Record<ActionSource, string> = {
@@ -198,16 +191,8 @@ Return the full section with the edit applied. Maintain consistency with the res
       });
     }
 
-    const parseResult = extractJSON(content);
-    if (!parseResult.success || !parseResult.data) {
-      console.error("Failed to parse AI response:", content);
-      return new Response(JSON.stringify({ error: "Invalid AI response format" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const result = parseResult.data as RewriteResponse;
+    // Use centralized schema validation
+    const result = parseAndValidate(SectionRewriteSchema, content, "rb-rewrite-section");
 
     // Get next version number
     const { data: existingVersions } = await supabase

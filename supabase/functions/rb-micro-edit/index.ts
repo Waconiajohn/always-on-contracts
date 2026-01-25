@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { MicroEditSchema, parseAndValidate } from '../_shared/rb-schemas.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,14 +19,6 @@ interface MicroEditRequest {
     claim: string;
     source: string;
   }>;
-}
-
-interface MicroEditResponse {
-  original: string;
-  edited: string;
-  changes_made: string[];
-  evidence_used: string[];
-  confidence: number;
 }
 
 Deno.serve(async (req) => {
@@ -113,19 +106,18 @@ If the edit cannot be made safely (e.g., would require hallucination), return th
       throw new Error('No content in AI response');
     }
 
-    const edit: MicroEditResponse = JSON.parse(content);
+    // Use centralized schema validation
+    const result = parseAndValidate(MicroEditSchema, content, "rb-micro-edit");
 
-    // Ensure proper structure
-    const result: MicroEditResponse = {
-      original: edit.original || bullet_text,
-      edited: edit.edited || bullet_text,
-      changes_made: edit.changes_made || [],
-      evidence_used: edit.evidence_used || [],
-      confidence: edit.confidence ?? 80,
+    // Ensure defaults for original field
+    const finalResult = {
+      ...result,
+      original: result.original || bullet_text,
+      edited: result.edited || bullet_text,
     };
 
     return new Response(
-      JSON.stringify(result),
+      JSON.stringify(finalResult),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

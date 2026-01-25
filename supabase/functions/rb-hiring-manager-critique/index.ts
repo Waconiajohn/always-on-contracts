@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callLovableAI, LOVABLE_AI_MODELS } from "../_shared/lovable-ai-config.ts";
 import { logAIUsage } from "../_shared/cost-tracking.ts";
+import { HiringManagerCritiqueSchema, safeParseWithLog } from "../_shared/rb-schemas.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -95,21 +96,18 @@ IMPORTANT RULES:
 Output JSON matching this schema:
 {
   "overall_score": <0-100>,
-  "hiring_manager_impression": "<2-3 sentence first impression>",
+  "overall_impression": "<2-3 sentence first impression>",
   "would_interview": <true|false>,
-  "interview_reasoning": "<why or why not>",
-  "strengths": ["<specific strength 1>", "<specific strength 2>", ...],
-  "weaknesses": ["<specific weakness 1>", "<specific weakness 2>", ...],
-  "items": [
+  "issues": [
     {
-      "severity": "error" | "warning" | "info",
-      "category": "<category like 'Clarity', 'Evidence', 'Relevance', 'Format'>",
-      "message": "<specific issue>",
-      "suggestion": "<how to fix it>"
+      "section": "<which section>",
+      "issue": "<what the issue is>",
+      "severity": "critical" | "warning" | "suggestion",
+      "recommendation": "<how to fix it>"
     }
   ],
-  "missing_for_role": ["<what's missing for this specific role>"],
-  "red_flags": ["<anything concerning>"]
+  "strengths": ["<specific strength 1>", "<specific strength 2>", ...],
+  "improvements": ["<top improvement 1>", "<top improvement 2>", ...]
 }`;
 
     const userPrompt = `JOB TARGET: ${project.job_title || "Not specified"}
@@ -146,19 +144,23 @@ Provide your hiring manager critique as JSON.`;
       throw new Error("No content in AI response");
     }
 
-    const critique = JSON.parse(content);
+    // Parse and validate using schema
+    const parsed = JSON.parse(content);
+    const validated = safeParseWithLog(HiringManagerCritiqueSchema, parsed, "rb-hiring-manager-critique");
 
-    // Ensure required fields
-    const result = {
-      overall_score: critique.overall_score ?? 50,
-      hiring_manager_impression: critique.hiring_manager_impression ?? "Unable to assess",
-      would_interview: critique.would_interview ?? false,
-      interview_reasoning: critique.interview_reasoning ?? "",
-      strengths: critique.strengths ?? [],
-      weaknesses: critique.weaknesses ?? [],
-      items: critique.items ?? [],
-      missing_for_role: critique.missing_for_role ?? [],
-      red_flags: critique.red_flags ?? [],
+    // Use validated result or fallback
+    const result = validated || {
+      overall_score: parsed.overall_score ?? 50,
+      overall_impression: parsed.hiring_manager_impression ?? parsed.overall_impression ?? "Unable to assess",
+      would_interview: parsed.would_interview ?? false,
+      issues: parsed.items?.map((item: { category?: string; message?: string; severity?: string; suggestion?: string }) => ({
+        section: item.category || "General",
+        issue: item.message || "",
+        severity: item.severity || "warning",
+        recommendation: item.suggestion || "",
+      })) ?? parsed.issues ?? [],
+      strengths: parsed.strengths ?? [],
+      improvements: parsed.improvements ?? parsed.weaknesses ?? [],
     };
 
     console.log("Critique generated successfully", { score: result.overall_score });

@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { extractJSON } from '../_shared/json-parser.ts';
+import { ClaimsExtractionSchema, parseAndValidate } from '../_shared/rb-schemas.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,18 +11,6 @@ const corsHeaders = {
 
 interface ExtractClaimsRequest {
   project_id: string;
-}
-
-interface ExtractedClaim {
-  claim_text: string;
-  category: "skill" | "tool" | "domain" | "responsibility" | "metric" | "leadership";
-  evidence_quote: string;
-  confidence: "high" | "medium";
-  span_location?: {
-    section: string;
-    jobIndex?: number;
-    bulletIndex?: number;
-  };
 }
 
 serve(async (req) => {
@@ -107,7 +95,7 @@ Respond ONLY with valid JSON:
       "evidence_quote": "EXACT text from resume supporting this claim",
       "confidence": "high|medium",
       "span_location": {
-        "section": "summary|skills|experience|education",
+        "section": "summary|skills|experience|education|other",
         "jobIndex": 0-based if in experience,
         "bulletIndex": 0-based if specific bullet
       }
@@ -151,16 +139,8 @@ Be EXHAUSTIVE - extract every provable claim. But NEVER include anything not exp
       });
     }
 
-    const parseResult = extractJSON(content);
-    if (!parseResult.success || !parseResult.data) {
-      console.error("Failed to parse AI response:", content);
-      return new Response(JSON.stringify({ error: "Invalid AI response format" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const result = parseResult.data as { claims: ExtractedClaim[] };
+    // Use centralized schema validation
+    const result = parseAndValidate(ClaimsExtractionSchema, content, "rb-extract-resume-claims");
 
     // Save claims as evidence
     const evidenceToInsert = (result.claims || []).map((claim) => ({
