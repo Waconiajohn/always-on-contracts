@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { StudioLayout } from '@/components/resume-builder/StudioLayout';
 import { ResumeBuilderShell } from '@/components/resume-builder/ResumeBuilderShell';
 import { RewriteControls } from '@/components/resume-builder/RewriteControls';
 import { VersionHistory } from '@/components/resume-builder/VersionHistory';
+import { TwoStageGenerationDialog } from '@/components/resume-builder/TwoStageGenerationDialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useStudioPageData } from '@/hooks/useStudioPageData';
 
@@ -25,10 +27,12 @@ function OriginalContentPanel({ content }: { content: string }) {
 
 export default function SummaryPage() {
   const { projectId } = useParams<{ projectId: string }>();
+  const [showTwoStage, setShowTwoStage] = useState(false);
 
   const {
     content,
     setContent,
+    project,
     versions,
     showHistory,
     setShowHistory,
@@ -44,6 +48,10 @@ export default function SummaryPage() {
     ? versions[versions.length - 1]?.content || '' 
     : '';
 
+  const handleWorldClassContent = (newContent: string) => {
+    setContent(newContent);
+  };
+
   return (
     <ResumeBuilderShell>
       <StudioLayout
@@ -56,6 +64,7 @@ export default function SummaryPage() {
             onRewrite={handleRewrite}
             onShowHistory={() => setShowHistory(true)}
             onSave={handleSave}
+            onWorldClass={() => setShowTwoStage(true)}
             isLoading={isLoading}
             hasChanges={hasChanges}
           />
@@ -82,6 +91,18 @@ export default function SummaryPage() {
           onRevert={handleRevert}
         />
       </StudioLayout>
+
+      <TwoStageGenerationDialog
+        open={showTwoStage}
+        onOpenChange={setShowTwoStage}
+        projectId={projectId || ''}
+        sectionName={SECTION_NAME}
+        roleTitle={project?.role_title || 'Professional'}
+        seniorityLevel={project?.seniority_level || 'Mid-Level'}
+        industry={project?.industry || 'Technology'}
+        jobDescription={project?.jd_text || ''}
+        onContentSelect={handleWorldClassContent}
+      />
     </ResumeBuilderShell>
   );
 }

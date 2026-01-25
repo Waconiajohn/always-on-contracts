@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { StudioLayout } from '@/components/resume-builder/StudioLayout';
 import { ResumeBuilderShell } from '@/components/resume-builder/ResumeBuilderShell';
@@ -5,12 +6,14 @@ import { RewriteControls } from '@/components/resume-builder/RewriteControls';
 import { VersionHistory } from '@/components/resume-builder/VersionHistory';
 import { EvidenceSidebar } from '@/components/resume-builder/EvidenceSidebar';
 import { BulletEditor } from '@/components/resume-builder/BulletEditor';
+import { TwoStageGenerationDialog } from '@/components/resume-builder/TwoStageGenerationDialog';
 import { useStudioPageData } from '@/hooks/useStudioPageData';
 
 const SECTION_NAME = 'education';
 
 export default function EducationPage() {
   const { projectId } = useParams<{ projectId: string }>();
+  const [showTwoStage, setShowTwoStage] = useState(false);
 
   const {
     content,
@@ -28,6 +31,10 @@ export default function EducationPage() {
     evidenceContext,
   } = useStudioPageData({ projectId: projectId || '', sectionName: SECTION_NAME });
 
+  const handleWorldClassContent = (newContent: string) => {
+    setContent(newContent);
+  };
+
   return (
     <ResumeBuilderShell>
       <StudioLayout
@@ -40,6 +47,7 @@ export default function EducationPage() {
             onRewrite={handleRewrite}
             onShowHistory={() => setShowHistory(true)}
             onSave={handleSave}
+            onWorldClass={() => setShowTwoStage(true)}
             isLoading={isLoading}
             hasChanges={hasChanges}
           />
@@ -70,6 +78,18 @@ export default function EducationPage() {
           onRevert={handleRevert}
         />
       </StudioLayout>
+
+      <TwoStageGenerationDialog
+        open={showTwoStage}
+        onOpenChange={setShowTwoStage}
+        projectId={projectId || ''}
+        sectionName={SECTION_NAME}
+        roleTitle={project?.role_title || 'Professional'}
+        seniorityLevel={project?.seniority_level || 'Mid-Level'}
+        industry={project?.industry || 'Technology'}
+        jobDescription={project?.jd_text || ''}
+        onContentSelect={handleWorldClassContent}
+      />
     </ResumeBuilderShell>
   );
 }
