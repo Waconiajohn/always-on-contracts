@@ -121,18 +121,18 @@ export function IndustryResearchProgress({
   );
 }
 
-// Default research steps
+// Default research steps (Fix 6: accurate descriptions)
 export const defaultResearchSteps: ResearchStep[] = [
   {
     id: 'research',
-    label: 'Researching Job Market',
-    description: 'Analyzing 50+ similar job postings and profiles',
+    label: 'Researching Industry Standards',
+    description: 'Analyzing best practices for this role and seniority level',
     status: 'pending',
   },
   {
     id: 'analyze',
     label: 'Extracting Best Practices',
-    description: 'Identifying industry-specific language and terminology',
+    description: 'Identifying industry-specific language and power phrases',
     status: 'pending',
   },
   {

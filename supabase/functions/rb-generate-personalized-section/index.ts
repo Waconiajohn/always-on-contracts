@@ -69,15 +69,15 @@ serve(async (req) => {
       });
     }
 
-    // Filter evidence relevant to this section
+    // Filter evidence relevant to this section (Fix 9: expanded categories)
     const sectionCategories: Record<string, string[]> = {
-      summary: ["skill", "domain", "leadership", "metric"],
-      skills: ["skill", "tool", "domain"],
-      experience_bullets: ["responsibility", "metric", "leadership"],
-      education: ["domain"],
+      summary: ["skill", "domain", "leadership", "metric", "responsibility"],
+      skills: ["skill", "tool", "domain", "metric"],
+      experience_bullets: ["responsibility", "metric", "leadership", "skill", "tool"],
+      education: ["domain", "skill"],
     };
 
-    const relevantEvidence = user_evidence.filter(e => 
+    const relevantEvidence = user_evidence.filter(e =>
       sectionCategories[section_type]?.includes(e.category) || e.confidence === "high"
     );
 

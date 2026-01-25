@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { RBEvidence } from '@/types/resume-builder';
@@ -44,6 +44,7 @@ interface PersonalizedGenerationResult {
   gaps_identified: string[];
   questions_for_user: string[];
   similarity_to_ideal: number;
+  word_count?: number;
 }
 
 interface UseTwoStageGenerationReturn {
@@ -92,8 +93,27 @@ export function useTwoStageGeneration(): UseTwoStageGenerationReturn {
   
   // Store params for personalization stage
   const [generationParams, setGenerationParams] = useState<StartGenerationParams | null>(null);
+  
+  // AbortController for request cleanup
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const startGeneration = useCallback(async (params: StartGenerationParams) => {
+    // Abort any in-flight requests
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
+    
+    // Validate required inputs (Fix 5)
+    if (!params.jobDescription?.trim()) {
+      setError('Please add a job description before generating content');
+      toast.error('Job description is required');
+      return;
+    }
+    if (!params.roleTitle?.trim() || !params.industry?.trim()) {
+      setError('Please confirm your target role and industry first');
+      toast.error('Target role information is required');
+      return;
+    }
+    
     setIsLoading(true);
     setError(null);
     setStage('researching');
@@ -104,6 +124,15 @@ export function useTwoStageGeneration(): UseTwoStageGenerationReturn {
       if (!session?.access_token) {
         throw new Error('Please sign in to continue');
       }
+
+      // Pre-load evidence for strength analysis (Fix 3)
+      const { data: evidence } = await supabase
+        .from('rb_evidence')
+        .select('id, claim_text, evidence_quote, source, category, confidence, is_active, project_id, span_location, created_at')
+        .eq('project_id', params.projectId)
+        .eq('is_active', true);
+      
+      setUserEvidence((evidence as unknown as RBEvidence[]) || []);
 
       // Step 1: Industry Research
       const { data: researchData, error: researchError } = await supabase.functions.invoke<IndustryResearch>(
@@ -161,6 +190,9 @@ export function useTwoStageGeneration(): UseTwoStageGenerationReturn {
       setStage('ready_for_personalization');
       toast.success('Industry-standard version ready!');
     } catch (err) {
+      // Silent exit on abort (Fix 7)
+      if (err instanceof Error && err.name === 'AbortError') return;
+      
       const message = err instanceof Error ? err.message : 'Generation failed';
       setError(message);
       toast.error(message);
@@ -254,6 +286,9 @@ export function useTwoStageGeneration(): UseTwoStageGenerationReturn {
   }, [idealContent, personalizedContent]);
 
   const reset = useCallback(() => {
+    // Abort any in-flight requests (Fix 7)
+    abortControllerRef.current?.abort();
+    
     setStage('idle');
     setIsLoading(false);
     setError(null);
