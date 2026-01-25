@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -6,6 +6,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 import { useTwoStageGeneration } from '@/hooks/useTwoStageGeneration';
 import { IndustryResearchProgress, defaultResearchSteps, ResearchStep } from './IndustryResearchProgress';
 import { IdealExampleCard } from './IdealExampleCard';
@@ -13,7 +14,9 @@ import { SideBySideComparison } from './SideBySideComparison';
 import { BlendEditor } from './BlendEditor';
 import { ResumeStrengthIndicator } from './ResumeStrengthIndicator';
 import { analyzeResumeStrength } from '@/lib/resume-strength-analyzer';
+import { mapUISectionToAPIType, type APISectionType } from '@/lib/resume-section-utils';
 import { Loader2, Wand2, AlertTriangle } from 'lucide-react';
+import type { RBEvidence, EvidenceCategory, EvidenceSource, EvidenceConfidence, SpanLocation } from '@/types/resume-builder';
 
 interface TwoStageGenerationDialogProps {
   open: boolean;
@@ -25,6 +28,36 @@ interface TwoStageGenerationDialogProps {
   industry: string;
   jobDescription: string;
   onContentSelect: (content: string) => void;
+}
+
+// Partial evidence shape from database
+interface PartialEvidence {
+  id: string;
+  claim_text: string;
+  evidence_quote: string | null;
+  source: string;
+  category: string;
+  confidence: string;
+  is_active: boolean;
+  project_id: string;
+  span_location: unknown;
+  created_at: string;
+}
+
+// Safe mapping function
+function mapToRBEvidence(data: PartialEvidence[]): RBEvidence[] {
+  return data.map(item => ({
+    id: item.id,
+    project_id: item.project_id,
+    claim_text: item.claim_text,
+    evidence_quote: item.evidence_quote || item.claim_text,
+    category: item.category as EvidenceCategory,
+    source: item.source as EvidenceSource,
+    confidence: item.confidence as EvidenceConfidence,
+    span_location: item.span_location as SpanLocation | null,
+    is_active: item.is_active,
+    created_at: item.created_at,
+  }));
 }
 
 export function TwoStageGenerationDialog({
@@ -39,6 +72,8 @@ export function TwoStageGenerationDialog({
   onContentSelect,
 }: TwoStageGenerationDialogProps) {
   const [showBlendEditor, setShowBlendEditor] = useState(false);
+  const [isStarting, setIsStarting] = useState(false); // Fix 12: debounce button
+  const [previewEvidence, setPreviewEvidence] = useState<RBEvidence[]>([]); // Fix 5: pre-load for idle state
   
   const {
     stage,
@@ -54,43 +89,66 @@ export function TwoStageGenerationDialog({
     reset,
   } = useTwoStageGeneration();
 
-  // Analyze resume strength when evidence is loaded
+  // Fix 5: Pre-fetch evidence when dialog opens to show strength in idle state
+  useEffect(() => {
+    if (open && projectId) {
+      supabase
+        .from('rb_evidence')
+        .select('id, claim_text, evidence_quote, source, category, confidence, is_active, project_id, span_location, created_at')
+        .eq('project_id', projectId)
+        .eq('is_active', true)
+        .then(({ data }) => {
+          if (data) {
+            setPreviewEvidence(mapToRBEvidence(data as PartialEvidence[]));
+          }
+        });
+    }
+  }, [open, projectId]);
+
+  // Analyze resume strength - use hook evidence when available, preview otherwise
   const resumeStrength = useMemo(() => {
-    if (userEvidence.length > 0) {
-      return analyzeResumeStrength(userEvidence);
+    const evidence = userEvidence.length > 0 ? userEvidence : previewEvidence;
+    if (evidence.length > 0) {
+      return analyzeResumeStrength(evidence);
     }
     return null;
-  }, [userEvidence]);
+  }, [userEvidence, previewEvidence]);
 
-  // Map stage to research steps with proper statuses (Fix 2: correct indexing)
-  const researchSteps: ResearchStep[] = useMemo(() => {
-    let currentIndex = -1; // -1 = all pending
-    if (stage === 'researching') currentIndex = 0;
-    else if (stage === 'generating_ideal') currentIndex = 2;
-    else if (stage !== 'idle') currentIndex = 4; // Mark all complete
-    
-    return defaultResearchSteps.map((step, index) => ({
+  // Fix 4: Unified progress step logic - single source of truth
+  const { researchSteps, progressPercent } = useMemo(() => {
+    let activeIndex = -1;
+    if (stage === 'researching') activeIndex = 0;
+    else if (stage === 'generating_ideal') activeIndex = 2;
+    else if (stage !== 'idle') activeIndex = 4; // All complete
+
+    const steps: ResearchStep[] = defaultResearchSteps.map((step, index) => ({
       ...step,
-      status: index < currentIndex ? 'complete' as const : index === currentIndex ? 'active' as const : 'pending' as const,
+      status: index < activeIndex ? 'complete' as const : index === activeIndex ? 'active' as const : 'pending' as const,
     }));
+
+    const percent = activeIndex >= 0 
+      ? Math.round((Math.min(activeIndex + 1, steps.length) / steps.length) * 100)
+      : 0;
+
+    return { researchSteps: steps, progressPercent: percent };
   }, [stage]);
 
-  const currentStepIndex = useMemo(() => {
-    if (stage === 'researching') return 1;
-    if (stage === 'generating_ideal') return 3;
-    if (stage !== 'idle') return 4;
-    return 0;
-  }, [stage]);
-
+  // Fix 12: Debounced start handler
   const handleStart = async () => {
-    await startGeneration({
-      projectId,
-      sectionName,
-      roleTitle,
-      seniorityLevel,
-      industry,
-      jobDescription,
-    });
+    if (isStarting || isLoading) return;
+    setIsStarting(true);
+    try {
+      await startGeneration({
+        projectId,
+        sectionName,
+        roleTitle,
+        seniorityLevel,
+        industry,
+        jobDescription,
+      });
+    } finally {
+      setIsStarting(false);
+    }
   };
 
   const handleSelectIdeal = () => {
@@ -114,21 +172,16 @@ export function TwoStageGenerationDialog({
   const handleClose = () => {
     reset();
     setShowBlendEditor(false);
+    setPreviewEvidence([]);
     onOpenChange(false);
   };
 
-  // Map section name to section type
-  const getSectionType = (): 'summary' | 'skills' | 'experience_bullets' | 'education' => {
-    switch (sectionName) {
-      case 'summary': return 'summary';
-      case 'skills': return 'skills';
-      case 'experience': return 'experience_bullets';
-      case 'education': return 'education';
-      default: return 'summary';
-    }
+  // Get section type using shared utility
+  const getSectionType = (): APISectionType => {
+    return mapUISectionToAPIType(sectionName);
   };
 
-  // Create comparison data from state - Fixed field access (Fix 11: use API word count)
+  // Create comparison data from state - uses API word count when available
   const comparisonData = useMemo(() => ({
     idealContent: idealContent?.ideal_content || '',
     personalizedContent: personalizedContent?.personalized_content || '',
@@ -164,9 +217,16 @@ export function TwoStageGenerationDialog({
             </div>
           )}
 
-          {/* Stage: Idle - Start Button */}
+          {/* Stage: Idle - Start Button with Strength Preview */}
           {stage === 'idle' && !error && (
             <div className="text-center space-y-4 py-8">
+              {/* Fix 5: Show strength indicator in idle state */}
+              {resumeStrength && !resumeStrength.isStrongEnough && (
+                <div className="max-w-md mx-auto mb-4">
+                  <ResumeStrengthIndicator strength={resumeStrength} compact />
+                </div>
+              )}
+              
               <p className="text-muted-foreground">
                 Generate a world-class {sectionName} section in two stages:
               </p>
@@ -184,8 +244,17 @@ export function TwoStageGenerationDialog({
                   Personalize with your verified achievements
                 </li>
               </ol>
-              <Button onClick={handleStart} size="lg" className="mt-4">
-                <Wand2 className="h-4 w-4 mr-2" />
+              <Button 
+                onClick={handleStart} 
+                size="lg" 
+                className="mt-4"
+                disabled={isStarting || isLoading}
+              >
+                {isStarting ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Wand2 className="h-4 w-4 mr-2" />
+                )}
                 Start Generation
               </Button>
             </div>
@@ -195,7 +264,7 @@ export function TwoStageGenerationDialog({
           {(stage === 'researching' || stage === 'generating_ideal') && (
             <IndustryResearchProgress
               steps={researchSteps}
-              currentStepIndex={currentStepIndex}
+              currentStepIndex={progressPercent}
               roleTitle={roleTitle}
               industry={industry}
               seniorityLevel={seniorityLevel}

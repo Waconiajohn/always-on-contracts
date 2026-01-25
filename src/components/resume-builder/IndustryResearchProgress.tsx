@@ -32,9 +32,8 @@ export function IndustryResearchProgress({
   industry,
   seniorityLevel,
 }: IndustryResearchProgressProps) {
-  const progressPercent = steps.length > 0 
-    ? Math.round((currentStepIndex / steps.length) * 100)
-    : 0;
+  // Calculate progress from steps - currentStepIndex is now the progressPercent
+  const progressPercent = currentStepIndex;
 
   return (
     <Card className="border-primary/20">
@@ -108,14 +107,7 @@ export function IndustryResearchProgress({
           })}
         </div>
 
-        {/* Insight Preview */}
-        {currentStepIndex > 0 && (
-          <div className="pt-3 border-t border-border/60">
-            <p className="text-xs text-muted-foreground text-center italic">
-              Discovered {currentStepIndex * 5}+ industry insights so far...
-            </p>
-          </div>
-        )}
+        {/* Fix 9: Remove misleading insight counter - no fake data */}
       </CardContent>
     </Card>
   );

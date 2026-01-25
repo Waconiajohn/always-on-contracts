@@ -1,7 +1,14 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { RBEvidence } from '@/types/resume-builder';
+import type { 
+  RBEvidence, 
+  EvidenceCategory, 
+  EvidenceSource, 
+  EvidenceConfidence,
+  SpanLocation 
+} from '@/types/resume-builder';
+import { mapUISectionToAPIType } from '@/lib/resume-section-utils';
 
 export type GenerationStage = 
   | 'idle'
@@ -75,10 +82,34 @@ interface StartGenerationParams {
   jobDescription: string;
 }
 
-// Helper to map UI section names to API section_type values
-function mapSectionName(name: string): 'summary' | 'skills' | 'experience_bullets' | 'education' {
-  if (name === 'experience') return 'experience_bullets';
-  return name as 'summary' | 'skills' | 'education';
+// Partial evidence shape from database before type casting
+interface PartialEvidence {
+  id: string;
+  claim_text: string;
+  evidence_quote: string | null;
+  source: string;
+  category: string;
+  confidence: string;
+  is_active: boolean;
+  project_id: string;
+  span_location: unknown;
+  created_at: string;
+}
+
+// Safe type mapping function (Fix 2: proper type casting)
+function mapToRBEvidence(data: PartialEvidence[]): RBEvidence[] {
+  return data.map(item => ({
+    id: item.id,
+    project_id: item.project_id,
+    claim_text: item.claim_text,
+    evidence_quote: item.evidence_quote || item.claim_text,
+    category: item.category as EvidenceCategory,
+    source: item.source as EvidenceSource,
+    confidence: item.confidence as EvidenceConfidence,
+    span_location: item.span_location as SpanLocation | null,
+    is_active: item.is_active,
+    created_at: item.created_at,
+  }));
 }
 
 export function useTwoStageGeneration(): UseTwoStageGenerationReturn {
@@ -94,15 +125,17 @@ export function useTwoStageGeneration(): UseTwoStageGenerationReturn {
   // Store params for personalization stage
   const [generationParams, setGenerationParams] = useState<StartGenerationParams | null>(null);
   
-  // AbortController for request cleanup
-  const abortControllerRef = useRef<AbortController | null>(null);
+  // Fix 3: Replace AbortController with mounted ref pattern
+  // Supabase SDK doesn't support abort signals, so we use a mounted check
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
 
   const startGeneration = useCallback(async (params: StartGenerationParams) => {
-    // Abort any in-flight requests
-    abortControllerRef.current?.abort();
-    abortControllerRef.current = new AbortController();
-    
-    // Validate required inputs (Fix 5)
+    // Fix 5: Validate required inputs early
     if (!params.jobDescription?.trim()) {
       setError('Please add a job description before generating content');
       toast.error('Job description is required');
@@ -125,14 +158,16 @@ export function useTwoStageGeneration(): UseTwoStageGenerationReturn {
         throw new Error('Please sign in to continue');
       }
 
-      // Pre-load evidence for strength analysis (Fix 3)
-      const { data: evidence } = await supabase
+      // Pre-load evidence for strength analysis (Fix 3 - do this early)
+      const { data: evidenceData } = await supabase
         .from('rb_evidence')
         .select('id, claim_text, evidence_quote, source, category, confidence, is_active, project_id, span_location, created_at')
         .eq('project_id', params.projectId)
         .eq('is_active', true);
       
-      setUserEvidence((evidence as unknown as RBEvidence[]) || []);
+      // Fix 2: Use safe mapping function
+      if (!isMountedRef.current) return;
+      setUserEvidence(mapToRBEvidence((evidenceData as PartialEvidence[]) || []));
 
       // Step 1: Industry Research
       const { data: researchData, error: researchError } = await supabase.functions.invoke<IndustryResearch>(
@@ -149,6 +184,8 @@ export function useTwoStageGeneration(): UseTwoStageGenerationReturn {
         }
       );
 
+      if (!isMountedRef.current) return;
+
       if (researchError || !researchData) {
         throw new Error(researchError?.message || 'Industry research failed');
       }
@@ -156,12 +193,12 @@ export function useTwoStageGeneration(): UseTwoStageGenerationReturn {
       setIndustryResearch(researchData);
       setStage('generating_ideal');
 
-      // Step 2: Generate Ideal Section - Fixed API contract
+      // Step 2: Generate Ideal Section - Uses shared utility for section mapping
       const { data: idealData, error: idealError } = await supabase.functions.invoke<IdealGenerationResult>(
         'rb-generate-ideal-section',
         {
           body: {
-            section_type: mapSectionName(params.sectionName),
+            section_type: mapUISectionToAPIType(params.sectionName),
             jd_text: params.jobDescription,
             industry_research: {
               keywords: researchData.keywords,
@@ -182,6 +219,8 @@ export function useTwoStageGeneration(): UseTwoStageGenerationReturn {
         }
       );
 
+      if (!isMountedRef.current) return;
+
       if (idealError || !idealData) {
         throw new Error(idealError?.message || 'Ideal section generation failed');
       }
@@ -190,15 +229,16 @@ export function useTwoStageGeneration(): UseTwoStageGenerationReturn {
       setStage('ready_for_personalization');
       toast.success('Industry-standard version ready!');
     } catch (err) {
-      // Silent exit on abort (Fix 7)
-      if (err instanceof Error && err.name === 'AbortError') return;
+      if (!isMountedRef.current) return;
       
       const message = err instanceof Error ? err.message : 'Generation failed';
       setError(message);
       toast.error(message);
       setStage('idle');
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
@@ -218,30 +258,21 @@ export function useTwoStageGeneration(): UseTwoStageGenerationReturn {
         throw new Error('Please sign in to continue');
       }
 
-      // Load user's evidence - Fixed: include evidence_quote
-      const { data: evidence } = await supabase
-        .from('rb_evidence')
-        .select('id, claim_text, evidence_quote, source, category, confidence, is_active, project_id, span_location, created_at')
-        .eq('project_id', generationParams.projectId)
-        .eq('is_active', true);
-
-      // Store evidence for strength analysis (cast with unknown to handle partial schema)
-      setUserEvidence((evidence as unknown as RBEvidence[]) || []);
-
-      // Map to API format
-      const evidenceClaims = (evidence || []).map((e: any) => ({
+      // Fix 11: Reuse already-loaded evidence instead of fetching again
+      // Evidence was pre-loaded in startGeneration
+      const evidenceClaims = userEvidence.map((e) => ({
         claim_text: e.claim_text,
         evidence_quote: e.evidence_quote || e.claim_text,
         category: e.category,
         confidence: e.confidence,
       }));
 
-      // Fixed API contract for personalized section
+      // Fixed API contract for personalized section - uses shared utility
       const { data: personalizedData, error: personalizedError } = await supabase.functions.invoke<PersonalizedGenerationResult>(
         'rb-generate-personalized-section',
         {
           body: {
-            section_type: mapSectionName(generationParams.sectionName),
+            section_type: mapUISectionToAPIType(generationParams.sectionName),
             ideal_content: idealContent.ideal_content,
             user_evidence: evidenceClaims,
             role_context: {
@@ -256,6 +287,8 @@ export function useTwoStageGeneration(): UseTwoStageGenerationReturn {
         }
       );
 
+      if (!isMountedRef.current) return;
+
       if (personalizedError || !personalizedData) {
         throw new Error(personalizedError?.message || 'Personalization failed');
       }
@@ -264,14 +297,18 @@ export function useTwoStageGeneration(): UseTwoStageGenerationReturn {
       setStage('comparing');
       toast.success('Your personalized version is ready!');
     } catch (err) {
+      if (!isMountedRef.current) return;
+      
       const message = err instanceof Error ? err.message : 'Personalization failed';
       setError(message);
       toast.error(message);
       setStage('ready_for_personalization');
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
-  }, [generationParams, idealContent, industryResearch]);
+  }, [generationParams, idealContent, industryResearch, userEvidence]);
 
   const selectVersion = useCallback((version: 'ideal' | 'personalized' | 'blend', blendedContent?: string): string => {
     setStage('complete');
@@ -286,9 +323,6 @@ export function useTwoStageGeneration(): UseTwoStageGenerationReturn {
   }, [idealContent, personalizedContent]);
 
   const reset = useCallback(() => {
-    // Abort any in-flight requests (Fix 7)
-    abortControllerRef.current?.abort();
-    
     setStage('idle');
     setIsLoading(false);
     setError(null);
