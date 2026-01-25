@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSectionContent, useVersionHistory, useRewriteSection } from '@/hooks/useRewriteSection';
-import type { RBEvidence, RBProject, ActionSource } from '@/types/resume-builder';
+import { calculateResumeScore } from '@/lib/calculate-resume-score';
+import type { RBEvidence, RBProject, ActionSource, RBKeywordDecision, RBJDRequirement } from '@/types/resume-builder';
 
 interface UseStudioPageDataOptions {
   projectId: string;
@@ -12,6 +13,8 @@ export function useStudioPageData({ projectId, sectionName }: UseStudioPageDataO
   const [evidence, setEvidence] = useState<RBEvidence[]>([]);
   const [project, setProject] = useState<RBProject | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [keywordDecisions, setKeywordDecisions] = useState<RBKeywordDecision[]>([]);
+  const [jdRequirements, setJdRequirements] = useState<RBJDRequirement[]>([]);
 
   const { content, setContent, originalContent, isLoading: loadingContent, loadContent } = 
     useSectionContent(projectId, sectionName);
@@ -42,12 +45,57 @@ export function useStudioPageData({ projectId, sectionName }: UseStudioPageDataO
     setEvidence((data as unknown as RBEvidence[]) || []);
   }, [projectId]);
 
+  const loadKeywordDecisions = useCallback(async () => {
+    if (!projectId) return;
+    const { data } = await supabase
+      .from('rb_keyword_decisions')
+      .select('*')
+      .eq('project_id', projectId);
+    
+    setKeywordDecisions((data as unknown as RBKeywordDecision[]) || []);
+  }, [projectId]);
+
+  const loadJDRequirements = useCallback(async () => {
+    if (!projectId) return;
+    const { data } = await supabase
+      .from('rb_jd_requirements')
+      .select('*')
+      .eq('project_id', projectId);
+    
+    setJdRequirements((data as unknown as RBJDRequirement[]) || []);
+  }, [projectId]);
+
   useEffect(() => {
     loadContent();
     loadVersions();
     loadEvidence();
     loadProject();
-  }, [loadContent, loadVersions, loadEvidence, loadProject]);
+    loadKeywordDecisions();
+    loadJDRequirements();
+  }, [loadContent, loadVersions, loadEvidence, loadProject, loadKeywordDecisions, loadJDRequirements]);
+
+  // Recalculate score utility
+  const recalculateScore = useCallback(async (newContent: string) => {
+    if (!projectId) return;
+
+    const scoreResult = calculateResumeScore({
+      keywordDecisions,
+      jdRequirements,
+      evidence,
+      currentContent: newContent,
+    });
+
+    // Update project score in database
+    await supabase
+      .from('rb_projects')
+      .update({ current_score: scoreResult.score })
+      .eq('id', projectId);
+
+    // Refresh project data
+    loadProject();
+    
+    return scoreResult;
+  }, [projectId, keywordDecisions, jdRequirements, evidence, loadProject]);
 
   const handleRewrite = useCallback(async (action: ActionSource) => {
     if (!projectId || !content.trim()) return;
@@ -81,8 +129,10 @@ export function useStudioPageData({ projectId, sectionName }: UseStudioPageDataO
     if (success) {
       setContent(version.content);
       setShowHistory(false);
+      // Recalculate score after reverting
+      await recalculateScore(version.content);
     }
-  }, [revertToVersion, setContent]);
+  }, [revertToVersion, setContent, recalculateScore]);
 
   const evidenceContext = evidence.map(e => ({
     claim: e.claim_text,
@@ -109,6 +159,7 @@ export function useStudioPageData({ projectId, sectionName }: UseStudioPageDataO
     handleRewrite,
     handleSave,
     handleRevert,
+    recalculateScore,
     
     // Derived
     evidenceContext,
