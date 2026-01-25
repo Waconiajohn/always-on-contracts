@@ -31,6 +31,14 @@ interface PersonalizeRequest {
   }>;
 }
 
+// Evidence categories relevant to each section type (Fix 9: expanded categories)
+const sectionCategories: Record<string, string[]> = {
+  summary: ["skill", "domain", "leadership", "metric", "responsibility"],
+  skills: ["skill", "tool", "domain", "metric"],
+  experience_bullets: ["responsibility", "metric", "leadership", "skill", "tool"],
+  education: ["domain", "skill"],
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -69,17 +77,16 @@ serve(async (req) => {
       });
     }
 
-    // Filter evidence relevant to this section (Fix 9: expanded categories)
-    const sectionCategories: Record<string, string[]> = {
-      summary: ["skill", "domain", "leadership", "metric", "responsibility"],
-      skills: ["skill", "tool", "domain", "metric"],
-      experience_bullets: ["responsibility", "metric", "leadership", "skill", "tool"],
-      education: ["domain", "skill"],
-    };
-
+    // Filter evidence relevant to this section
     const relevantEvidence = user_evidence.filter(e =>
       sectionCategories[section_type]?.includes(e.category) || e.confidence === "high"
     );
+
+    // Fix 6: Handle empty relevant evidence - warn but continue
+    if (relevantEvidence.length === 0) {
+      console.warn(`[rb-generate-personalized-section] No relevant evidence found for section type: ${section_type}`);
+      console.warn(`[rb-generate-personalized-section] Total evidence provided: ${user_evidence.length}, categories expected: ${sectionCategories[section_type]?.join(', ')}`);
+    }
 
     const systemPrompt = `You are an expert resume writer who creates personalized, evidence-backed resumes. You are taking an IDEAL ${section_type} section and adapting it with the user's REAL experience and evidence.
 
@@ -94,9 +101,9 @@ IDEAL SECTION (your structural template):
 ${ideal_content}
 
 USER'S VERIFIED EVIDENCE (use ONLY these facts):
-${relevantEvidence.map((e, i) => `${i + 1}. [${e.category.toUpperCase()}] ${e.claim_text}
+${relevantEvidence.length > 0 ? relevantEvidence.map((e, i) => `${i + 1}. [${e.category.toUpperCase()}] ${e.claim_text}
    Evidence: "${e.evidence_quote}"
-   Confidence: ${e.confidence}`).join('\n\n')}
+   Confidence: ${e.confidence}`).join('\n\n') : 'NO RELEVANT EVIDENCE PROVIDED - The personalized content will be limited. Identify key gaps.'}
 
 ${jd_requirements ? `
 JOB REQUIREMENTS TO ADDRESS:
@@ -109,6 +116,7 @@ YOUR TASK:
 3. Use user's actual numbers and metrics (do NOT inflate)
 4. Where evidence is missing, identify gaps
 5. Generate questions for areas needing more information
+6. COUNT THE WORDS in your personalized_content and include as word_count
 
 Respond with JSON:
 {
@@ -124,12 +132,13 @@ Respond with JSON:
   ],
   "gaps_identified": ["areas where user lacks evidence"],
   "questions_for_user": ["questions to gather missing information"],
-  "similarity_to_ideal": 0-100
+  "similarity_to_ideal": 0-100,
+  "word_count": <number of words in personalized_content>
 }`;
 
     const userPrompt = `Create the personalized ${section_type} section for a ${role_context.seniority_level} ${role_context.role_title} in ${role_context.industry}.
 
-Use ONLY the user's verified evidence. Identify gaps and generate questions where evidence is missing.`;
+Use ONLY the user's verified evidence. Identify gaps and generate questions where evidence is missing. Be sure to count and include the word_count.`;
 
     const { response, metrics } = await callLovableAI(
       {
@@ -156,6 +165,11 @@ Use ONLY the user's verified evidence. Identify gaps and generate questions wher
     }
 
     const result = parseAndValidate(PersonalizedSectionSchema, content, "rb-generate-personalized-section");
+
+    // Fix 8: Ensure word_count is populated (fallback calculation if AI didn't provide)
+    if (!result.word_count && result.personalized_content) {
+      result.word_count = result.personalized_content.split(/\s+/).filter(Boolean).length;
+    }
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
