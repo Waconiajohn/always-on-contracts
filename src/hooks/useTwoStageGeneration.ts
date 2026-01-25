@@ -1,14 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { 
-  RBEvidence, 
-  EvidenceCategory, 
-  EvidenceSource, 
-  EvidenceConfidence,
-  SpanLocation 
-} from '@/types/resume-builder';
-import { mapUISectionToAPIType } from '@/lib/resume-section-utils';
+import type { RBEvidence } from '@/types/resume-builder';
+import { 
+  mapUISectionToAPIType, 
+  mapToRBEvidence,
+  type PartialEvidence 
+} from '@/lib/resume-section-utils';
 
 export type GenerationStage = 
   | 'idle'
@@ -82,36 +80,6 @@ interface StartGenerationParams {
   jobDescription: string;
 }
 
-// Partial evidence shape from database before type casting
-interface PartialEvidence {
-  id: string;
-  claim_text: string;
-  evidence_quote: string | null;
-  source: string;
-  category: string;
-  confidence: string;
-  is_active: boolean;
-  project_id: string;
-  span_location: unknown;
-  created_at: string;
-}
-
-// Safe type mapping function (Fix 2: proper type casting)
-function mapToRBEvidence(data: PartialEvidence[]): RBEvidence[] {
-  return data.map(item => ({
-    id: item.id,
-    project_id: item.project_id,
-    claim_text: item.claim_text,
-    evidence_quote: item.evidence_quote || item.claim_text,
-    category: item.category as EvidenceCategory,
-    source: item.source as EvidenceSource,
-    confidence: item.confidence as EvidenceConfidence,
-    span_location: item.span_location as SpanLocation | null,
-    is_active: item.is_active,
-    created_at: item.created_at,
-  }));
-}
-
 export function useTwoStageGeneration(): UseTwoStageGenerationReturn {
   const [stage, setStage] = useState<GenerationStage>('idle');
   const [isLoading, setIsLoading] = useState(false);
@@ -125,8 +93,7 @@ export function useTwoStageGeneration(): UseTwoStageGenerationReturn {
   // Store params for personalization stage
   const [generationParams, setGenerationParams] = useState<StartGenerationParams | null>(null);
   
-  // Fix 3: Replace AbortController with mounted ref pattern
-  // Supabase SDK doesn't support abort signals, so we use a mounted check
+  // Mounted ref pattern for safe async state updates
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -135,7 +102,7 @@ export function useTwoStageGeneration(): UseTwoStageGenerationReturn {
   }, []);
 
   const startGeneration = useCallback(async (params: StartGenerationParams) => {
-    // Fix 5: Validate required inputs early
+    // Validate required inputs early
     if (!params.jobDescription?.trim()) {
       setError('Please add a job description before generating content');
       toast.error('Job description is required');
@@ -153,19 +120,19 @@ export function useTwoStageGeneration(): UseTwoStageGenerationReturn {
     setGenerationParams(params);
 
     try {
+      // Fix 6: Session check FIRST before any data fetching
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
         throw new Error('Please sign in to continue');
       }
 
-      // Pre-load evidence for strength analysis (Fix 3 - do this early)
+      // THEN fetch evidence
       const { data: evidenceData } = await supabase
         .from('rb_evidence')
         .select('id, claim_text, evidence_quote, source, category, confidence, is_active, project_id, span_location, created_at')
         .eq('project_id', params.projectId)
         .eq('is_active', true);
       
-      // Fix 2: Use safe mapping function
       if (!isMountedRef.current) return;
       setUserEvidence(mapToRBEvidence((evidenceData as PartialEvidence[]) || []));
 

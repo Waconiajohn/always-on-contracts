@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
@@ -14,9 +15,13 @@ import { SideBySideComparison } from './SideBySideComparison';
 import { BlendEditor } from './BlendEditor';
 import { ResumeStrengthIndicator } from './ResumeStrengthIndicator';
 import { analyzeResumeStrength } from '@/lib/resume-strength-analyzer';
-import { mapUISectionToAPIType, type APISectionType } from '@/lib/resume-section-utils';
+import { 
+  mapUISectionToAPIType, 
+  mapToRBEvidence,
+  type PartialEvidence 
+} from '@/lib/resume-section-utils';
 import { Loader2, Wand2, AlertTriangle } from 'lucide-react';
-import type { RBEvidence, EvidenceCategory, EvidenceSource, EvidenceConfidence, SpanLocation } from '@/types/resume-builder';
+import type { RBEvidence } from '@/types/resume-builder';
 
 interface TwoStageGenerationDialogProps {
   open: boolean;
@@ -30,36 +35,6 @@ interface TwoStageGenerationDialogProps {
   onContentSelect: (content: string) => void;
 }
 
-// Partial evidence shape from database
-interface PartialEvidence {
-  id: string;
-  claim_text: string;
-  evidence_quote: string | null;
-  source: string;
-  category: string;
-  confidence: string;
-  is_active: boolean;
-  project_id: string;
-  span_location: unknown;
-  created_at: string;
-}
-
-// Safe mapping function
-function mapToRBEvidence(data: PartialEvidence[]): RBEvidence[] {
-  return data.map(item => ({
-    id: item.id,
-    project_id: item.project_id,
-    claim_text: item.claim_text,
-    evidence_quote: item.evidence_quote || item.claim_text,
-    category: item.category as EvidenceCategory,
-    source: item.source as EvidenceSource,
-    confidence: item.confidence as EvidenceConfidence,
-    span_location: item.span_location as SpanLocation | null,
-    is_active: item.is_active,
-    created_at: item.created_at,
-  }));
-}
-
 export function TwoStageGenerationDialog({
   open,
   onOpenChange,
@@ -71,9 +46,10 @@ export function TwoStageGenerationDialog({
   jobDescription,
   onContentSelect,
 }: TwoStageGenerationDialogProps) {
+  const navigate = useNavigate();
   const [showBlendEditor, setShowBlendEditor] = useState(false);
-  const [isStarting, setIsStarting] = useState(false); // Fix 12: debounce button
-  const [previewEvidence, setPreviewEvidence] = useState<RBEvidence[]>([]); // Fix 5: pre-load for idle state
+  const [isStarting, setIsStarting] = useState(false);
+  const [previewEvidence, setPreviewEvidence] = useState<RBEvidence[]>([]);
   
   const {
     stage,
@@ -97,7 +73,11 @@ export function TwoStageGenerationDialog({
         .select('id, claim_text, evidence_quote, source, category, confidence, is_active, project_id, span_location, created_at')
         .eq('project_id', projectId)
         .eq('is_active', true)
-        .then(({ data }) => {
+        .then(({ data, error: fetchError }) => {
+          if (fetchError) {
+            console.error('[TwoStageGenerationDialog] Evidence pre-fetch failed:', fetchError);
+            return;
+          }
           if (data) {
             setPreviewEvidence(mapToRBEvidence(data as PartialEvidence[]));
           }
@@ -176,10 +156,14 @@ export function TwoStageGenerationDialog({
     onOpenChange(false);
   };
 
-  // Get section type using shared utility
-  const getSectionType = (): APISectionType => {
-    return mapUISectionToAPIType(sectionName);
+  // Fix 5: Navigate to fix page when user wants to improve strength
+  const handleImproveStrength = () => {
+    handleClose();
+    navigate(`/resume-builder/${projectId}/fix`);
   };
+
+  // Get section type using shared utility
+  const sectionType = mapUISectionToAPIType(sectionName);
 
   // Create comparison data from state - uses API word count when available
   const comparisonData = useMemo(() => ({
@@ -220,10 +204,14 @@ export function TwoStageGenerationDialog({
           {/* Stage: Idle - Start Button with Strength Preview */}
           {stage === 'idle' && !error && (
             <div className="text-center space-y-4 py-8">
-              {/* Fix 5: Show strength indicator in idle state */}
+              {/* Show strength indicator in idle state */}
               {resumeStrength && !resumeStrength.isStrongEnough && (
                 <div className="max-w-md mx-auto mb-4">
-                  <ResumeStrengthIndicator strength={resumeStrength} compact />
+                  <ResumeStrengthIndicator 
+                    strength={resumeStrength} 
+                    onImprove={handleImproveStrength}
+                    compact 
+                  />
                 </div>
               )}
               
@@ -264,7 +252,7 @@ export function TwoStageGenerationDialog({
           {(stage === 'researching' || stage === 'generating_ideal') && (
             <IndustryResearchProgress
               steps={researchSteps}
-              currentStepIndex={progressPercent}
+              progressPercent={progressPercent}
               roleTitle={roleTitle}
               industry={industry}
               seniorityLevel={seniorityLevel}
@@ -274,16 +262,16 @@ export function TwoStageGenerationDialog({
           {/* Stage: Ready for Personalization - Show Ideal + Strength Indicator (Fix 4) */}
           {stage === 'ready_for_personalization' && idealContent && industryResearch && (
             <div className="space-y-6">
-              {/* Show strength indicator BEFORE clicking personalize */}
               {resumeStrength && (
                 <ResumeStrengthIndicator 
                   strength={resumeStrength} 
                   compact={resumeStrength.isStrongEnough}
+                  onImprove={handleImproveStrength}
                 />
               )}
               
               <IdealExampleCard
-                sectionType={getSectionType()}
+                sectionType={sectionType}
                 idealContent={idealContent.ideal_content}
                 structureNotes={idealContent.structure_notes}
                 keyElements={idealContent.key_elements}
