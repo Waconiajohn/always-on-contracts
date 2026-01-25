@@ -1,30 +1,30 @@
 
 
-# Audit Fix Plan: World-Class Resume Generation (Final Polish)
+# Audit Fix Plan: World-Class Resume Generation (Final Polish Round 2)
 
 ## Summary
-The implementation is **90% complete and functional**. This audit identified 3 critical issues, 5 medium issues, and 4 minor issues that need to be addressed. Estimated effort: **2 hours**.
+The implementation is **92% complete**. This audit identified 3 critical issues, 5 medium issues, and 4 minor issues. Estimated effort: **1.5-2 hours**.
 
 ---
 
 ## Critical Fixes
 
-### Fix 1: Verify and Create Unique Constraint on `rb_industry_research`
-**Location**: Database migration
+### Fix 1: Extract Shared `mapToRBEvidence` to Utility File
+**Current State**: The same function is duplicated in two files.
 
-Check if the unique constraint exists, and if not, create it:
-```sql
-ALTER TABLE rb_industry_research 
-ADD CONSTRAINT rb_industry_research_unique_key 
-UNIQUE (role_title, seniority_level, industry);
-```
+**Solution**: Move to `src/lib/resume-section-utils.ts` and export from there.
 
-### Fix 2: Fix Unsafe Type Casting for RBEvidence
-**File**: `src/hooks/useTwoStageGeneration.ts`
-
-Create a proper evidence mapping function instead of double-casting:
 ```typescript
-interface PartialEvidence {
+// Add to src/lib/resume-section-utils.ts
+import type { 
+  RBEvidence, 
+  EvidenceCategory, 
+  EvidenceSource, 
+  EvidenceConfidence,
+  SpanLocation 
+} from '@/types/resume-builder';
+
+export interface PartialEvidence {
   id: string;
   claim_text: string;
   evidence_quote: string | null;
@@ -37,108 +37,190 @@ interface PartialEvidence {
   created_at: string;
 }
 
-function mapToRBEvidence(data: PartialEvidence[]): RBEvidence[] {
+export function mapToRBEvidence(data: PartialEvidence[]): RBEvidence[] {
   return data.map(item => ({
-    ...item,
+    id: item.id,
+    project_id: item.project_id,
+    claim_text: item.claim_text,
     evidence_quote: item.evidence_quote || item.claim_text,
     category: item.category as EvidenceCategory,
     source: item.source as EvidenceSource,
     confidence: item.confidence as EvidenceConfidence,
     span_location: item.span_location as SpanLocation | null,
+    is_active: item.is_active,
+    created_at: item.created_at,
   }));
 }
 ```
 
-### Fix 3: Remove Ineffective AbortController Pattern
-**File**: `src/hooks/useTwoStageGeneration.ts`
+Then update both files to import from the shared utility.
 
-Since Supabase SDK doesn't support abort signals, replace with a simpler "mounted" check:
+### Fix 2: Rename `currentStepIndex` Prop for Clarity
+**File**: `src/components/resume-builder/IndustryResearchProgress.tsx`
+
+The prop is actually receiving a percentage, so rename it:
+
 ```typescript
-const isMountedRef = useRef(true);
+interface IndustryResearchProgressProps {
+  steps: ResearchStep[];
+  progressPercent: number; // Renamed from currentStepIndex
+  roleTitle: string;
+  industry: string;
+  seniorityLevel: string;
+}
+```
 
-useEffect(() => {
-  return () => { isMountedRef.current = false; };
-}, []);
+Update the caller in `TwoStageGenerationDialog.tsx`:
+```typescript
+<IndustryResearchProgress
+  steps={researchSteps}
+  progressPercent={progressPercent} // Renamed
+  roleTitle={roleTitle}
+  ...
+/>
+```
 
-// In async functions:
-if (!isMountedRef.current) return;
+### Fix 3: Add Database Unique Constraint
+**Location**: Database migration
+
+```sql
+-- Check if constraint exists first, then add if missing
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'rb_industry_research_unique_key'
+  ) THEN
+    ALTER TABLE rb_industry_research 
+    ADD CONSTRAINT rb_industry_research_unique_key 
+    UNIQUE (role_title, seniority_level, industry);
+  END IF;
+END
+$$;
 ```
 
 ---
 
 ## Medium Fixes
 
-### Fix 4: Unify Progress Step Index Logic
+### Fix 4: Add Error Handling to Evidence Pre-fetch
 **File**: `src/components/resume-builder/TwoStageGenerationDialog.tsx`
 
-Remove the duplicate `currentStepIndex` calculation and use a single source of truth:
-```typescript
-const { researchSteps, progressPercent } = useMemo(() => {
-  let activeIndex = -1;
-  if (stage === 'researching') activeIndex = 0;
-  else if (stage === 'generating_ideal') activeIndex = 2;
-  else if (stage !== 'idle') activeIndex = 4;
-  
-  const steps = defaultResearchSteps.map((step, index) => ({
-    ...step,
-    status: index < activeIndex ? 'complete' : index === activeIndex ? 'active' : 'pending',
-  }));
-  
-  const percent = Math.round((Math.max(0, activeIndex) / steps.length) * 100);
-  
-  return { researchSteps: steps, progressPercent: percent };
-}, [stage]);
-```
-
-### Fix 5: Show Strength Indicator in Idle State
-**File**: `src/components/resume-builder/TwoStageGenerationDialog.tsx`
-
-Load evidence on dialog open (not just on start generation):
 ```typescript
 useEffect(() => {
   if (open && projectId) {
-    // Pre-fetch evidence for strength preview
     supabase
       .from('rb_evidence')
       .select('...')
       .eq('project_id', projectId)
       .eq('is_active', true)
-      .then(({ data }) => setPreviewEvidence(data || []));
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('[TwoStageGenerationDialog] Evidence pre-fetch failed:', error);
+          return;
+        }
+        if (data) {
+          setPreviewEvidence(mapToRBEvidence(data as PartialEvidence[]));
+        }
+      });
   }
 }, [open, projectId]);
 ```
 
-### Fix 6: Handle Empty Relevant Evidence
-**File**: `supabase/functions/rb-generate-personalized-section/index.ts`
+### Fix 5: Add `onImprove` Callback to All Strength Indicators
+**File**: `src/components/resume-builder/TwoStageGenerationDialog.tsx`
 
-Add a check and warning:
+Create a navigation handler:
 ```typescript
-if (relevantEvidence.length === 0) {
-  console.warn('[rb-generate-personalized-section] No relevant evidence found for section');
-  // Return a response indicating the content will be generic
-}
+const handleImproveStrength = () => {
+  handleClose();
+  // Navigate to fix page with achievement builder
+  window.location.href = `/resume-builder/${projectId}/fix`;
+};
 ```
 
-### Fix 7: Consolidate Section Mapping to Single Utility
-**Files**: Create `src/lib/resume-section-utils.ts`
-
+Then pass to all `ResumeStrengthIndicator` instances:
 ```typescript
-export function mapUISectionToAPIType(name: string): 'summary' | 'skills' | 'experience_bullets' | 'education' {
-  if (name === 'experience') return 'experience_bullets';
-  return name as 'summary' | 'skills' | 'education';
-}
+<ResumeStrengthIndicator 
+  strength={resumeStrength} 
+  compact={resumeStrength.isStrongEnough}
+  onImprove={handleImproveStrength}
+/>
 ```
 
-Then import and use consistently in both hook and dialog.
+### Fix 6: Move Evidence Fetch After Session Check
+**File**: `src/hooks/useTwoStageGeneration.ts`
 
-### Fix 8: Ensure AI Returns Word Count
-**File**: `supabase/functions/rb-generate-personalized-section/index.ts`
-
-Update the JSON schema in the prompt to explicitly request word_count:
+Reorder operations:
 ```typescript
-{
-  // ... existing fields
-  "word_count": "number - count the words in personalized_content"
+const startGeneration = useCallback(async (params: StartGenerationParams) => {
+  // Validation first
+  if (!params.jobDescription?.trim()) {...}
+  if (!params.roleTitle?.trim() || !params.industry?.trim()) {...}
+  
+  setIsLoading(true);
+  setError(null);
+  setStage('researching');
+  setGenerationParams(params);
+
+  try {
+    // Session check FIRST
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      throw new Error('Please sign in to continue');
+    }
+
+    // THEN fetch evidence
+    const { data: evidenceData } = await supabase
+      .from('rb_evidence')
+      .select('...')
+      .eq('project_id', params.projectId)
+      .eq('is_active', true);
+    
+    // ... rest of function
+  }
+}, []);
+```
+
+### Fix 7: Replace Hardcoded Fallbacks with Error State
+**File**: `src/pages/resume-builder/studio/SummaryPage.tsx`
+
+Instead of silent fallbacks, show error:
+```typescript
+const handleWorldClass = () => {
+  if (!project?.jd_text) {
+    toast.error('Please add a job description first');
+    return;
+  }
+  if (!project?.role_title) {
+    toast.error('Please confirm your target role first');
+    return;
+  }
+  if (!project?.industry) {
+    toast.error('Please confirm your target industry first');
+    return;
+  }
+  if (!project?.seniority_level) {
+    toast.error('Please confirm your seniority level first');
+    return;
+  }
+  setShowTwoStage(true);
+};
+
+// In TwoStageGenerationDialog props, don't pass fallbacks:
+roleTitle={project?.role_title || ''}
+seniorityLevel={project?.seniority_level || ''}
+industry={project?.industry || ''}
+```
+
+### Fix 8: Verify SpanLocation Type Export
+**File**: `src/types/resume-builder.ts`
+
+Ensure SpanLocation is exported:
+```typescript
+export interface SpanLocation {
+  section: 'summary' | 'skills' | 'experience' | 'education' | 'other';
+  jobIndex?: number;
+  bulletIndex?: number;
 }
 ```
 
@@ -146,42 +228,33 @@ Update the JSON schema in the prompt to explicitly request word_count:
 
 ## Minor Fixes
 
-### Fix 9: Remove Misleading Insight Counter
-**File**: `src/components/resume-builder/IndustryResearchProgress.tsx`
-
-Either remove the insight counter entirely or base it on actual data:
-```typescript
-{industryResearch?.keywords?.length ? (
-  <p>Discovered {industryResearch.keywords.length}+ industry keywords</p>
-) : null}
-```
-
-### Fix 10: BlendEditor Default Content Choice
-**File**: `src/components/resume-builder/BlendEditor.tsx`
-
-Consider starting with an empty editor or prompting user choice, but this is low priority.
-
-### Fix 11: Remove Duplicate Evidence Fetch
-**File**: `src/hooks/useTwoStageGeneration.ts`
-
-Since evidence is pre-loaded in `startGeneration`, reuse `userEvidence` state in `generatePersonalized` instead of fetching again.
-
-### Fix 12: Add Debounce to Start Button
+### Fix 9: Remove Unused `getSectionType` Function
 **File**: `src/components/resume-builder/TwoStageGenerationDialog.tsx`
 
+Delete lines 179-182:
 ```typescript
-const [isStarting, setIsStarting] = useState(false);
-
-const handleStart = async () => {
-  if (isStarting) return;
-  setIsStarting(true);
-  try {
-    await startGeneration({...});
-  } finally {
-    setIsStarting(false);
-  }
+// DELETE THIS:
+const getSectionType = (): APISectionType => {
+  return mapUISectionToAPIType(sectionName);
 };
 ```
+
+### Fix 10: Simplify Evidence State Naming
+**File**: `src/components/resume-builder/TwoStageGenerationDialog.tsx`
+
+Rename for clarity:
+```typescript
+// Before
+const [previewEvidence, setPreviewEvidence] = useState<RBEvidence[]>([]);
+
+// After
+const [prefetchedEvidence, setPrefetchedEvidence] = useState<RBEvidence[]>([]);
+```
+
+### Fix 11: Remove Duplicate Category Definitions
+**File**: `src/lib/resume-section-utils.ts`
+
+The `SECTION_EVIDENCE_CATEGORIES` should only exist in one place. Since the backend also defines this in `rb-generate-personalized-section/index.ts`, consider importing from a shared location or accepting the duplication with a comment explaining why.
 
 ---
 
@@ -189,12 +262,13 @@ const handleStart = async () => {
 
 | File | Changes |
 |------|---------|
-| Database migration | Add unique constraint on `rb_industry_research` |
-| `src/hooks/useTwoStageGeneration.ts` | Fix type casting, remove AbortController, remove duplicate fetch |
-| `src/components/resume-builder/TwoStageGenerationDialog.tsx` | Unify step logic, pre-load evidence, add debounce |
-| `src/components/resume-builder/IndustryResearchProgress.tsx` | Remove misleading insight counter |
-| `supabase/functions/rb-generate-personalized-section/index.ts` | Handle empty evidence, ensure word_count in prompt |
-| `src/lib/resume-section-utils.ts` (new) | Create shared section mapping utility |
+| `src/lib/resume-section-utils.ts` | Add shared `mapToRBEvidence` function and `PartialEvidence` interface |
+| `src/hooks/useTwoStageGeneration.ts` | Remove duplicate function, import from utility, reorder session check |
+| `src/components/resume-builder/TwoStageGenerationDialog.tsx` | Import shared function, add error handling, add onImprove callback, remove dead code |
+| `src/components/resume-builder/IndustryResearchProgress.tsx` | Rename prop from `currentStepIndex` to `progressPercent` |
+| `src/pages/resume-builder/studio/SummaryPage.tsx` | Strengthen validation, remove fallback values |
+| `src/types/resume-builder.ts` | Verify SpanLocation export |
+| Database migration | Add unique constraint on rb_industry_research |
 
 ---
 
@@ -202,18 +276,30 @@ const handleStart = async () => {
 
 | Task | Complexity | Time |
 |------|------------|------|
-| Database unique constraint | Low | 5 min |
-| Fix type casting | Medium | 15 min |
-| Fix AbortController pattern | Low | 10 min |
-| Unify progress step logic | Low | 10 min |
-| Pre-load evidence for strength | Medium | 15 min |
-| Handle empty evidence | Low | 10 min |
-| Create shared section utility | Low | 10 min |
-| Ensure word_count in prompt | Low | 5 min |
-| Remove misleading counter | Low | 5 min |
-| Remove duplicate fetch | Low | 10 min |
-| Add button debounce | Low | 5 min |
-| Testing | Medium | 20 min |
+| Extract shared mapToRBEvidence | Low | 15 min |
+| Rename currentStepIndex prop | Low | 5 min |
+| Add database unique constraint | Low | 5 min |
+| Add error handling to pre-fetch | Low | 5 min |
+| Add onImprove callbacks | Low | 10 min |
+| Reorder session check | Low | 5 min |
+| Remove hardcoded fallbacks | Low | 10 min |
+| Verify SpanLocation export | Low | 5 min |
+| Remove dead code | Low | 5 min |
+| Testing & verification | Medium | 25 min |
 
-**Total: ~2 hours**
+**Total: ~1.5 hours**
+
+---
+
+## Testing Checklist
+
+After implementing fixes:
+1. Open Summary Studio page - verify validation blocks dialog if data missing
+2. Click "World-Class" button with valid project
+3. Verify progress UI shows correctly during research phase
+4. Verify strength indicator shows with working "Improve" button
+5. Complete full generation flow
+6. Test blend editor functionality
+7. Verify no console errors or TypeScript warnings
+8. Test with minimal evidence to verify strength warnings appear
 
