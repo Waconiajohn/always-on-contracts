@@ -11,11 +11,30 @@ interface RewriteResult {
   version_number: number;
 }
 
+interface ValidationIssue {
+  type: 'hallucination' | 'exaggeration' | 'unsupported_claim' | 'missing_evidence';
+  severity: 'critical' | 'warning' | 'info';
+  description: string;
+  original_text?: string;
+  problematic_text: string;
+  suggestion: string;
+}
+
+interface ValidationResult {
+  is_valid: boolean;
+  confidence_score: number;
+  issues: ValidationIssue[];
+  summary: string;
+  recommendation: 'approve' | 'revise' | 'reject';
+}
+
 interface UseRewriteSectionReturn {
   rewrite: (params: RewriteParams) => Promise<RewriteResult | null>;
   isLoading: boolean;
   error: string | null;
   lastResult: RewriteResult | null;
+  validationResult: ValidationResult | null;
+  isValidating: boolean;
 }
 
 interface RewriteParams {
@@ -25,16 +44,83 @@ interface RewriteParams {
   actionSource: ActionSource;
   microEditInstruction?: string;
   selectedText?: string;
+  skipValidation?: boolean;
 }
 
 export function useRewriteSection(): UseRewriteSectionReturn {
   const [isLoading, setIsLoading] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<RewriteResult | null>(null);
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+
+  // Auto-validation function
+  const validateRewrite = useCallback(async (
+    projectId: string,
+    sectionName: string,
+    originalContent: string,
+    rewrittenContent: string
+  ): Promise<ValidationResult | null> => {
+    try {
+      setIsValidating(true);
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return null;
+
+      // Load evidence for this project
+      const { data: evidence } = await supabase
+        .from('rb_evidence')
+        .select('claim_text, source, confidence')
+        .eq('project_id', projectId)
+        .eq('is_active', true);
+
+      const evidenceClaims = (evidence || []).map((e: any) => ({
+        claim: e.claim_text,
+        source: e.source,
+        confidence: e.confidence || 'medium',
+      }));
+
+      const { data, error: fnError } = await supabase.functions.invoke<ValidationResult>(
+        'rb-validate-rewrite',
+        {
+          body: {
+            original_content: originalContent,
+            rewritten_content: rewrittenContent,
+            section_name: sectionName,
+            evidence_claims: evidenceClaims,
+          },
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        }
+      );
+
+      if (fnError || !data) {
+        console.error('Validation failed:', fnError);
+        return null;
+      }
+
+      setValidationResult(data);
+
+      // Show warnings for critical issues
+      const criticalIssues = data.issues.filter(i => i.severity === 'critical');
+      if (criticalIssues.length > 0) {
+        toast.warning(`${criticalIssues.length} potential issue(s) detected - review before finalizing`);
+      }
+
+      return data;
+    } catch (err) {
+      console.error('Validation error:', err);
+      return null;
+    } finally {
+      setIsValidating(false);
+    }
+  }, []);
 
   const rewrite = useCallback(async (params: RewriteParams): Promise<RewriteResult | null> => {
     setIsLoading(true);
     setError(null);
+    setValidationResult(null);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -79,6 +165,17 @@ export function useRewriteSection(): UseRewriteSectionReturn {
         toast.info(`AI needs more info: ${data.questions[0]}`);
       }
 
+      // Auto-validate after rewrite (unless skipped)
+      if (!params.skipValidation && params.actionSource !== 'manual') {
+        // Run validation in background
+        validateRewrite(
+          params.projectId,
+          params.sectionName,
+          params.currentContent,
+          data.rewritten_text
+        );
+      }
+
       return data;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Rewrite failed';
@@ -88,9 +185,9 @@ export function useRewriteSection(): UseRewriteSectionReturn {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [validateRewrite]);
 
-  return { rewrite, isLoading, error, lastResult };
+  return { rewrite, isLoading, error, lastResult, validationResult, isValidating };
 }
 
 // Hook for managing version history
