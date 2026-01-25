@@ -43,6 +43,7 @@ export function TwoStageGenerationDialog({
   const {
     stage,
     isLoading,
+    error,
     industryResearch,
     idealContent,
     personalizedContent,
@@ -61,25 +62,23 @@ export function TwoStageGenerationDialog({
     return null;
   }, [userEvidence]);
 
-  // Map stage to research steps with proper statuses
+  // Map stage to research steps with proper statuses (Fix 2: correct indexing)
   const researchSteps: ResearchStep[] = useMemo(() => {
-    const stepsWithStatus = [...defaultResearchSteps];
-    
-    let currentIndex = 0;
+    let currentIndex = -1; // -1 = all pending
     if (stage === 'researching') currentIndex = 0;
     else if (stage === 'generating_ideal') currentIndex = 2;
-    else if (stage === 'ready_for_personalization' || stage === 'personalizing' || stage === 'comparing' || stage === 'complete') currentIndex = 4;
+    else if (stage !== 'idle') currentIndex = 4; // Mark all complete
     
-    return stepsWithStatus.map((step, index) => ({
+    return defaultResearchSteps.map((step, index) => ({
       ...step,
-      status: index < currentIndex ? 'complete' : index === currentIndex ? 'active' : 'pending',
+      status: index < currentIndex ? 'complete' as const : index === currentIndex ? 'active' as const : 'pending' as const,
     }));
   }, [stage]);
 
   const currentStepIndex = useMemo(() => {
     if (stage === 'researching') return 1;
-    if (stage === 'generating_ideal') return 2;
-    if (stage === 'ready_for_personalization' || stage === 'personalizing' || stage === 'comparing' || stage === 'complete') return 4;
+    if (stage === 'generating_ideal') return 3;
+    if (stage !== 'idle') return 4;
     return 0;
   }, [stage]);
 
@@ -129,12 +128,13 @@ export function TwoStageGenerationDialog({
     }
   };
 
-  // Create comparison data from state - Fixed field access
+  // Create comparison data from state - Fixed field access (Fix 11: use API word count)
   const comparisonData = useMemo(() => ({
     idealContent: idealContent?.ideal_content || '',
     personalizedContent: personalizedContent?.personalized_content || '',
     idealWordCount: idealContent?.word_count || 0,
-    personalizedWordCount: personalizedContent?.personalized_content?.split(/\s+/).filter(Boolean).length || 0,
+    personalizedWordCount: personalizedContent?.word_count || 
+      personalizedContent?.personalized_content?.split(/\s+/).filter(Boolean).length || 0,
     similarityScore: personalizedContent?.similarity_to_ideal || 0,
     gapsIdentified: personalizedContent?.gaps_identified || [],
     evidenceUsed: personalizedContent?.evidence_incorporated || [],
@@ -151,8 +151,21 @@ export function TwoStageGenerationDialog({
         </DialogHeader>
 
         <div className="space-y-6 py-4">
+          {/* Error Display (Fix 1) */}
+          {error && (
+            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4">
+              <div className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="h-5 w-5" />
+                <p className="text-sm font-medium">{error}</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={reset} className="mt-2">
+                Try Again
+              </Button>
+            </div>
+          )}
+
           {/* Stage: Idle - Start Button */}
-          {stage === 'idle' && (
+          {stage === 'idle' && !error && (
             <div className="text-center space-y-4 py-8">
               <p className="text-muted-foreground">
                 Generate a world-class {sectionName} section in two stages:
@@ -189,9 +202,17 @@ export function TwoStageGenerationDialog({
             />
           )}
 
-          {/* Stage: Ready for Personalization - Show Ideal + Strength Indicator */}
+          {/* Stage: Ready for Personalization - Show Ideal + Strength Indicator (Fix 4) */}
           {stage === 'ready_for_personalization' && idealContent && industryResearch && (
             <div className="space-y-6">
+              {/* Show strength indicator BEFORE clicking personalize */}
+              {resumeStrength && (
+                <ResumeStrengthIndicator 
+                  strength={resumeStrength} 
+                  compact={resumeStrength.isStrongEnough}
+                />
+              )}
+              
               <IdealExampleCard
                 sectionType={getSectionType()}
                 idealContent={idealContent.ideal_content}

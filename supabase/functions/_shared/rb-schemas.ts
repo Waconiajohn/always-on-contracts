@@ -277,6 +277,7 @@ export const PersonalizedSectionSchema = z.object({
   gaps_identified: z.array(z.string()).default([]).describe("Areas where user lacks evidence"),
   questions_for_user: z.array(z.string()).default([]).describe("Questions to fill gaps"),
   similarity_to_ideal: z.number().min(0).max(100).describe("How close to ideal structure 0-100"),
+  word_count: z.number().optional().describe("Word count of personalized content"),
 });
 
 export type PersonalizedSection = z.infer<typeof PersonalizedSectionSchema>;

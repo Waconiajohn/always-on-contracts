@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { StudioLayout } from '@/components/resume-builder/StudioLayout';
 import { ResumeBuilderShell } from '@/components/resume-builder/ResumeBuilderShell';
 import { RewriteControls } from '@/components/resume-builder/RewriteControls';
@@ -52,6 +53,19 @@ export default function SummaryPage() {
     setContent(newContent);
   };
 
+  // Validate project has required data before opening dialog (Fix 8)
+  const handleWorldClass = () => {
+    if (!project?.jd_text) {
+      toast.error('Please add a job description first');
+      return;
+    }
+    if (!project?.role_title || !project?.industry) {
+      toast.error('Please confirm your target role first');
+      return;
+    }
+    setShowTwoStage(true);
+  };
+
   return (
     <ResumeBuilderShell>
       <StudioLayout
@@ -64,7 +78,7 @@ export default function SummaryPage() {
             onRewrite={handleRewrite}
             onShowHistory={() => setShowHistory(true)}
             onSave={handleSave}
-            onWorldClass={() => setShowTwoStage(true)}
+            onWorldClass={handleWorldClass}
             isLoading={isLoading}
             hasChanges={hasChanges}
           />
