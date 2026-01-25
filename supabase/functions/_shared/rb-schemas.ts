@@ -211,6 +211,77 @@ export type Validation = z.infer<typeof ValidationSchema>;
 export type ValidationIssue = z.infer<typeof ValidationIssueSchema>;
 
 // ============================================================================
+// AI Call #10: Industry Research Response
+// ============================================================================
+export const IndustryResearchSchema = z.object({
+  role_title: z.string().describe("The normalized role title"),
+  seniority_level: z.string().describe("Seniority level for this research"),
+  industry: z.string().describe("Industry context"),
+  
+  keywords: z.array(z.object({
+    term: z.string(),
+    frequency: z.enum(["very_common", "common", "occasional"]),
+    category: z.enum(["hard_skill", "tool", "methodology", "certification", "domain"]),
+  })).default([]).describe("Common keywords for this role/level/industry"),
+  
+  power_phrases: z.array(z.object({
+    phrase: z.string(),
+    impact_level: z.enum(["high", "medium"]),
+    use_case: z.string().describe("When to use this phrase"),
+  })).default([]).describe("Impactful phrases for this role"),
+  
+  typical_qualifications: z.array(z.object({
+    qualification: z.string(),
+    importance: z.enum(["required", "preferred", "bonus"]),
+    category: z.enum(["education", "certification", "experience", "skill"]),
+  })).default([]).describe("Expected qualifications at this level"),
+  
+  competitive_benchmarks: z.array(z.object({
+    area: z.string().describe("What's being benchmarked"),
+    top_performer: z.string().describe("What top candidates demonstrate"),
+    average: z.string().describe("What average candidates show"),
+  })).default([]).describe("Competitive differentiation benchmarks"),
+  
+  summary_template: z.string().describe("Ideal summary structure for this role"),
+  experience_focus: z.array(z.string()).default([]).describe("Key areas to emphasize in experience"),
+});
+
+export type IndustryResearch = z.infer<typeof IndustryResearchSchema>;
+
+// ============================================================================
+// AI Call #11: Ideal Section Generation Response
+// ============================================================================
+export const IdealSectionSchema = z.object({
+  section_type: z.enum(["summary", "skills", "experience_bullets", "education"]),
+  ideal_content: z.string().describe("The platinum standard content"),
+  structure_notes: z.string().describe("Why this structure works"),
+  key_elements: z.array(z.string()).default([]).describe("Must-have elements included"),
+  word_count: z.number().describe("Optimal word count"),
+  keywords_included: z.array(z.string()).default([]).describe("Industry keywords used"),
+});
+
+export type IdealSection = z.infer<typeof IdealSectionSchema>;
+
+// ============================================================================
+// AI Call #12: Personalized Section Generation Response
+// ============================================================================
+export const PersonalizedSectionSchema = z.object({
+  section_type: z.enum(["summary", "skills", "experience_bullets", "education"]),
+  personalized_content: z.string().describe("User-specific content"),
+  ideal_elements_preserved: z.array(z.string()).default([]).describe("Structure elements kept from ideal"),
+  evidence_incorporated: z.array(z.object({
+    claim_id: z.string().optional(),
+    evidence_text: z.string(),
+    how_used: z.string(),
+  })).default([]).describe("User evidence that was incorporated"),
+  gaps_identified: z.array(z.string()).default([]).describe("Areas where user lacks evidence"),
+  questions_for_user: z.array(z.string()).default([]).describe("Questions to fill gaps"),
+  similarity_to_ideal: z.number().min(0).max(100).describe("How close to ideal structure 0-100"),
+});
+
+export type PersonalizedSection = z.infer<typeof PersonalizedSectionSchema>;
+
+// ============================================================================
 // Helper: Safe Parse with Logging
 // ============================================================================
 export function safeParseWithLog<T extends z.ZodType>(
