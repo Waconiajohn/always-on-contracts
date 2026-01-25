@@ -8,7 +8,8 @@ import {
   MessageSquareOff,
   FileText,
   Shield,
-  RefreshCw
+  RefreshCw,
+  Wand2
 } from 'lucide-react';
 import type { ActionSource } from '@/types/resume-builder';
 
@@ -16,9 +17,11 @@ interface RewriteControlsProps {
   onRewrite: (action: ActionSource) => void;
   onShowHistory: () => void;
   onSave: () => void;
+  onWorldClass?: () => void;
   isLoading: boolean;
   hasChanges: boolean;
   disabled?: boolean;
+  showWorldClass?: boolean;
 }
 
 const rewriteActions: { action: ActionSource; label: string; icon: React.ElementType }[] = [
@@ -35,12 +38,28 @@ export function RewriteControls({
   onRewrite,
   onShowHistory,
   onSave,
+  onWorldClass,
   isLoading,
   hasChanges,
-  disabled = false
+  disabled = false,
+  showWorldClass = true
 }: RewriteControlsProps) {
   return (
     <div className="flex items-center gap-2 flex-wrap">
+      {/* World-Class Generation Button */}
+      {showWorldClass && onWorldClass && (
+        <Button
+          variant="default"
+          size="sm"
+          onClick={onWorldClass}
+          disabled={isLoading || disabled}
+          className="h-8 px-3 bg-gradient-to-r from-primary to-primary/80"
+        >
+          <Wand2 className="h-3.5 w-3.5 mr-1.5" />
+          World-Class
+        </Button>
+      )}
+
       {/* Rewrite Actions */}
       <div className="flex items-center gap-1 flex-wrap">
         {rewriteActions.map(({ action, label, icon: Icon }) => (

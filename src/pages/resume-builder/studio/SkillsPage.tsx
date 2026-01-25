@@ -1,9 +1,10 @@
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { useEffect, useState } from 'react';
 import { StudioLayout } from '@/components/resume-builder/StudioLayout';
 import { ResumeBuilderShell } from '@/components/resume-builder/ResumeBuilderShell';
 import { RewriteControls } from '@/components/resume-builder/RewriteControls';
 import { VersionHistory } from '@/components/resume-builder/VersionHistory';
+import { TwoStageGenerationDialog } from '@/components/resume-builder/TwoStageGenerationDialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
@@ -82,10 +83,12 @@ function KeywordStatusPanel({ keywords }: { keywords: RBKeywordDecision[] }) {
 export default function SkillsPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const [keywords, setKeywords] = useState<RBKeywordDecision[]>([]);
+  const [showTwoStage, setShowTwoStage] = useState(false);
 
   const {
     content,
     setContent,
+    project,
     versions,
     showHistory,
     setShowHistory,
@@ -110,6 +113,10 @@ export default function SkillsPage() {
     loadKeywords();
   }, [projectId]);
 
+  const handleWorldClassContent = (newContent: string) => {
+    setContent(newContent);
+  };
+
   return (
     <ResumeBuilderShell>
       <StudioLayout
@@ -122,6 +129,7 @@ export default function SkillsPage() {
             onRewrite={handleRewrite}
             onShowHistory={() => setShowHistory(true)}
             onSave={handleSave}
+            onWorldClass={() => setShowTwoStage(true)}
             isLoading={isLoading}
             hasChanges={hasChanges}
           />
@@ -149,6 +157,18 @@ export default function SkillsPage() {
           onRevert={handleRevert}
         />
       </StudioLayout>
+
+      <TwoStageGenerationDialog
+        open={showTwoStage}
+        onOpenChange={setShowTwoStage}
+        projectId={projectId || ''}
+        sectionName={SECTION_NAME}
+        roleTitle={project?.role_title || 'Professional'}
+        seniorityLevel={project?.seniority_level || 'Mid-Level'}
+        industry={project?.industry || 'Technology'}
+        jobDescription={project?.jd_text || ''}
+        onContentSelect={handleWorldClassContent}
+      />
     </ResumeBuilderShell>
   );
 }
