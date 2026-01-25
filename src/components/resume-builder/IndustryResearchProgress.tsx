@@ -12,7 +12,7 @@ export interface ResearchStep {
 
 interface IndustryResearchProgressProps {
   steps: ResearchStep[];
-  currentStepIndex: number;
+  progressPercent: number; // Fix 2: Renamed from currentStepIndex for clarity
   roleTitle: string;
   industry: string;
   seniorityLevel: string;
@@ -27,13 +27,11 @@ const stepIcons: Record<string, React.ElementType> = {
 
 export function IndustryResearchProgress({
   steps,
-  currentStepIndex,
+  progressPercent,
   roleTitle,
   industry,
   seniorityLevel,
 }: IndustryResearchProgressProps) {
-  // Calculate progress from steps - currentStepIndex is now the progressPercent
-  const progressPercent = currentStepIndex;
 
   return (
     <Card className="border-primary/20">

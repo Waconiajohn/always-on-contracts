@@ -53,14 +53,22 @@ export default function SummaryPage() {
     setContent(newContent);
   };
 
-  // Validate project has required data before opening dialog (Fix 8)
+  // Fix 7: Strengthen validation - show error instead of using fallbacks
   const handleWorldClass = () => {
     if (!project?.jd_text) {
       toast.error('Please add a job description first');
       return;
     }
-    if (!project?.role_title || !project?.industry) {
+    if (!project?.role_title) {
       toast.error('Please confirm your target role first');
+      return;
+    }
+    if (!project?.industry) {
+      toast.error('Please confirm your target industry first');
+      return;
+    }
+    if (!project?.seniority_level) {
+      toast.error('Please confirm your seniority level first');
       return;
     }
     setShowTwoStage(true);
@@ -111,9 +119,9 @@ export default function SummaryPage() {
         onOpenChange={setShowTwoStage}
         projectId={projectId || ''}
         sectionName={SECTION_NAME}
-        roleTitle={project?.role_title || 'Professional'}
-        seniorityLevel={project?.seniority_level || 'Mid-Level'}
-        industry={project?.industry || 'Technology'}
+        roleTitle={project?.role_title || ''}
+        seniorityLevel={project?.seniority_level || ''}
+        industry={project?.industry || ''}
         jobDescription={project?.jd_text || ''}
         onContentSelect={handleWorldClassContent}
       />
