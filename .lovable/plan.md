@@ -1,140 +1,221 @@
 
 
-# Remaining Work Plan
+# Audit Fix Plan: Resume Builder V4 World-Class Generation
 
 ## Overview
-There are two categories of remaining work:
-1. **Technical Debt**: Refactor edge functions to use shared schemas
-2. **Major Enhancement**: Implement the World-Class Resume Generation Strategy
+
+The audit identified **5 critical issues**, **4 medium issues**, and **3 minor issues** in the newly implemented World-Class Resume Generation Strategy. The core problem is a mismatch between the frontend hook/dialog and the edge function API contracts.
 
 ---
 
-## Part A: Technical Debt Cleanup (Estimated: 2-3 hours)
+## Critical Fixes (Must Do)
 
-### Task A.1: Refactor Edge Functions to Use Shared Zod Schemas
+### Fix 1: Correct `useTwoStageGeneration` Hook API Calls
 
-**Goal**: All 9 `rb-*` edge functions should import and use schemas from `rb-schemas.ts` instead of inline interfaces.
+**File**: `src/hooks/useTwoStageGeneration.ts`
 
-**Files to update**:
-- `supabase/functions/rb-classify-jd/index.ts` - Use `JDClassificationSchema`
-- `supabase/functions/rb-extract-jd-requirements/index.ts` - Use `RequirementsExtractionSchema`
-- `supabase/functions/rb-generate-benchmark/index.ts` - Use `BenchmarkGenerationSchema`
-- `supabase/functions/rb-extract-resume-claims/index.ts` - Use `ClaimsExtractionSchema`
-- `supabase/functions/rb-analyze-gaps/index.ts` - Use `GapAnalysisSchema`
-- `supabase/functions/rb-rewrite-section/index.ts` - Use `SectionRewriteSchema`
-- `supabase/functions/rb-micro-edit/index.ts` - Use `MicroEditSchema`
-- `supabase/functions/rb-hiring-manager-critique/index.ts` - Use `HiringManagerCritiqueSchema`
-- `supabase/functions/rb-validate-rewrite/index.ts` - Use `ValidationSchema`
+**Changes**:
 
-**Changes per file**:
-1. Import schema from shared module: `import { XxxSchema, parseAndValidate } from '../_shared/rb-schemas.ts'`
-2. Remove inline interface definitions
-3. Replace JSON parsing with `parseAndValidate(XxxSchema, content, 'rb-xxx')`
+1. Update `IndustryResearch` interface to match actual schema:
+```typescript
+interface IndustryResearch {
+  role_title: string;
+  seniority_level: string;
+  industry: string;
+  keywords: Array<{ term: string; frequency: string; category: string }>;
+  power_phrases: Array<{ phrase: string; impact_level: string; use_case: string }>;
+  typical_qualifications: Array<{ qualification: string; importance: string; category: string }>;
+  competitive_benchmarks: Array<{ area: string; top_performer: string; average: string }>;
+  summary_template: string;
+  experience_focus: string[];
+}
+```
 
-### Task A.2: Integrate VersionDiff into VersionHistory Sheet
+2. Update `GenerationResult` to match `IdealSectionSchema`:
+```typescript
+interface IdealGenerationResult {
+  section_type: string;
+  ideal_content: string;
+  structure_notes: string;
+  key_elements: string[];
+  word_count: number;
+  keywords_included: string[];
+}
 
-**File**: `src/components/resume-builder/VersionHistory.tsx`
+interface PersonalizedGenerationResult {
+  section_type: string;
+  personalized_content: string;
+  ideal_elements_preserved: string[];
+  evidence_incorporated: Array<{ claim_id?: string; evidence_text: string; how_used: string }>;
+  gaps_identified: string[];
+  questions_for_user: string[];
+  similarity_to_ideal: number;
+}
+```
 
-- Add "Compare" button next to each version entry
-- Open `VersionDiff` component in a dialog/sheet
-- Allow comparison between any two versions
+3. Fix the `rb-generate-ideal-section` call body:
+```typescript
+body: {
+  section_type: mapSectionName(params.sectionName),  // 'summary' | 'skills' | 'experience_bullets' | 'education'
+  jd_text: params.jobDescription,
+  industry_research: researchData,
+  role_context: {
+    role_title: params.roleTitle,
+    seniority_level: params.seniorityLevel,
+    industry: params.industry,
+  },
+}
+```
+
+4. Fix the evidence query to include `evidence_quote`:
+```typescript
+.select('id, claim_text, evidence_quote, source, category, confidence')
+```
+
+5. Fix the `rb-generate-personalized-section` call body:
+```typescript
+body: {
+  section_type: mapSectionName(generationParams.sectionName),
+  ideal_content: idealContent.ideal_content,
+  user_evidence: evidenceClaims.map(e => ({
+    claim_text: e.claim_text,
+    evidence_quote: e.evidence_quote,
+    category: e.category,
+    confidence: e.confidence,
+  })),
+  role_context: {
+    role_title: generationParams.roleTitle,
+    seniority_level: generationParams.seniorityLevel,
+    industry: generationParams.industry,
+  },
+}
+```
+
+6. Add section name mapping helper:
+```typescript
+function mapSectionName(name: string): 'summary' | 'skills' | 'experience_bullets' | 'education' {
+  if (name === 'experience') return 'experience_bullets';
+  return name as 'summary' | 'skills' | 'education';
+}
+```
 
 ---
 
-## Part B: World-Class Resume Generation Strategy (Estimated: 12-15 hours)
+### Fix 2: Update `TwoStageGenerationDialog` Field Access
 
-This is a major new feature based on user feedback requesting:
-- Industry research before generation
-- "Ideal example" shown first
-- Side-by-side comparison between ideal and personalized versions
+**File**: `src/components/resume-builder/TwoStageGenerationDialog.tsx`
 
-### Phase B.1: Industry Research Infrastructure
+**Changes**:
 
-**New Edge Function**: `rb-research-industry/index.ts`
-
-- Input: Job title, industry, seniority level
-- Process: Use AI to generate industry-specific insights
-- Output: Common keywords, power phrases, typical qualifications, competitive benchmarks
-- Cache results in new table `rb_industry_research`
-
-**Database Migration**:
-```sql
-CREATE TABLE rb_industry_research (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  role_title TEXT NOT NULL,
-  seniority_level TEXT NOT NULL,
-  industry TEXT NOT NULL,
-  research_data JSONB NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+1. Update field access for ideal content:
+```typescript
+idealContent={idealContent.ideal_content}
+structureNotes={idealContent.structure_notes}
+keyElements={idealContent.key_elements}
+keywordsIncluded={idealContent.keywords_included}
+wordCount={idealContent.word_count}
 ```
 
-### Phase B.2: Two-Stage Generation System
-
-**New Edge Functions**:
-
-1. `rb-generate-ideal-section/index.ts`
-   - Uses ONLY job description + industry research
-   - Does NOT use Master Resume data
-   - Produces "platinum standard" content
-
-2. `rb-generate-personalized-section/index.ts`
-   - Takes ideal example as input
-   - Injects user's real evidence/claims
-   - Maintains industry-standard structure
-
-### Phase B.3: Comparison UI Components
-
-**New Components**:
-- `IndustryResearchProgress.tsx` - Shows research progress with steps
-- `IdealExampleCard.tsx` - Displays industry standard with quality indicators
-- `SideBySideComparison.tsx` - Two-column view with highlighting
-- `BlendEditor.tsx` - Allows mixing parts from both versions
-
-**Updated Flow**:
-```
-Report Page → "Generate Sections" → Research Progress UI →
-  → Show Ideal Example → "Personalize with My Data" →
-    → Side-by-Side Comparison → Choose/Blend → Studio
+2. Update keywords display to handle object arrays:
+```typescript
+keywordsIncluded={industryResearch.keywords.slice(0, 8).map(k => k.term)}
 ```
 
-### Phase B.4: Low Data Detection
-
-**New Utility**: `src/lib/resume-strength-analyzer.ts`
-
-- Analyze Master Resume completeness
-- Detect: real achievements vs assumed, quantified results, category diversity
-- Return strength score (0-100%)
-- Show warning if below threshold (65%)
+3. Fix comparison data to use correct fields:
+```typescript
+const comparisonData = useMemo(() => ({
+  idealContent: idealContent?.ideal_content || '',
+  personalizedContent: personalizedContent?.personalized_content || '',
+  idealWordCount: idealContent?.word_count || 0,
+  personalizedWordCount: personalizedContent?.personalized_content?.split(/\s+/).filter(Boolean).length || 0,
+  similarityScore: personalizedContent?.similarity_to_ideal || 0,
+  gapsIdentified: personalizedContent?.gaps_identified || [],
+  evidenceUsed: personalizedContent?.evidence_incorporated || [],
+}), [idealContent, personalizedContent]);
+```
 
 ---
 
-## Implementation Order
+### Fix 3: Update `IdealExampleCard` Props Usage
 
-### Priority 1: Technical Debt (Do First)
-1. Refactor all 9 edge functions to use shared schemas
-2. Integrate VersionDiff into VersionHistory sheet
+**File**: `src/components/resume-builder/IdealExampleCard.tsx`
 
-### Priority 2: World-Class Generation (Major Feature)
-1. Create industry research edge function + caching
-2. Build ideal section generator
-3. Build personalized section generator
-4. Create comparison UI components
-5. Update flow to use two-stage generation
-6. Add resume strength analyzer and warnings
+No changes needed - props are correct, but the parent was passing wrong data.
+
+---
+
+## Medium Fixes
+
+### Fix 4: Integrate Resume Strength Analyzer
+
+**File**: `src/components/resume-builder/TwoStageGenerationDialog.tsx`
+
+Add strength check before personalization:
+```typescript
+import { analyzeResumeStrength } from '@/lib/resume-strength-analyzer';
+import { ResumeStrengthIndicator } from './ResumeStrengthIndicator';
+
+// In the ready_for_personalization stage, show strength indicator
+{stage === 'ready_for_personalization' && evidence && (
+  <ResumeStrengthIndicator 
+    strength={analyzeResumeStrength(evidence)} 
+    onImprove={() => {/* navigate to fix page */}}
+  />
+)}
+```
+
+### Fix 5: Add `evidence` State to Hook
+
+**File**: `src/hooks/useTwoStageGeneration.ts`
+
+Store evidence for strength analysis:
+```typescript
+const [userEvidence, setUserEvidence] = useState<RBEvidence[]>([]);
+
+// In generatePersonalized, after loading evidence:
+setUserEvidence(evidence || []);
+```
+
+Export in return object for dialog to use.
+
+---
+
+## Minor Fixes
+
+### Fix 6: Remove Hardcoded Values
+
+**Files**: `TwoStageGenerationDialog.tsx`
+
+Replace hardcoded quality indicators with actual data from responses.
+
+### Fix 7: Add Loading State for Evidence Fetch
+
+Add intermediate loading state while fetching evidence before personalization.
+
+---
+
+## Testing Checklist
+
+After implementing fixes:
+
+1. Click "World-Class" button on Summary page
+2. Verify research phase completes without errors
+3. Verify ideal section displays with correct content
+4. Click "Personalize" and verify personalization completes
+5. Verify side-by-side comparison shows both versions
+6. Test blend editor functionality
+7. Verify selected content updates the editor
 
 ---
 
 ## Estimated Effort
 
-| Category | Complexity | Time |
-|----------|------------|------|
-| Edge function refactoring | Medium | 2-3 hours |
-| VersionDiff integration | Low | 1 hour |
-| Industry research system | High | 3-4 hours |
-| Two-stage generation | High | 4-5 hours |
-| Comparison UI | Medium | 3-4 hours |
-| Resume strength analyzer | Low | 1-2 hours |
+| Task | Complexity | Time |
+|------|------------|------|
+| Fix useTwoStageGeneration API calls | High | 30 min |
+| Fix TwoStageGenerationDialog fields | Medium | 20 min |
+| Integrate strength analyzer | Low | 15 min |
+| Testing and validation | Medium | 20 min |
 
-**Total: ~15-20 hours**
+**Total: ~1.5 hours**
 
