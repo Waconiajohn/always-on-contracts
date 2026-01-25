@@ -3328,6 +3328,48 @@ export type Database = {
           },
         ]
       }
+      rb_industry_research: {
+        Row: {
+          competitive_benchmarks: Json | null
+          created_at: string
+          expires_at: string
+          id: string
+          industry: string
+          keywords: Json | null
+          power_phrases: Json | null
+          research_data: Json
+          role_title: string
+          seniority_level: string
+          typical_qualifications: Json | null
+        }
+        Insert: {
+          competitive_benchmarks?: Json | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          industry: string
+          keywords?: Json | null
+          power_phrases?: Json | null
+          research_data?: Json
+          role_title: string
+          seniority_level: string
+          typical_qualifications?: Json | null
+        }
+        Update: {
+          competitive_benchmarks?: Json | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          industry?: string
+          keywords?: Json | null
+          power_phrases?: Json | null
+          research_data?: Json
+          role_title?: string
+          seniority_level?: string
+          typical_qualifications?: Json | null
+        }
+        Relationships: []
+      }
       rb_jd_requirements: {
         Row: {
           category: string
