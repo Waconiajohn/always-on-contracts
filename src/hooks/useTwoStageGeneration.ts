@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import type { RBEvidence } from '@/types/resume-builder';
 
 export type GenerationStage = 
   | 'idle'
@@ -11,26 +12,38 @@ export type GenerationStage =
   | 'comparing'
   | 'complete';
 
+// Matches IndustryResearchSchema from rb-schemas.ts
 interface IndustryResearch {
   role_title: string;
   seniority_level: string;
   industry: string;
-  keywords: string[];
-  power_phrases: string[];
-  typical_qualifications: string[];
-  competitive_benchmarks: string[];
-  market_insights: string[];
+  keywords: Array<{ term: string; frequency: string; category: string }>;
+  power_phrases: Array<{ phrase: string; impact_level: string; use_case: string }>;
+  typical_qualifications: Array<{ qualification: string; importance: string; category: string }>;
+  competitive_benchmarks: Array<{ area: string; top_performer: string; average: string }>;
+  summary_template: string;
+  experience_focus: string[];
 }
 
-interface GenerationResult {
-  content: string;
-  quality_indicators: {
-    keyword_density: number;
-    achievement_count: number;
-    quantified_results: number;
-    power_phrase_usage: number;
-  };
-  explanation: string;
+// Matches IdealSectionSchema from rb-schemas.ts
+interface IdealGenerationResult {
+  section_type: string;
+  ideal_content: string;
+  structure_notes: string;
+  key_elements: string[];
+  word_count: number;
+  keywords_included: string[];
+}
+
+// Matches PersonalizedSectionSchema from rb-schemas.ts
+interface PersonalizedGenerationResult {
+  section_type: string;
+  personalized_content: string;
+  ideal_elements_preserved: string[];
+  evidence_incorporated: Array<{ claim_id?: string; evidence_text: string; how_used: string }>;
+  gaps_identified: string[];
+  questions_for_user: string[];
+  similarity_to_ideal: number;
 }
 
 interface UseTwoStageGenerationReturn {
@@ -41,8 +54,9 @@ interface UseTwoStageGenerationReturn {
   
   // Data
   industryResearch: IndustryResearch | null;
-  idealContent: GenerationResult | null;
-  personalizedContent: GenerationResult | null;
+  idealContent: IdealGenerationResult | null;
+  personalizedContent: PersonalizedGenerationResult | null;
+  userEvidence: RBEvidence[];
   
   // Actions
   startGeneration: (params: StartGenerationParams) => Promise<void>;
@@ -60,14 +74,21 @@ interface StartGenerationParams {
   jobDescription: string;
 }
 
+// Helper to map UI section names to API section_type values
+function mapSectionName(name: string): 'summary' | 'skills' | 'experience_bullets' | 'education' {
+  if (name === 'experience') return 'experience_bullets';
+  return name as 'summary' | 'skills' | 'education';
+}
+
 export function useTwoStageGeneration(): UseTwoStageGenerationReturn {
   const [stage, setStage] = useState<GenerationStage>('idle');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const [industryResearch, setIndustryResearch] = useState<IndustryResearch | null>(null);
-  const [idealContent, setIdealContent] = useState<GenerationResult | null>(null);
-  const [personalizedContent, setPersonalizedContent] = useState<GenerationResult | null>(null);
+  const [idealContent, setIdealContent] = useState<IdealGenerationResult | null>(null);
+  const [personalizedContent, setPersonalizedContent] = useState<PersonalizedGenerationResult | null>(null);
+  const [userEvidence, setUserEvidence] = useState<RBEvidence[]>([]);
   
   // Store params for personalization stage
   const [generationParams, setGenerationParams] = useState<StartGenerationParams | null>(null);
@@ -106,16 +127,25 @@ export function useTwoStageGeneration(): UseTwoStageGenerationReturn {
       setIndustryResearch(researchData);
       setStage('generating_ideal');
 
-      // Step 2: Generate Ideal Section
-      const { data: idealData, error: idealError } = await supabase.functions.invoke<GenerationResult>(
+      // Step 2: Generate Ideal Section - Fixed API contract
+      const { data: idealData, error: idealError } = await supabase.functions.invoke<IdealGenerationResult>(
         'rb-generate-ideal-section',
         {
           body: {
-            section_name: params.sectionName,
-            job_description: params.jobDescription,
-            industry_research: researchData,
-            role_title: params.roleTitle,
-            seniority_level: params.seniorityLevel,
+            section_type: mapSectionName(params.sectionName),
+            jd_text: params.jobDescription,
+            industry_research: {
+              keywords: researchData.keywords,
+              power_phrases: researchData.power_phrases,
+              typical_qualifications: researchData.typical_qualifications,
+              summary_template: researchData.summary_template,
+              experience_focus: researchData.experience_focus,
+            },
+            role_context: {
+              role_title: params.roleTitle,
+              seniority_level: params.seniorityLevel,
+              industry: params.industry,
+            },
           },
           headers: {
             Authorization: `Bearer ${session.access_token}`,
@@ -156,29 +186,37 @@ export function useTwoStageGeneration(): UseTwoStageGenerationReturn {
         throw new Error('Please sign in to continue');
       }
 
-      // Load user's evidence
+      // Load user's evidence - Fixed: include evidence_quote
       const { data: evidence } = await supabase
         .from('rb_evidence')
-        .select('claim_text, source, category, confidence')
+        .select('id, claim_text, evidence_quote, source, category, confidence, is_active, project_id, span_location, created_at')
         .eq('project_id', generationParams.projectId)
         .eq('is_active', true);
 
+      // Store evidence for strength analysis (cast with unknown to handle partial schema)
+      setUserEvidence((evidence as unknown as RBEvidence[]) || []);
+
+      // Map to API format
       const evidenceClaims = (evidence || []).map((e: any) => ({
-        claim: e.claim_text,
-        source: e.source,
+        claim_text: e.claim_text,
+        evidence_quote: e.evidence_quote || e.claim_text,
         category: e.category,
         confidence: e.confidence,
       }));
 
-      const { data: personalizedData, error: personalizedError } = await supabase.functions.invoke<GenerationResult>(
+      // Fixed API contract for personalized section
+      const { data: personalizedData, error: personalizedError } = await supabase.functions.invoke<PersonalizedGenerationResult>(
         'rb-generate-personalized-section',
         {
           body: {
-            section_name: generationParams.sectionName,
-            ideal_content: idealContent.content,
-            evidence_claims: evidenceClaims,
-            industry_research: industryResearch,
-            role_title: generationParams.roleTitle,
+            section_type: mapSectionName(generationParams.sectionName),
+            ideal_content: idealContent.ideal_content,
+            user_evidence: evidenceClaims,
+            role_context: {
+              role_title: generationParams.roleTitle,
+              seniority_level: generationParams.seniorityLevel,
+              industry: generationParams.industry,
+            },
           },
           headers: {
             Authorization: `Bearer ${session.access_token}`,
@@ -207,11 +245,11 @@ export function useTwoStageGeneration(): UseTwoStageGenerationReturn {
     setStage('complete');
     
     if (version === 'ideal') {
-      return idealContent?.content || '';
+      return idealContent?.ideal_content || '';
     } else if (version === 'personalized') {
-      return personalizedContent?.content || '';
+      return personalizedContent?.personalized_content || '';
     } else {
-      return blendedContent || personalizedContent?.content || '';
+      return blendedContent || personalizedContent?.personalized_content || '';
     }
   }, [idealContent, personalizedContent]);
 
@@ -223,6 +261,7 @@ export function useTwoStageGeneration(): UseTwoStageGenerationReturn {
     setIdealContent(null);
     setPersonalizedContent(null);
     setGenerationParams(null);
+    setUserEvidence([]);
   }, []);
 
   return {
@@ -232,6 +271,7 @@ export function useTwoStageGeneration(): UseTwoStageGenerationReturn {
     industryResearch,
     idealContent,
     personalizedContent,
+    userEvidence,
     startGeneration,
     generatePersonalized,
     selectVersion,

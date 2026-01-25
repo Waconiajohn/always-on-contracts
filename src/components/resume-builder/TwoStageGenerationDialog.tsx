@@ -11,7 +11,9 @@ import { IndustryResearchProgress, defaultResearchSteps, ResearchStep } from './
 import { IdealExampleCard } from './IdealExampleCard';
 import { SideBySideComparison } from './SideBySideComparison';
 import { BlendEditor } from './BlendEditor';
-import { Loader2, Wand2 } from 'lucide-react';
+import { ResumeStrengthIndicator } from './ResumeStrengthIndicator';
+import { analyzeResumeStrength } from '@/lib/resume-strength-analyzer';
+import { Loader2, Wand2, AlertTriangle } from 'lucide-react';
 
 interface TwoStageGenerationDialogProps {
   open: boolean;
@@ -44,11 +46,20 @@ export function TwoStageGenerationDialog({
     industryResearch,
     idealContent,
     personalizedContent,
+    userEvidence,
     startGeneration,
     generatePersonalized,
     selectVersion,
     reset,
   } = useTwoStageGeneration();
+
+  // Analyze resume strength when evidence is loaded
+  const resumeStrength = useMemo(() => {
+    if (userEvidence.length > 0) {
+      return analyzeResumeStrength(userEvidence);
+    }
+    return null;
+  }, [userEvidence]);
 
   // Map stage to research steps with proper statuses
   const researchSteps: ResearchStep[] = useMemo(() => {
@@ -118,15 +129,15 @@ export function TwoStageGenerationDialog({
     }
   };
 
-  // Create comparison data from state
+  // Create comparison data from state - Fixed field access
   const comparisonData = useMemo(() => ({
-    idealContent: idealContent?.content || '',
-    personalizedContent: personalizedContent?.content || '',
-    idealWordCount: idealContent?.content.split(/\s+/).filter(Boolean).length || 0,
-    personalizedWordCount: personalizedContent?.content.split(/\s+/).filter(Boolean).length || 0,
-    similarityScore: 75, // Default similarity
-    gapsIdentified: [],
-    evidenceUsed: [],
+    idealContent: idealContent?.ideal_content || '',
+    personalizedContent: personalizedContent?.personalized_content || '',
+    idealWordCount: idealContent?.word_count || 0,
+    personalizedWordCount: personalizedContent?.personalized_content?.split(/\s+/).filter(Boolean).length || 0,
+    similarityScore: personalizedContent?.similarity_to_ideal || 0,
+    gapsIdentified: personalizedContent?.gaps_identified || [],
+    evidenceUsed: personalizedContent?.evidence_incorporated || [],
   }), [idealContent, personalizedContent]);
 
   return (
@@ -178,21 +189,16 @@ export function TwoStageGenerationDialog({
             />
           )}
 
-          {/* Stage: Ready for Personalization - Show Ideal */}
+          {/* Stage: Ready for Personalization - Show Ideal + Strength Indicator */}
           {stage === 'ready_for_personalization' && idealContent && industryResearch && (
             <div className="space-y-6">
               <IdealExampleCard
                 sectionType={getSectionType()}
-                idealContent={idealContent.content}
-                structureNotes={idealContent.explanation}
-                keyElements={[
-                  'Strong action verbs',
-                  'Quantified achievements',
-                  'Industry keywords',
-                  'Results-focused',
-                ]}
-                keywordsIncluded={industryResearch.keywords.slice(0, 8)}
-                wordCount={idealContent.content.split(/\s+/).filter(Boolean).length}
+                idealContent={idealContent.ideal_content}
+                structureNotes={idealContent.structure_notes}
+                keyElements={idealContent.key_elements}
+                keywordsIncluded={industryResearch.keywords.slice(0, 8).map(k => k.term)}
+                wordCount={idealContent.word_count}
                 onUseIdeal={handleSelectIdeal}
                 onPersonalize={generatePersonalized}
                 isLoading={isLoading}
@@ -200,32 +206,62 @@ export function TwoStageGenerationDialog({
             </div>
           )}
 
-          {/* Stage: Personalizing */}
+          {/* Stage: Personalizing - Show loading + strength indicator */}
           {stage === 'personalizing' && (
-            <div className="flex flex-col items-center justify-center py-12 space-y-4">
+            <div className="flex flex-col items-center justify-center py-12 space-y-6">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="text-muted-foreground">
                 Personalizing with your verified achievements...
               </p>
+              
+              {/* Show strength indicator during personalization if available */}
+              {resumeStrength && !resumeStrength.isStrongEnough && (
+                <div className="max-w-md">
+                  <div className="flex items-center gap-2 text-warning mb-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="text-sm font-medium">Limited evidence detected</span>
+                  </div>
+                  <ResumeStrengthIndicator strength={resumeStrength} compact />
+                </div>
+              )}
             </div>
           )}
 
-          {/* Stage: Comparing - Show both versions */}
+          {/* Stage: Comparing - Show both versions + strength warning if weak */}
           {stage === 'comparing' && idealContent && personalizedContent && !showBlendEditor && (
-            <SideBySideComparison
-              data={comparisonData}
-              onSelectIdeal={handleSelectIdeal}
-              onSelectPersonalized={handleSelectPersonalized}
-              onBlend={() => setShowBlendEditor(true)}
-              isLoading={isLoading}
-            />
+            <div className="space-y-4">
+              {/* Strength warning banner */}
+              {resumeStrength && !resumeStrength.isStrongEnough && (
+                <div className="bg-warning/10 border border-warning/30 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-foreground">
+                        Your resume has limited evidence ({resumeStrength.overallScore}% strength)
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        The personalized version may be less impactful. Consider adding more achievements to improve results.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <SideBySideComparison
+                data={comparisonData}
+                onSelectIdeal={handleSelectIdeal}
+                onSelectPersonalized={handleSelectPersonalized}
+                onBlend={() => setShowBlendEditor(true)}
+                isLoading={isLoading}
+              />
+            </div>
           )}
 
           {/* Blend Editor Mode */}
           {showBlendEditor && idealContent && personalizedContent && (
             <BlendEditor
-              idealContent={idealContent.content}
-              personalizedContent={personalizedContent.content}
+              idealContent={idealContent.ideal_content}
+              personalizedContent={personalizedContent.personalized_content}
               onSave={handleBlendComplete}
               onCancel={() => setShowBlendEditor(false)}
               isLoading={isLoading}
