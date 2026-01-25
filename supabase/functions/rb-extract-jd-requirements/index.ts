@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { extractJSON } from '../_shared/json-parser.ts';
+import { RequirementsExtractionSchema, parseAndValidate, type RequirementsExtraction } from '../_shared/rb-schemas.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,25 +14,6 @@ interface ExtractRequirementsRequest {
   jd_text: string;
   role_title: string;
   seniority_level: string;
-}
-
-interface RequirementItem {
-  text: string;
-  weight: number;
-  exact_phrases: string[];
-  synonyms: string[];
-  section_hint: "Summary" | "Skills" | "Experience" | "Education";
-}
-
-interface ExtractedRequirements {
-  hard_skills: RequirementItem[];
-  tools_tech: RequirementItem[];
-  domain_knowledge: RequirementItem[];
-  responsibilities: RequirementItem[];
-  outcomes_metrics: RequirementItem[];
-  education_certs: RequirementItem[];
-  titles_seniority: RequirementItem[];
-  soft_skills: RequirementItem[];
 }
 
 serve(async (req) => {
@@ -82,7 +63,7 @@ Extract ALL requirements and categorize them. For each requirement:
 
 Respond ONLY with valid JSON:
 {
-  "hard_skills": [{ "text": "...", "weight": 1-5, "exact_phrases": [...], "synonyms": [...], "section_hint": "Skills|Experience" }],
+  "hard_skills": [{ "text": "...", "weight": 1-5, "exact_phrases": [...], "synonyms": [...], "section_hint": "Skills|Experience|Summary|Education" }],
   "tools_tech": [...],
   "domain_knowledge": [...],
   "responsibilities": [...],
@@ -121,19 +102,11 @@ Be thorough - extract everything that could be matched against a resume.`;
       });
     }
 
-    const parseResult = extractJSON(content);
-    if (!parseResult.success || !parseResult.data) {
-      console.error("Failed to parse AI response:", content);
-      return new Response(JSON.stringify({ error: "Invalid AI response format" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const result = parseResult.data as ExtractedRequirements;
+    // Use centralized schema validation
+    const result = parseAndValidate(RequirementsExtractionSchema, content, "rb-extract-jd-requirements");
 
     // Save requirements to database
-    const categoryMapping: Record<string, string> = {
+    const categoryMapping: Record<keyof RequirementsExtraction, string> = {
       hard_skills: "hard_skill",
       tools_tech: "tool",
       domain_knowledge: "domain",
@@ -155,7 +128,7 @@ Be thorough - extract everything that could be matched against a resume.`;
     }[] = [];
 
     for (const [key, category] of Object.entries(categoryMapping)) {
-      const items = result[key as keyof ExtractedRequirements] || [];
+      const items = result[key as keyof RequirementsExtraction] || [];
       for (const item of items) {
         requirementsToInsert.push({
           project_id,

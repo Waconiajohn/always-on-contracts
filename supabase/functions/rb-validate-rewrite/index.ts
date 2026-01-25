@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { ValidationSchema, parseAndValidate } from '../_shared/rb-schemas.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,23 +15,6 @@ interface ValidationRequest {
     source: string;
     confidence: string;
   }>;
-}
-
-interface ValidationIssue {
-  type: 'hallucination' | 'exaggeration' | 'unsupported_claim' | 'missing_evidence';
-  severity: 'critical' | 'warning' | 'info';
-  description: string;
-  original_text?: string;
-  problematic_text: string;
-  suggestion: string;
-}
-
-interface ValidationResponse {
-  is_valid: boolean;
-  confidence_score: number;
-  issues: ValidationIssue[];
-  summary: string;
-  recommendation: 'approve' | 'revise' | 'reject';
 }
 
 Deno.serve(async (req) => {
@@ -127,23 +111,8 @@ CRITICAL: Be strict. Any made-up metrics, titles, or achievements = hallucinatio
       throw new Error('No content in AI response');
     }
 
-    const validation: ValidationResponse = JSON.parse(content);
-
-    // Ensure proper structure
-    const result: ValidationResponse = {
-      is_valid: validation.is_valid ?? true,
-      confidence_score: validation.confidence_score ?? 80,
-      issues: (validation.issues || []).map(issue => ({
-        type: issue.type || 'unsupported_claim',
-        severity: issue.severity || 'warning',
-        description: issue.description || 'Issue detected',
-        original_text: issue.original_text,
-        problematic_text: issue.problematic_text || '',
-        suggestion: issue.suggestion || 'Review and revise',
-      })),
-      summary: validation.summary || 'Validation complete',
-      recommendation: validation.recommendation || 'revise',
-    };
+    // Use centralized schema validation
+    const result = parseAndValidate(ValidationSchema, content, "rb-validate-rewrite");
 
     return new Response(
       JSON.stringify(result),

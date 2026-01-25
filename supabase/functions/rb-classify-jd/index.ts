@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { extractJSON } from '../_shared/json-parser.ts';
+import { JDClassificationSchema, parseAndValidate } from '../_shared/rb-schemas.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,20 +11,6 @@ const corsHeaders = {
 
 interface ClassifyJDRequest {
   jd_text: string;
-}
-
-interface ClassifyJDResponse {
-  role_title: string;
-  role_alternates: string[];
-  seniority_level: string;
-  industry: string;
-  sub_industry: string | null;
-  confidence: number;
-  justification: {
-    role: string;
-    level: string;
-    industry: string;
-  };
 }
 
 serve(async (req) => {
@@ -118,24 +104,8 @@ Confidence scoring:
       });
     }
 
-    const parseResult = extractJSON(content);
-    if (!parseResult.success || !parseResult.data) {
-      console.error("Failed to parse AI response:", content);
-      return new Response(JSON.stringify({ error: "Invalid AI response format" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const result = parseResult.data as ClassifyJDResponse;
-
-    // Validate required fields
-    if (!result.role_title || !result.seniority_level || !result.industry) {
-      return new Response(JSON.stringify({ error: "Incomplete classification result" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Use centralized schema validation
+    const result = parseAndValidate(JDClassificationSchema, content, "rb-classify-jd");
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

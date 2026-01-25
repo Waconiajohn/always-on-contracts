@@ -8,9 +8,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatDistanceToNow } from 'date-fns';
 import { RotateCcw, GitCompare, Check } from 'lucide-react';
+import { VersionDiff, SideBySideDiff } from './VersionDiff';
 import type { RBVersion, ActionSource } from '@/types/resume-builder';
 
 interface VersionHistoryProps {
@@ -43,43 +44,45 @@ export function VersionHistory({
 }: VersionHistoryProps) {
   const [selectedVersion, setSelectedVersion] = useState<RBVersion | null>(null);
   const [compareMode, setCompareMode] = useState(false);
+  const [diffView, setDiffView] = useState<'unified' | 'side-by-side'>('unified');
 
   const handleVersionClick = (version: RBVersion) => {
     setSelectedVersion(version);
-    setCompareMode(false);
   };
 
-  const formatContent = (content: string): string => {
-    try {
-      // Try to parse as JSON for prettier display
-      const parsed = JSON.parse(content);
-      return JSON.stringify(parsed, null, 2);
-    } catch {
-      return content;
-    }
-  };
+  const activeVersion = versions.find(v => v.is_active);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[500px] sm:max-w-[500px]">
+      <SheetContent className="w-[600px] sm:max-w-[600px]">
         <SheetHeader>
           <SheetTitle className="flex items-center justify-between">
             Version History
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCompareMode(!compareMode)}
-              className={compareMode ? 'bg-primary text-primary-foreground' : ''}
-            >
-              <GitCompare className="h-4 w-4 mr-1.5" />
-              Compare
-            </Button>
+            <div className="flex items-center gap-2">
+              {selectedVersion && (
+                <Tabs value={diffView} onValueChange={(v) => setDiffView(v as 'unified' | 'side-by-side')}>
+                  <TabsList className="h-8">
+                    <TabsTrigger value="unified" className="text-xs px-2">Unified</TabsTrigger>
+                    <TabsTrigger value="side-by-side" className="text-xs px-2">Side-by-Side</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCompareMode(!compareMode)}
+                className={compareMode ? 'bg-primary text-primary-foreground' : ''}
+              >
+                <GitCompare className="h-4 w-4 mr-1.5" />
+                Compare
+              </Button>
+            </div>
           </SheetTitle>
         </SheetHeader>
 
         <div className="mt-4 space-y-4">
           {/* Version List */}
-          <ScrollArea className="h-[200px] rounded-md border">
+          <ScrollArea className="h-[180px] rounded-md border">
             <div className="p-2 space-y-1">
               {versions.map((version) => (
                 <button
@@ -87,7 +90,7 @@ export function VersionHistory({
                   onClick={() => handleVersionClick(version)}
                   className={`w-full flex items-center gap-3 p-2 rounded-md text-left transition-colors ${
                     selectedVersion?.id === version.id 
-                      ? 'bg-primary/10' 
+                      ? 'bg-primary/10 ring-1 ring-primary/30' 
                       : 'hover:bg-muted'
                   }`}
                 >
@@ -117,12 +120,12 @@ export function VersionHistory({
             </div>
           </ScrollArea>
 
-          {/* Content Preview */}
+          {/* Content Preview / Diff View */}
           {selectedVersion && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-medium">
-                  {compareMode ? 'Compare View' : 'Version Preview'}
+                  {compareMode ? 'Comparing to Current' : 'Version Preview'}
                 </h4>
                 {!selectedVersion.is_active && (
                   <Button
@@ -136,31 +139,28 @@ export function VersionHistory({
                 )}
               </div>
 
-              {compareMode ? (
-                <Tabs defaultValue="current" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="current">Current</TabsTrigger>
-                    <TabsTrigger value="selected">Version {selectedVersion.version_number}</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="current">
-                    <ScrollArea className="h-[300px] rounded-md border bg-muted/30 p-3">
-                      <pre className="text-xs whitespace-pre-wrap font-mono">
-                        {formatContent(currentContent)}
-                      </pre>
-                    </ScrollArea>
-                  </TabsContent>
-                  <TabsContent value="selected">
-                    <ScrollArea className="h-[300px] rounded-md border bg-muted/30 p-3">
-                      <pre className="text-xs whitespace-pre-wrap font-mono">
-                        {formatContent(selectedVersion.content)}
-                      </pre>
-                    </ScrollArea>
-                  </TabsContent>
-                </Tabs>
+              {compareMode && activeVersion ? (
+                // Show diff between selected version and active version
+                diffView === 'unified' ? (
+                  <VersionDiff
+                    originalText={selectedVersion.content}
+                    modifiedText={currentContent}
+                    originalLabel={`Version ${selectedVersion.version_number}`}
+                    modifiedLabel="Current"
+                  />
+                ) : (
+                  <SideBySideDiff
+                    originalText={selectedVersion.content}
+                    modifiedText={currentContent}
+                    originalLabel={`Version ${selectedVersion.version_number}`}
+                    modifiedLabel="Current"
+                  />
+                )
               ) : (
-                <ScrollArea className="h-[300px] rounded-md border bg-muted/30 p-3">
-                  <pre className="text-xs whitespace-pre-wrap font-mono">
-                    {formatContent(selectedVersion.content)}
+                // Show just the selected version content
+                <ScrollArea className="h-[350px] rounded-md border bg-muted/30 p-4">
+                  <pre className="text-sm whitespace-pre-wrap font-mono">
+                    {selectedVersion.content}
                   </pre>
                 </ScrollArea>
               )}
@@ -169,7 +169,7 @@ export function VersionHistory({
 
           {!selectedVersion && versions.length > 0 && (
             <p className="text-sm text-muted-foreground text-center py-8">
-              Select a version to preview
+              Select a version to preview or compare
             </p>
           )}
 

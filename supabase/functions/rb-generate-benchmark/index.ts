@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { extractJSON } from '../_shared/json-parser.ts';
+import { BenchmarkGenerationSchema, parseAndValidate } from '../_shared/rb-schemas.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,18 +15,6 @@ interface GenerateBenchmarkRequest {
   seniority_level: string;
   industry: string;
   sub_industry?: string;
-}
-
-interface BenchmarkItem {
-  text: string;
-  category: "hard_skill" | "tool" | "domain" | "leadership" | "responsibility" | "metric";
-  weight: number;
-  section_hint: "Summary" | "Skills" | "Experience" | "Education";
-}
-
-interface BenchmarkResponse {
-  benchmark_requirements: BenchmarkItem[];
-  keyword_universe: string[];
 }
 
 serve(async (req) => {
@@ -80,18 +68,22 @@ Include:
 - Key responsibilities
 - Metrics/outcomes that demonstrate success
 
-For each item, assign:
-- weight (1-5): 5 = critical differentiator, 3 = expected, 1 = nice-to-have
-- section_hint: which resume section should address this
+For each benchmark item, assign:
+- importance: "critical" | "important" | "nice_to_have"
+- typical_evidence: examples of how this appears on resumes
 
-Also generate a keyword_universe: a comprehensive list of all relevant keywords, tools, methodologies, and industry terms that might appear on a strong resume.
+Also generate keywords and power_phrases commonly used for this role level.
 
 Respond ONLY with valid JSON:
 {
-  "benchmark_requirements": [
-    { "text": "...", "category": "hard_skill|tool|domain|leadership|responsibility|metric", "weight": 1-5, "section_hint": "Summary|Skills|Experience|Education" }
+  "role_title": "...",
+  "seniority_level": "...",
+  "industry": "...",
+  "benchmarks": [
+    { "category": "...", "description": "...", "importance": "critical|important|nice_to_have", "typical_evidence": [...] }
   ],
-  "keyword_universe": ["keyword1", "keyword2", ...]
+  "keywords": ["keyword1", "keyword2", ...],
+  "power_phrases": ["phrase1", "phrase2", ...]
 }`;
 
     const userPrompt = `Generate a competitive benchmark profile for: ${seniority_level} ${role_title} in ${industry}${sub_industry ? ` / ${sub_industry}` : ""}`;
@@ -121,24 +113,16 @@ Respond ONLY with valid JSON:
       });
     }
 
-    const parseResult = extractJSON(content);
-    if (!parseResult.success || !parseResult.data) {
-      console.error("Failed to parse AI response:", content);
-      return new Response(JSON.stringify({ error: "Invalid AI response format" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const result = parseResult.data as BenchmarkResponse;
+    // Use centralized schema validation
+    const result = parseAndValidate(BenchmarkGenerationSchema, content, "rb-generate-benchmark");
 
     // Save benchmark requirements to database
-    const benchmarksToInsert = (result.benchmark_requirements || []).map((item) => ({
+    const benchmarksToInsert = (result.benchmarks || []).map((item) => ({
       project_id,
       category: item.category,
-      text: item.text,
-      weight: item.weight,
-      section_hint: item.section_hint || "Experience",
+      text: item.description,
+      weight: item.importance === "critical" ? 5 : item.importance === "important" ? 3 : 1,
+      section_hint: "Experience",
     }));
 
     if (benchmarksToInsert.length > 0) {
@@ -158,7 +142,7 @@ Respond ONLY with valid JSON:
     return new Response(JSON.stringify({ 
       success: true, 
       benchmark_count: benchmarksToInsert.length,
-      keyword_universe: result.keyword_universe || [],
+      keyword_universe: result.keywords || [],
       result 
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

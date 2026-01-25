@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { extractJSON } from '../_shared/json-parser.ts';
+import { GapAnalysisSchema, parseAndValidate } from '../_shared/rb-schemas.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,39 +11,6 @@ const corsHeaders = {
 
 interface AnalyzeGapsRequest {
   project_id: string;
-}
-
-interface MetRequirement {
-  requirement_text: string;
-  evidence_quote: string;
-  weight: number;
-}
-
-interface PartialRequirement {
-  requirement_text: string;
-  what_is_missing: string;
-  evidence_quote: string | null;
-  weight: number;
-}
-
-interface UnmetRequirement {
-  requirement_text: string;
-  recommended_action: "add_keyword" | "ask_user" | "ignore";
-  weight: number;
-}
-
-interface GapAnalysisResponse {
-  met: MetRequirement[];
-  partial: PartialRequirement[];
-  unmet: UnmetRequirement[];
-  questions: string[];
-  safe_keyword_insertions: string[];
-  score_breakdown: {
-    met_weight: number;
-    partial_weight: number;
-    unmet_weight: number;
-    total_weight: number;
-  };
 }
 
 serve(async (req) => {
@@ -178,16 +145,8 @@ Perform the gap analysis.`;
       });
     }
 
-    const parseResult = extractJSON(content);
-    if (!parseResult.success || !parseResult.data) {
-      console.error("Failed to parse AI response:", content);
-      return new Response(JSON.stringify({ error: "Invalid AI response format" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const result = parseResult.data as GapAnalysisResponse;
+    // Use centralized schema validation
+    const result = parseAndValidate(GapAnalysisSchema, content, "rb-analyze-gaps");
 
     // Calculate score
     const breakdown = result.score_breakdown || {
