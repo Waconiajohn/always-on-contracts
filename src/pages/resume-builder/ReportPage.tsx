@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Wrench, Wand2, AlertTriangle, CheckCircle2, Target, TrendingUp } from "lucide-react";
+import { Loader2, Wrench, Wand2, AlertTriangle, CheckCircle2, Target, TrendingUp, XCircle, AlertCircle } from "lucide-react";
 import { ResumeBuilderShell } from "@/components/resume-builder/ResumeBuilderShell";
+import { runATSAnalysis, getATSScoreBadge, type ATSAnalysis } from "@/lib/ats-checks";
 import type { RBProject, RBJDRequirement, RBKeywordDecision } from "@/types/resume-builder";
 
 interface ReportStats {
@@ -36,6 +37,7 @@ export default function ReportPage() {
     seniorityMatch: 0,
   });
   const [missingKeywordsList, setMissingKeywordsList] = useState<string[]>([]);
+  const [atsAnalysis, setAtsAnalysis] = useState<ATSAnalysis | null>(null);
 
   const loadData = useCallback(async () => {
     if (!projectId) return;
@@ -97,6 +99,19 @@ export default function ReportPage() {
       setMissingKeywordsList(
         toAdd.slice(0, 6).map(k => k.keyword)
       );
+
+      // Load resume text and run ATS analysis
+      const { data: docData } = await supabase
+        .from("rb_documents")
+        .select("raw_text")
+        .eq("project_id", projectId)
+        .eq("doc_type", "resume")
+        .maybeSingle();
+
+      if (docData?.raw_text) {
+        const ats = runATSAnalysis(docData.raw_text);
+        setAtsAnalysis(ats);
+      }
 
     } catch (err) {
       console.error("Failed to load data:", err);
@@ -306,9 +321,11 @@ export default function ReportPage() {
                   <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
                   ATS Compatibility
                 </CardTitle>
-                <Badge variant="default" className="text-xs">
-                  Good
-                </Badge>
+                {atsAnalysis && (
+                  <Badge variant={getATSScoreBadge(atsAnalysis.score).variant} className="text-xs">
+                    {getATSScoreBadge(atsAnalysis.score).label}
+                  </Badge>
+                )}
               </div>
             </CardHeader>
             <CardContent>
@@ -316,18 +333,55 @@ export default function ReportPage() {
                 Format checks for applicant tracking systems
               </p>
               <div className="space-y-1.5 text-xs">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <CheckCircle2 className="h-3 w-3 text-primary" />
-                  Plain text structure detected
-                </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <CheckCircle2 className="h-3 w-3 text-primary" />
-                  Standard section headers
-                </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <CheckCircle2 className="h-3 w-3 text-primary" />
-                  No complex formatting issues
-                </div>
+                {/* Passed checks */}
+                {atsAnalysis?.passedChecks.slice(0, 3).map((check, i) => (
+                  <div key={i} className="flex items-center gap-2 text-muted-foreground">
+                    <CheckCircle2 className="h-3 w-3 text-primary" />
+                    {check}
+                  </div>
+                ))}
+                
+                {/* Issues */}
+                {atsAnalysis?.issues.slice(0, 3).map((issue, i) => (
+                  <div key={`issue-${i}`} className="flex items-center gap-2 text-muted-foreground">
+                    {issue.type === 'error' ? (
+                      <XCircle className="h-3 w-3 text-destructive" />
+                    ) : issue.type === 'warning' ? (
+                      <AlertCircle className="h-3 w-3 text-accent-foreground" />
+                    ) : (
+                      <AlertCircle className="h-3 w-3 text-muted-foreground" />
+                    )}
+                    <span className={issue.type === 'error' ? 'text-destructive' : ''}>
+                      {issue.issue}
+                    </span>
+                  </div>
+                ))}
+                
+                {/* Fallback for no analysis */}
+                {!atsAnalysis && (
+                  <>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <CheckCircle2 className="h-3 w-3 text-primary" />
+                      Plain text structure detected
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <CheckCircle2 className="h-3 w-3 text-primary" />
+                      Standard section headers
+                    </div>
+                  </>
+                )}
+
+                {/* Show more link if there are additional issues */}
+                {atsAnalysis && atsAnalysis.issues.length > 3 && (
+                  <Button 
+                    variant="link" 
+                    size="sm" 
+                    className="h-auto p-0 text-xs"
+                    onClick={() => navigate(`/resume-builder/${projectId}/fix`)}
+                  >
+                    +{atsAnalysis.issues.length - 3} more issue(s)
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>

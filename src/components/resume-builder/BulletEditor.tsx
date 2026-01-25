@@ -1,7 +1,9 @@
+import { useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BulletItem } from '@/components/resume-builder/MicroEditPopover';
+import { TextSelectionPopover } from '@/components/resume-builder/TextSelectionPopover';
 import { List, FileText } from 'lucide-react';
 import { useState } from 'react';
 import { parseBullets, bulletsTocontent } from '@/hooks/useStudioPageData';
@@ -29,11 +31,18 @@ export function BulletEditor({
 }: BulletEditorProps) {
   const [editMode, setEditMode] = useState<'bullets' | 'text'>('bullets');
   const bullets = parseBullets(content);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const handleBulletUpdate = (index: number, newText: string) => {
     const newBullets = [...bullets];
     newBullets[index] = newText;
     onContentChange(bulletsTocontent(newBullets));
+  };
+
+  const handleTextSelectionEdit = (originalText: string, editedText: string) => {
+    // Replace the selected text with edited text in the content
+    const newContent = content.replace(originalText, editedText);
+    onContentChange(newContent);
   };
 
   return (
@@ -54,7 +63,7 @@ export function BulletEditor({
       </div>
 
       {editMode === 'bullets' ? (
-        <Card className="p-4">
+        <Card className="p-4 relative" ref={containerRef}>
           <div className="space-y-1">
             {bullets.length === 0 ? (
               <p className="text-sm text-muted-foreground italic py-4 text-center">
@@ -73,15 +82,31 @@ export function BulletEditor({
               ))
             )}
           </div>
+          
+          {/* Text selection popover for quick edits */}
+          <TextSelectionPopover
+            containerRef={containerRef}
+            onEdit={handleTextSelectionEdit}
+            context={context}
+          />
         </Card>
       ) : (
-        <Textarea
-          value={content}
-          onChange={(e) => onContentChange(e.target.value)}
-          className="min-h-[400px] text-sm leading-relaxed resize-none font-mono"
-          placeholder={placeholder}
-          disabled={disabled}
-        />
+        <div className="relative" ref={containerRef}>
+          <Textarea
+            value={content}
+            onChange={(e) => onContentChange(e.target.value)}
+            className="min-h-[400px] text-sm leading-relaxed resize-none font-mono"
+            placeholder={placeholder}
+            disabled={disabled}
+          />
+          
+          {/* Text selection popover in text mode too */}
+          <TextSelectionPopover
+            containerRef={containerRef}
+            onEdit={handleTextSelectionEdit}
+            context={context}
+          />
+        </div>
       )}
 
       <div className="flex items-center gap-4 text-xs text-muted-foreground">
