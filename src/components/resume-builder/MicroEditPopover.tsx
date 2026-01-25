@@ -13,8 +13,10 @@ import {
   Wand2, 
   Loader2, 
   Check, 
-  RotateCcw
+  RotateCcw,
+  AlertTriangle
 } from 'lucide-react';
+import { BulletEvidenceIndicator } from './BulletEvidenceIndicator';
 
 interface MicroEditPopoverProps {
   bulletText: string;
@@ -104,7 +106,13 @@ export function MicroEditPopover({
     { label: 'Make concise', instruction: 'Make this more concise while keeping impact' },
     { label: 'Add keywords', instruction: 'Incorporate relevant industry keywords naturally' },
     { label: 'Strengthen verbs', instruction: 'Use stronger action verbs' },
+    { label: "This isn't accurate", instruction: '', isCorrection: true },
   ];
+
+  const handleMarkInaccurate = () => {
+    toast.info("Please provide the correct information in the text box, then click 'Apply Edit'");
+    setInstruction('Please correct this bullet with the following accurate information: ');
+  };
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -129,10 +137,11 @@ export function MicroEditPopover({
                 {quickActions.map((action) => (
                   <Badge
                     key={action.label}
-                    variant="outline"
+                    variant={action.isCorrection ? 'destructive' : 'outline'}
                     className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
-                    onClick={() => setInstruction(action.instruction)}
+                    onClick={() => action.isCorrection ? handleMarkInaccurate() : setInstruction(action.instruction)}
                   >
+                    {action.isCorrection && <AlertTriangle className="h-3 w-3 mr-1" />}
                     {action.label}
                   </Badge>
                 ))}
@@ -246,6 +255,10 @@ export function BulletItem({ text, index, onUpdate, context, evidenceClaims }: B
     <div className="group flex items-start gap-2 py-1">
       <span className="text-muted-foreground mt-0.5">•</span>
       <span className="flex-1 text-sm">{text}</span>
+      
+      {/* Evidence indicator - shows strength of backing evidence */}
+      <BulletEvidenceIndicator bulletText={text} evidenceClaims={evidenceClaims} />
+      
       <MicroEditPopover
         bulletText={text}
         onApply={(newText) => onUpdate(index, newText)}

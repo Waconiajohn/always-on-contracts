@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, convertInchesToTwip } from 'docx';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import { 
@@ -21,8 +21,13 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import type { RBProject, RBVersion } from '@/types/resume-builder';
-
-type TemplateId = 'executive' | 'standard' | 'ats-safe';
+import { 
+  applyTemplateFormatting, 
+  compileToPlainText, 
+  getDocxStyles, 
+  getPdfStyles,
+  type TemplateId 
+} from '@/lib/export-templates';
 
 interface Template {
   id: TemplateId;
@@ -32,9 +37,9 @@ interface Template {
 }
 
 const TEMPLATES: Template[] = [
-  { id: 'executive', name: '1-Page Executive', description: 'Clean, single-page format for senior roles', pages: '1' },
+  { id: 'executive', name: '1-Page Executive', description: 'Max 3 bullets per role, concise summary', pages: '1' },
   { id: 'standard', name: '2-Page Standard', description: 'Full detail with structured sections', pages: '2' },
-  { id: 'ats-safe', name: 'ATS-Safe', description: 'Plain formatting optimized for applicant tracking systems', pages: 'Varies' },
+  { id: 'ats-safe', name: 'ATS-Safe', description: 'Plain formatting, standard headings, no bullets', pages: 'Varies' },
 ];
 
 export default function ExportPage() {
@@ -88,31 +93,19 @@ export default function ExportPage() {
     }
   };
 
-  const compileResume = (versions: RBVersion[]) => {
-    const sectionOrder = ['summary', 'skills', 'experience', 'education'];
-    const sectionTitles: Record<string, string> = {
-      summary: 'PROFESSIONAL SUMMARY',
-      skills: 'SKILLS & COMPETENCIES',
-      experience: 'PROFESSIONAL EXPERIENCE',
-      education: 'EDUCATION & CERTIFICATIONS',
-    };
-
-    const sortedVersions = [...versions].sort((a, b) => {
-      const aIndex = sectionOrder.indexOf(a.section_name);
-      const bIndex = sectionOrder.indexOf(b.section_name);
-      return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
-    });
-
-    let text = '';
-    for (const version of sortedVersions) {
-      const title = sectionTitles[version.section_name] || version.section_name.toUpperCase();
-      text += `\n${title}\n${'─'.repeat(title.length)}\n\n`;
-      text += version.content.trim();
-      text += '\n';
-    }
-
-    setPlainText(text.trim());
+  const compileResume = (versions: RBVersion[], template: TemplateId = 'standard') => {
+    // Apply template-specific formatting
+    const formattedSections = applyTemplateFormatting(versions, template);
+    const text = compileToPlainText(formattedSections, template);
+    setPlainText(text);
   };
+
+  // Re-compile when template changes
+  useEffect(() => {
+    if (versions.length > 0) {
+      compileResume(versions, selectedTemplate);
+    }
+  }, [selectedTemplate, versions]);
 
   const handleCopy = async () => {
     try {
@@ -146,19 +139,8 @@ export default function ExportPage() {
 
     setIsExporting(true);
     try {
-      const sectionOrder = ['summary', 'skills', 'experience', 'education'];
-      const sectionTitles: Record<string, string> = {
-        summary: 'PROFESSIONAL SUMMARY',
-        skills: 'SKILLS & COMPETENCIES',
-        experience: 'PROFESSIONAL EXPERIENCE',
-        education: 'EDUCATION & CERTIFICATIONS',
-      };
-
-      const sortedVersions = [...versions].sort((a, b) => {
-        const aIndex = sectionOrder.indexOf(a.section_name);
-        const bIndex = sectionOrder.indexOf(b.section_name);
-        return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
-      });
+      const formattedSections = applyTemplateFormatting(versions, selectedTemplate);
+      const styles = getDocxStyles(selectedTemplate);
 
       const children: (typeof Paragraph.prototype)[] = [];
 
@@ -174,24 +156,25 @@ export default function ExportPage() {
         children.push(new Paragraph({ text: '' }));
       }
 
-      // Add each section
-      for (const version of sortedVersions) {
-        const title = sectionTitles[version.section_name] || version.section_name.toUpperCase();
-        
+      // Add each formatted section
+      for (const section of formattedSections) {
         children.push(
           new Paragraph({
-            text: title,
+            text: section.title,
             heading: HeadingLevel.HEADING_1,
           })
         );
 
         // Split content into paragraphs/bullets
-        const lines = version.content.split('\n').filter(line => line.trim());
+        const lines = section.content.split('\n').filter(line => line.trim());
         for (const line of lines) {
           const isBullet = line.trim().startsWith('•') || line.trim().startsWith('-');
           children.push(
             new Paragraph({
-              children: [new TextRun(line.replace(/^[•-]\s*/, ''))],
+              children: [new TextRun({ 
+                text: line.replace(/^[•-]\s*/, ''),
+                size: styles.body.size * 2, // docx uses half-points
+              })],
               bullet: isBullet ? { level: 0 } : undefined,
             })
           );
@@ -202,13 +185,24 @@ export default function ExportPage() {
 
       const doc = new Document({
         sections: [{
-          properties: {},
+          properties: {
+            page: {
+              margin: {
+                top: convertInchesToTwip(styles.margins.top),
+                bottom: convertInchesToTwip(styles.margins.bottom),
+                left: convertInchesToTwip(styles.margins.left),
+                right: convertInchesToTwip(styles.margins.right),
+              },
+            },
+          },
           children,
         }],
       });
 
       const blob = await Packer.toBlob(doc);
-      saveAs(blob, `${project?.role_title?.replace(/\s+/g, '_') || 'resume'}_tailored.docx`);
+      const templateSuffix = selectedTemplate === 'executive' ? '_exec' : 
+                             selectedTemplate === 'ats-safe' ? '_ats' : '';
+      saveAs(blob, `${project?.role_title?.replace(/\s+/g, '_') || 'resume'}${templateSuffix}.docx`);
       toast.success('Downloaded as DOCX');
     } catch (err) {
       console.error('DOCX export error:', err);
@@ -226,19 +220,8 @@ export default function ExportPage() {
 
     setIsPdfExporting(true);
     try {
-      const sectionOrder = ['summary', 'skills', 'experience', 'education'];
-      const sectionTitles: Record<string, string> = {
-        summary: 'PROFESSIONAL SUMMARY',
-        skills: 'SKILLS & COMPETENCIES',
-        experience: 'PROFESSIONAL EXPERIENCE',
-        education: 'EDUCATION & CERTIFICATIONS',
-      };
-
-      const sortedVersions = [...versions].sort((a, b) => {
-        const aIndex = sectionOrder.indexOf(a.section_name);
-        const bIndex = sectionOrder.indexOf(b.section_name);
-        return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
-      });
+      const formattedSections = applyTemplateFormatting(versions, selectedTemplate);
+      const styles = getPdfStyles(selectedTemplate);
 
       const pdf = new jsPDF({
         orientation: 'portrait',
@@ -247,47 +230,45 @@ export default function ExportPage() {
       });
 
       const pageWidth = pdf.internal.pageSize.getWidth();
-      const margin = 20;
+      const margin = styles.margins;
       const maxWidth = pageWidth - margin * 2;
-      let yPosition = 20;
-      const lineHeight = 6;
-      const sectionGap = 10;
+      let yPosition = margin;
+      const lineHeight = styles.lineHeight;
+      const sectionGap = styles.sectionGap;
 
       // Add title if project has role title
       if (project?.role_title) {
-        pdf.setFontSize(18);
+        pdf.setFontSize(styles.title.fontSize);
         pdf.setFont('helvetica', 'bold');
         const titleWidth = pdf.getTextWidth(project.role_title);
         pdf.text(project.role_title, (pageWidth - titleWidth) / 2, yPosition);
         yPosition += 12;
       }
 
-      // Add each section
-      for (const version of sortedVersions) {
-        const title = sectionTitles[version.section_name] || version.section_name.toUpperCase();
-        
+      // Add each formatted section
+      for (const section of formattedSections) {
         // Check if we need a new page
         if (yPosition > 270) {
           pdf.addPage();
-          yPosition = 20;
+          yPosition = margin;
         }
 
         // Section title
-        pdf.setFontSize(12);
+        pdf.setFontSize(styles.heading.fontSize);
         pdf.setFont('helvetica', 'bold');
-        pdf.text(title, margin, yPosition);
+        pdf.text(section.title, margin, yPosition);
         yPosition += lineHeight + 2;
 
         // Section content
-        pdf.setFontSize(10);
+        pdf.setFontSize(styles.body.fontSize);
         pdf.setFont('helvetica', 'normal');
         
-        const lines = version.content.split('\n').filter(line => line.trim());
+        const lines = section.content.split('\n').filter(line => line.trim());
         for (const line of lines) {
           // Check if we need a new page
           if (yPosition > 280) {
             pdf.addPage();
-            yPosition = 20;
+            yPosition = margin;
           }
 
           const isBullet = line.trim().startsWith('•') || line.trim().startsWith('-');
@@ -300,7 +281,7 @@ export default function ExportPage() {
           for (const wrappedLine of wrappedLines) {
             if (yPosition > 280) {
               pdf.addPage();
-              yPosition = 20;
+              yPosition = margin;
             }
             pdf.text(wrappedLine, xOffset, yPosition);
             yPosition += lineHeight;
@@ -310,7 +291,9 @@ export default function ExportPage() {
         yPosition += sectionGap;
       }
 
-      pdf.save(`${project?.role_title?.replace(/\s+/g, '_') || 'resume'}_tailored.pdf`);
+      const templateSuffix = selectedTemplate === 'executive' ? '_exec' : 
+                             selectedTemplate === 'ats-safe' ? '_ats' : '';
+      pdf.save(`${project?.role_title?.replace(/\s+/g, '_') || 'resume'}${templateSuffix}.pdf`);
       toast.success('Downloaded as PDF');
     } catch (err) {
       console.error('PDF export error:', err);
