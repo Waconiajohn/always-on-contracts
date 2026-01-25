@@ -1,223 +1,200 @@
 
 
-# Audit Fix Plan: World-Class Resume Generation (Post-Implementation Review)
+# Audit Fix Plan: World-Class Resume Generation (Final Polish)
 
 ## Summary
-The implementation is **85% complete and functional**, but requires fixes for 5 critical issues, 6 medium issues, and minor polish. Estimated effort: **2-3 hours**.
+The implementation is **90% complete and functional**. This audit identified 3 critical issues, 5 medium issues, and 4 minor issues that need to be addressed. Estimated effort: **2 hours**.
 
 ---
 
 ## Critical Fixes
 
-### Fix 1: Display Error State in Dialog
-**File**: `src/components/resume-builder/TwoStageGenerationDialog.tsx`
+### Fix 1: Verify and Create Unique Constraint on `rb_industry_research`
+**Location**: Database migration
 
-Add error display after destructuring and in the idle/loading states:
-```typescript
-// Destructure error from hook
-const { stage, isLoading, error, ... } = useTwoStageGeneration();
-
-// Add error banner before stage-specific content
-{error && (
-  <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 mb-4">
-    <div className="flex items-center gap-2 text-destructive">
-      <AlertTriangle className="h-5 w-5" />
-      <p className="text-sm font-medium">{error}</p>
-    </div>
-    <Button variant="outline" size="sm" onClick={reset} className="mt-2">
-      Try Again
-    </Button>
-  </div>
-)}
+Check if the unique constraint exists, and if not, create it:
+```sql
+ALTER TABLE rb_industry_research 
+ADD CONSTRAINT rb_industry_research_unique_key 
+UNIQUE (role_title, seniority_level, industry);
 ```
 
-### Fix 2: Correct Progress Step Indexing
-**File**: `src/components/resume-builder/TwoStageGenerationDialog.tsx`
+### Fix 2: Fix Unsafe Type Casting for RBEvidence
+**File**: `src/hooks/useTwoStageGeneration.ts`
 
-Fix the step index mapping to properly align with 4-step array (0-3):
+Create a proper evidence mapping function instead of double-casting:
 ```typescript
-const researchSteps: ResearchStep[] = useMemo(() => {
-  let currentIndex = -1; // -1 = all pending
-  if (stage === 'researching') currentIndex = 0;
-  else if (stage === 'generating_ideal') currentIndex = 2;
-  else if (stage !== 'idle') currentIndex = 3; // Mark last step complete
-  
-  return defaultResearchSteps.map((step, index) => ({
-    ...step,
-    status: index < currentIndex ? 'complete' : index === currentIndex ? 'active' : 'pending',
+interface PartialEvidence {
+  id: string;
+  claim_text: string;
+  evidence_quote: string | null;
+  source: string;
+  category: string;
+  confidence: string;
+  is_active: boolean;
+  project_id: string;
+  span_location: unknown;
+  created_at: string;
+}
+
+function mapToRBEvidence(data: PartialEvidence[]): RBEvidence[] {
+  return data.map(item => ({
+    ...item,
+    evidence_quote: item.evidence_quote || item.claim_text,
+    category: item.category as EvidenceCategory,
+    source: item.source as EvidenceSource,
+    confidence: item.confidence as EvidenceConfidence,
+    span_location: item.span_location as SpanLocation | null,
   }));
-}, [stage]);
+}
 ```
 
-### Fix 3: Pre-load Evidence Before Personalization
+### Fix 3: Remove Ineffective AbortController Pattern
 **File**: `src/hooks/useTwoStageGeneration.ts`
 
-Move evidence loading to `startGeneration` so strength can be shown during `ready_for_personalization`:
+Since Supabase SDK doesn't support abort signals, replace with a simpler "mounted" check:
 ```typescript
-const startGeneration = useCallback(async (params: StartGenerationParams) => {
-  // ... after setGenerationParams(params)
-  
-  // Pre-load evidence for strength analysis
-  const { data: evidence } = await supabase
-    .from('rb_evidence')
-    .select('id, claim_text, evidence_quote, source, category, confidence, is_active, project_id, span_location, created_at')
-    .eq('project_id', params.projectId)
-    .eq('is_active', true);
-  
-  setUserEvidence((evidence as RBEvidence[]) || []);
-  
-  // Continue with research...
+const isMountedRef = useRef(true);
+
+useEffect(() => {
+  return () => { isMountedRef.current = false; };
 }, []);
-```
 
-### Fix 4: Show Strength Indicator BEFORE Personalization
-**File**: `src/components/resume-builder/TwoStageGenerationDialog.tsx`
-
-Add strength indicator in `ready_for_personalization` stage:
-```typescript
-{stage === 'ready_for_personalization' && idealContent && industryResearch && (
-  <div className="space-y-6">
-    {/* Strength indicator shown BEFORE clicking personalize */}
-    {resumeStrength && (
-      <ResumeStrengthIndicator 
-        strength={resumeStrength} 
-        compact={resumeStrength.isStrongEnough}
-        onImprove={() => { /* Navigate to fix page */ }}
-      />
-    )}
-    
-    <IdealExampleCard ... />
-  </div>
-)}
-```
-
-### Fix 5: Add Empty JD/Project Validation
-**File**: `src/hooks/useTwoStageGeneration.ts`
-
-Add validation at start of `startGeneration`:
-```typescript
-const startGeneration = useCallback(async (params: StartGenerationParams) => {
-  // Validate required inputs
-  if (!params.jobDescription?.trim()) {
-    setError('Please add a job description before generating content');
-    toast.error('Job description is required');
-    return;
-  }
-  if (!params.roleTitle?.trim() || !params.industry?.trim()) {
-    setError('Please confirm your target role and industry first');
-    toast.error('Target role information is required');
-    return;
-  }
-  // ... rest of function
-}, []);
+// In async functions:
+if (!isMountedRef.current) return;
 ```
 
 ---
 
 ## Medium Fixes
 
-### Fix 6: Remove Misleading UI Copy
-**File**: `src/components/resume-builder/IndustryResearchProgress.tsx`
-
-Update step descriptions to be accurate:
-```typescript
-{
-  id: 'research',
-  label: 'Researching Industry Standards',
-  description: 'Analyzing best practices for this role and seniority level',
-  status: 'pending',
-},
-```
-
-### Fix 7: Add Request Cleanup on Unmount
-**File**: `src/hooks/useTwoStageGeneration.ts`
-
-Add AbortController pattern:
-```typescript
-const abortControllerRef = useRef<AbortController | null>(null);
-
-const startGeneration = useCallback(async (params) => {
-  abortControllerRef.current?.abort();
-  abortControllerRef.current = new AbortController();
-  
-  try {
-    // ... existing logic
-  } catch (err) {
-    if (err.name === 'AbortError') return; // Silent exit on abort
-    // ... error handling
-  }
-}, []);
-
-const reset = useCallback(() => {
-  abortControllerRef.current?.abort();
-  // ... existing reset logic
-}, []);
-```
-
-### Fix 8: Validate Project Has Required Data Before Dialog Opens
-**File**: `src/pages/resume-builder/studio/SummaryPage.tsx`
-
-Add validation before opening dialog:
-```typescript
-const handleWorldClass = () => {
-  if (!project?.jd_text) {
-    toast.error('Please add a job description first');
-    return;
-  }
-  if (!project?.role_title || !project?.industry) {
-    toast.error('Please confirm your target role first');
-    return;
-  }
-  setShowTwoStage(true);
-};
-
-// Update callback
-onWorldClass={handleWorldClass}
-```
-
-### Fix 9: Fix Evidence Category Filtering
-**File**: `supabase/functions/rb-generate-personalized-section/index.ts`
-
-Expand category mappings:
-```typescript
-const sectionCategories: Record<string, string[]> = {
-  summary: ["skill", "domain", "leadership", "metric", "responsibility"],
-  skills: ["skill", "tool", "domain", "metric"],
-  experience_bullets: ["responsibility", "metric", "leadership", "skill", "tool"],
-  education: ["domain", "skill"],
-};
-```
-
-### Fix 10: Add Word Count to Personalized Schema
-**File**: `supabase/functions/_shared/rb-schemas.ts`
-
-Add optional word_count to PersonalizedSectionSchema for consistency:
-```typescript
-word_count: z.number().optional().describe("Word count of personalized content"),
-```
-
-### Fix 11: Consistent Word Count Source in Dialog
+### Fix 4: Unify Progress Step Index Logic
 **File**: `src/components/resume-builder/TwoStageGenerationDialog.tsx`
 
-Use API-provided word count when available:
+Remove the duplicate `currentStepIndex` calculation and use a single source of truth:
 ```typescript
-personalizedWordCount: personalizedContent?.word_count || 
-  personalizedContent?.personalized_content?.split(/\s+/).filter(Boolean).length || 0,
+const { researchSteps, progressPercent } = useMemo(() => {
+  let activeIndex = -1;
+  if (stage === 'researching') activeIndex = 0;
+  else if (stage === 'generating_ideal') activeIndex = 2;
+  else if (stage !== 'idle') activeIndex = 4;
+  
+  const steps = defaultResearchSteps.map((step, index) => ({
+    ...step,
+    status: index < activeIndex ? 'complete' : index === activeIndex ? 'active' : 'pending',
+  }));
+  
+  const percent = Math.round((Math.max(0, activeIndex) / steps.length) * 100);
+  
+  return { researchSteps: steps, progressPercent: percent };
+}, [stage]);
+```
+
+### Fix 5: Show Strength Indicator in Idle State
+**File**: `src/components/resume-builder/TwoStageGenerationDialog.tsx`
+
+Load evidence on dialog open (not just on start generation):
+```typescript
+useEffect(() => {
+  if (open && projectId) {
+    // Pre-fetch evidence for strength preview
+    supabase
+      .from('rb_evidence')
+      .select('...')
+      .eq('project_id', projectId)
+      .eq('is_active', true)
+      .then(({ data }) => setPreviewEvidence(data || []));
+  }
+}, [open, projectId]);
+```
+
+### Fix 6: Handle Empty Relevant Evidence
+**File**: `supabase/functions/rb-generate-personalized-section/index.ts`
+
+Add a check and warning:
+```typescript
+if (relevantEvidence.length === 0) {
+  console.warn('[rb-generate-personalized-section] No relevant evidence found for section');
+  // Return a response indicating the content will be generic
+}
+```
+
+### Fix 7: Consolidate Section Mapping to Single Utility
+**Files**: Create `src/lib/resume-section-utils.ts`
+
+```typescript
+export function mapUISectionToAPIType(name: string): 'summary' | 'skills' | 'experience_bullets' | 'education' {
+  if (name === 'experience') return 'experience_bullets';
+  return name as 'summary' | 'skills' | 'education';
+}
+```
+
+Then import and use consistently in both hook and dialog.
+
+### Fix 8: Ensure AI Returns Word Count
+**File**: `supabase/functions/rb-generate-personalized-section/index.ts`
+
+Update the JSON schema in the prompt to explicitly request word_count:
+```typescript
+{
+  // ... existing fields
+  "word_count": "number - count the words in personalized_content"
+}
 ```
 
 ---
 
-## Testing Checklist
+## Minor Fixes
 
-After fixes:
-1. Open Summary Studio page with project that has JD and target role confirmed
-2. Click "World-Class" button
-3. Verify research progress shows correct step highlighting (not jumping to 100%)
-4. Verify strength indicator shows BEFORE clicking "Personalize"
-5. Complete personalization and verify comparison view works
-6. Test blend editor functionality
-7. Test error states by disconnecting network mid-request
-8. Test with empty evidence to verify warnings appear
+### Fix 9: Remove Misleading Insight Counter
+**File**: `src/components/resume-builder/IndustryResearchProgress.tsx`
+
+Either remove the insight counter entirely or base it on actual data:
+```typescript
+{industryResearch?.keywords?.length ? (
+  <p>Discovered {industryResearch.keywords.length}+ industry keywords</p>
+) : null}
+```
+
+### Fix 10: BlendEditor Default Content Choice
+**File**: `src/components/resume-builder/BlendEditor.tsx`
+
+Consider starting with an empty editor or prompting user choice, but this is low priority.
+
+### Fix 11: Remove Duplicate Evidence Fetch
+**File**: `src/hooks/useTwoStageGeneration.ts`
+
+Since evidence is pre-loaded in `startGeneration`, reuse `userEvidence` state in `generatePersonalized` instead of fetching again.
+
+### Fix 12: Add Debounce to Start Button
+**File**: `src/components/resume-builder/TwoStageGenerationDialog.tsx`
+
+```typescript
+const [isStarting, setIsStarting] = useState(false);
+
+const handleStart = async () => {
+  if (isStarting) return;
+  setIsStarting(true);
+  try {
+    await startGeneration({...});
+  } finally {
+    setIsStarting(false);
+  }
+};
+```
+
+---
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| Database migration | Add unique constraint on `rb_industry_research` |
+| `src/hooks/useTwoStageGeneration.ts` | Fix type casting, remove AbortController, remove duplicate fetch |
+| `src/components/resume-builder/TwoStageGenerationDialog.tsx` | Unify step logic, pre-load evidence, add debounce |
+| `src/components/resume-builder/IndustryResearchProgress.tsx` | Remove misleading insight counter |
+| `supabase/functions/rb-generate-personalized-section/index.ts` | Handle empty evidence, ensure word_count in prompt |
+| `src/lib/resume-section-utils.ts` (new) | Create shared section mapping utility |
 
 ---
 
@@ -225,15 +202,18 @@ After fixes:
 
 | Task | Complexity | Time |
 |------|------------|------|
-| Error display + retry button | Low | 15 min |
-| Progress step index fix | Low | 10 min |
-| Pre-load evidence for strength | Medium | 20 min |
-| JD/project validation | Low | 15 min |
-| Update misleading UI copy | Low | 5 min |
-| Add AbortController cleanup | Medium | 20 min |
-| Category filtering expansion | Low | 10 min |
-| Word count consistency | Low | 10 min |
-| Testing & verification | Medium | 30 min |
+| Database unique constraint | Low | 5 min |
+| Fix type casting | Medium | 15 min |
+| Fix AbortController pattern | Low | 10 min |
+| Unify progress step logic | Low | 10 min |
+| Pre-load evidence for strength | Medium | 15 min |
+| Handle empty evidence | Low | 10 min |
+| Create shared section utility | Low | 10 min |
+| Ensure word_count in prompt | Low | 5 min |
+| Remove misleading counter | Low | 5 min |
+| Remove duplicate fetch | Low | 10 min |
+| Add button debounce | Low | 5 min |
+| Testing | Medium | 20 min |
 
-**Total: ~2.5 hours**
+**Total: ~2 hours**
 
