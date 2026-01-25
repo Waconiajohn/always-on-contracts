@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 interface BlendEditorProps {
   idealContent: string;
   personalizedContent: string;
+  initialContent?: 'ideal' | 'personalized';
   onSave: (blendedContent: string) => void;
   onCancel: () => void;
   isLoading?: boolean;
@@ -27,11 +28,14 @@ interface BlendEditorProps {
 export function BlendEditor({
   idealContent,
   personalizedContent,
+  initialContent = 'personalized',
   onSave,
   onCancel,
   isLoading = false,
 }: BlendEditorProps) {
-  const [blendedContent, setBlendedContent] = useState(personalizedContent);
+  const [blendedContent, setBlendedContent] = useState(
+    initialContent === 'ideal' ? idealContent : personalizedContent
+  );
   const [hasChanges, setHasChanges] = useState(false);
 
   const handleContentChange = useCallback((value: string) => {

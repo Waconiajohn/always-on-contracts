@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
@@ -65,9 +65,12 @@ export function TwoStageGenerationDialog({
     reset,
   } = useTwoStageGeneration();
 
-  // Fix 5: Pre-fetch evidence when dialog opens to show strength in idle state
+  // Fix 2: Pre-fetch evidence when dialog opens, clear on close/project change
   useEffect(() => {
     if (open && projectId) {
+      // Clear stale evidence first
+      setPreviewEvidence([]);
+      
       supabase
         .from('rb_evidence')
         .select('id, claim_text, evidence_quote, source, category, confidence, is_active, project_id, span_location, created_at')
@@ -82,6 +85,9 @@ export function TwoStageGenerationDialog({
             setPreviewEvidence(mapToRBEvidence(data as PartialEvidence[]));
           }
         });
+    } else {
+      // Clear when dialog closes
+      setPreviewEvidence([]);
     }
   }, [open, projectId]);
 
@@ -149,12 +155,13 @@ export function TwoStageGenerationDialog({
     handleClose();
   };
 
-  const handleClose = () => {
+  // Fix 3: Wrap handleClose in useCallback
+  const handleClose = useCallback(() => {
     reset();
     setShowBlendEditor(false);
     setPreviewEvidence([]);
     onOpenChange(false);
-  };
+  }, [reset, onOpenChange]);
 
   // Fix 5: Navigate to fix page when user wants to improve strength
   const handleImproveStrength = () => {
@@ -165,13 +172,12 @@ export function TwoStageGenerationDialog({
   // Get section type using shared utility
   const sectionType = mapUISectionToAPIType(sectionName);
 
-  // Create comparison data from state - uses API word count when available
+  // Fix 4: Create comparison data from state - simplified word count (API guarantees it)
   const comparisonData = useMemo(() => ({
     idealContent: idealContent?.ideal_content || '',
     personalizedContent: personalizedContent?.personalized_content || '',
     idealWordCount: idealContent?.word_count || 0,
-    personalizedWordCount: personalizedContent?.word_count || 
-      personalizedContent?.personalized_content?.split(/\s+/).filter(Boolean).length || 0,
+    personalizedWordCount: personalizedContent?.word_count || 0,
     similarityScore: personalizedContent?.similarity_to_ideal || 0,
     gapsIdentified: personalizedContent?.gaps_identified || [],
     evidenceUsed: personalizedContent?.evidence_incorporated || [],

@@ -258,7 +258,7 @@ export interface ChildSpan {
 }
 
 export interface SpanLocation {
-  section: string;
+  section: 'summary' | 'skills' | 'experience' | 'education' | 'certifications' | 'projects' | 'other';
   jobIndex?: number;
   bulletIndex?: number;
   startChar: number;

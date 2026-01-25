@@ -114,17 +114,20 @@ export default function SummaryPage() {
         />
       </StudioLayout>
 
-      <TwoStageGenerationDialog
-        open={showTwoStage}
-        onOpenChange={setShowTwoStage}
-        projectId={projectId || ''}
-        sectionName={SECTION_NAME}
-        roleTitle={project?.role_title || ''}
-        seniorityLevel={project?.seniority_level || ''}
-        industry={project?.industry || ''}
-        jobDescription={project?.jd_text || ''}
-        onContentSelect={handleWorldClassContent}
-      />
+      {/* Only render dialog when all required data is present */}
+      {project?.role_title && project?.industry && project?.seniority_level && project?.jd_text && (
+        <TwoStageGenerationDialog
+          open={showTwoStage}
+          onOpenChange={setShowTwoStage}
+          projectId={projectId || ''}
+          sectionName={SECTION_NAME}
+          roleTitle={project.role_title}
+          seniorityLevel={project.seniority_level}
+          industry={project.industry}
+          jobDescription={project.jd_text}
+          onContentSelect={handleWorldClassContent}
+        />
+      )}
     </ResumeBuilderShell>
   );
 }
