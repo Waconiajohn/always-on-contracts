@@ -1,247 +1,140 @@
 
 
-# Resume Builder V4 - Remaining Work Plan
+# Remaining Work Plan
 
 ## Overview
-Complete the evidence-based Resume Scoring & Rewrite Engine by implementing missing features identified in the original plan. Focus on anti-hallucination controls, user-driven evidence capture, and UX polish.
+There are two categories of remaining work:
+1. **Technical Debt**: Refactor edge functions to use shared schemas
+2. **Major Enhancement**: Implement the World-Class Resume Generation Strategy
 
 ---
 
-## Phase 1: Shared Schema Validators (Priority: High)
+## Part A: Technical Debt Cleanup (Estimated: 2-3 hours)
 
-### Task 1.1: Create Zod Schema Library
-**File**: `supabase/functions/_shared/rb-schemas.ts`
+### Task A.1: Refactor Edge Functions to Use Shared Zod Schemas
 
-Create centralized Zod schemas for all AI responses:
-```typescript
-// Response schemas for 9 AI calls
-export const JDClassificationSchema = z.object({...});
-export const RequirementsExtractionSchema = z.object({...});
-export const BenchmarkGenerationSchema = z.object({...});
-export const ClaimsExtractionSchema = z.object({...});
-export const GapAnalysisSchema = z.object({...});
-export const SectionRewriteSchema = z.object({...});
-export const MicroEditSchema = z.object({...});
-export const HiringManagerCritiqueSchema = z.object({...});
-export const ValidationSchema = z.object({...});
+**Goal**: All 9 `rb-*` edge functions should import and use schemas from `rb-schemas.ts` instead of inline interfaces.
+
+**Files to update**:
+- `supabase/functions/rb-classify-jd/index.ts` - Use `JDClassificationSchema`
+- `supabase/functions/rb-extract-jd-requirements/index.ts` - Use `RequirementsExtractionSchema`
+- `supabase/functions/rb-generate-benchmark/index.ts` - Use `BenchmarkGenerationSchema`
+- `supabase/functions/rb-extract-resume-claims/index.ts` - Use `ClaimsExtractionSchema`
+- `supabase/functions/rb-analyze-gaps/index.ts` - Use `GapAnalysisSchema`
+- `supabase/functions/rb-rewrite-section/index.ts` - Use `SectionRewriteSchema`
+- `supabase/functions/rb-micro-edit/index.ts` - Use `MicroEditSchema`
+- `supabase/functions/rb-hiring-manager-critique/index.ts` - Use `HiringManagerCritiqueSchema`
+- `supabase/functions/rb-validate-rewrite/index.ts` - Use `ValidationSchema`
+
+**Changes per file**:
+1. Import schema from shared module: `import { XxxSchema, parseAndValidate } from '../_shared/rb-schemas.ts'`
+2. Remove inline interface definitions
+3. Replace JSON parsing with `parseAndValidate(XxxSchema, content, 'rb-xxx')`
+
+### Task A.2: Integrate VersionDiff into VersionHistory Sheet
+
+**File**: `src/components/resume-builder/VersionHistory.tsx`
+
+- Add "Compare" button next to each version entry
+- Open `VersionDiff` component in a dialog/sheet
+- Allow comparison between any two versions
+
+---
+
+## Part B: World-Class Resume Generation Strategy (Estimated: 12-15 hours)
+
+This is a major new feature based on user feedback requesting:
+- Industry research before generation
+- "Ideal example" shown first
+- Side-by-side comparison between ideal and personalized versions
+
+### Phase B.1: Industry Research Infrastructure
+
+**New Edge Function**: `rb-research-industry/index.ts`
+
+- Input: Job title, industry, seniority level
+- Process: Use AI to generate industry-specific insights
+- Output: Common keywords, power phrases, typical qualifications, competitive benchmarks
+- Cache results in new table `rb_industry_research`
+
+**Database Migration**:
+```sql
+CREATE TABLE rb_industry_research (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  role_title TEXT NOT NULL,
+  seniority_level TEXT NOT NULL,
+  industry TEXT NOT NULL,
+  research_data JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 ```
 
-### Task 1.2: Refactor Edge Functions
-Update each `rb-*` edge function to use the shared validators instead of inline parsing.
+### Phase B.2: Two-Stage Generation System
 
----
+**New Edge Functions**:
 
-## Phase 2: Question Capture Flow (Priority: High)
+1. `rb-generate-ideal-section/index.ts`
+   - Uses ONLY job description + industry research
+   - Does NOT use Master Resume data
+   - Produces "platinum standard" content
 
-### Task 2.1: Question Capture Modal Component
-**File**: `src/components/resume-builder/QuestionCaptureModal.tsx`
+2. `rb-generate-personalized-section/index.ts`
+   - Takes ideal example as input
+   - Injects user's real evidence/claims
+   - Maintains industry-standard structure
 
-- Display questions from gap analysis
-- Text input for each question
-- On submit: Create `rb_evidence` entries with `source = 'user_provided'`
-- Trigger re-analysis after answers submitted
+### Phase B.3: Comparison UI Components
 
-### Task 2.2: Integrate into Fix Page
-Update `FixPage.tsx`:
-- After gap analysis loads, check if `questions[]` is non-empty
-- Show "Answer Questions" prompt with badge count
-- Open modal to capture answers
-- Re-run gap analysis after submission
+**New Components**:
+- `IndustryResearchProgress.tsx` - Shows research progress with steps
+- `IdealExampleCard.tsx` - Displays industry standard with quality indicators
+- `SideBySideComparison.tsx` - Two-column view with highlighting
+- `BlendEditor.tsx` - Allows mixing parts from both versions
 
-### Task 2.3: Evidence Source Differentiation
-Update `EvidenceSidebar.tsx` to show source badges:
-- "From Resume" (extracted)
-- "You Added" (user_provided)
-
----
-
-## Phase 3: Add Bullet Form (Priority: Medium)
-
-### Task 3.1: Inline Bullet Creation Form
-**File**: `src/components/resume-builder/AddBulletForm.tsx`
-
-Form fields:
-- Position dropdown (from parsed resume experience entries)
-- Action verb + what you did (required)
-- Result/metric (optional)
-- Tools/keywords used (optional)
-
-### Task 3.2: Integrate into Fix Page
-Add collapsible "Add New Bullet" section on Fix page:
-- Opens form inline below gaps
-- On submit: Creates `rb_evidence` entry
-- Optionally navigates to Experience Studio
-
----
-
-## Phase 4: ATS Format Checks (Priority: Medium)
-
-### Task 4.1: ATS Analysis Utility
-**File**: `src/lib/ats-checks.ts`
-
-Implement local parsing functions:
-```typescript
-export function detectTables(text: string): ATSIssue[];
-export function detectUnusualHeadings(text: string): ATSIssue[];
-export function detectMissingDates(text: string): ATSIssue[];
-export function detectOverlongBullets(text: string): ATSIssue[];
+**Updated Flow**:
+```
+Report Page → "Generate Sections" → Research Progress UI →
+  → Show Ideal Example → "Personalize with My Data" →
+    → Side-by-Side Comparison → Choose/Blend → Studio
 ```
 
-### Task 4.2: Update Report Page
-Replace static ATS card with dynamic checks:
-- Run checks on `rb_documents.raw_text`
-- Display issues with severity icons
-- Show "Auto-fix" button for applicable issues
+### Phase B.4: Low Data Detection
 
-### Task 4.3: Auto-Fix Function
-Implement deterministic fixes:
-- Convert tables to plain text
-- Standardize headings
-- Flag missing dates (can't auto-fix)
-- Split overlong bullets
+**New Utility**: `src/lib/resume-strength-analyzer.ts`
 
----
-
-## Phase 5: Text Selection Micro-Edit (Priority: Medium)
-
-### Task 5.1: Selection-Triggered Popover
-Update `BulletEditor.tsx`:
-- Add `onMouseUp` listener to detect text selection
-- Calculate selection coordinates
-- Show floating popover with quick actions:
-  - "Rewrite", "Shorter", "Stronger verb", "Add keyword"
-
-### Task 5.2: Integrate with Micro-Edit
-On action click:
-- Extract selected text
-- Call `rb-micro-edit` with action as instruction
-- Replace selection with edited text
-
----
-
-## Phase 6: Version History Diff View (Priority: Low)
-
-### Task 6.1: Diff Comparison Component
-**File**: `src/components/resume-builder/VersionDiff.tsx`
-
-- Side-by-side or inline diff view
-- Use `diff` library (already installed)
-- Highlight additions (green) and deletions (red)
-
-### Task 6.2: Update VersionHistory Sheet
-Add "Compare" button next to each version:
-- Opens diff view between selected version and current
-- Option to compare any two versions
-
----
-
-## Phase 7: Per-Bullet Evidence Linking (Priority: Medium)
-
-### Task 7.1: Update Bullet Item Component
-Enhance `BulletItem` in `BulletEditor.tsx`:
-- Parse bullet text to find matching evidence claims
-- Show small indicator: "Evidence: High/Medium/None"
-- Tooltip shows source evidence quote
-
-### Task 7.2: "Mark Inaccurate" Action
-Add action to bullet popover:
-- "This isn't accurate" → Opens question modal
-- User provides correction → Updates `rb_evidence`
-
----
-
-## Phase 8: Auto-Validation After Rewrite (Priority: High)
-
-### Task 8.1: Post-Rewrite Hook
-Update `useRewriteSection` hook:
-- After successful rewrite, auto-run validation
-- Store validation result in state
-
-### Task 8.2: Inline Validation Warnings
-Update Studio pages:
-- If validation finds issues, show warning banner above editor
-- Highlight problematic sentences with red underline
-- Click to see issue details and suggestions
-
----
-
-## Phase 9: Score Recalculation (Priority: Medium)
-
-### Task 9.1: Revert + Rescore Logic
-Update `useStudioPageData`:
-- After `revertToVersion`, call rescore function
-- Rescore compares current content against requirements
-- Update `rb_projects.current_score`
-
-### Task 9.2: Create Client-Side Scoring Utility
-**File**: `src/lib/calculate-resume-score.ts`
-
-Implement deterministic scoring based on:
-- Keywords matched (from `rb_keyword_decisions`)
-- Requirements met (from gap analysis cache)
-- Return score 0-100
-
----
-
-## Phase 10: Template-Specific Export (Priority: Low)
-
-### Task 10.1: Template Formatting Logic
-Update `ExportPage.tsx`:
-
-**Executive (1-page)**:
-- Truncate bullets to max 3 per position
-- Shorter summary (2 sentences)
-- Skills as comma-separated list
-
-**Standard (2-page)**:
-- Full bullets
-- Complete summary
-- Skills categorized
-
-**ATS-Safe**:
-- No bullets, use hyphens
-- Standard headings only
-- No bold/italic
-
-### Task 10.2: Apply to DOCX/PDF Generation
-Update `handleDownloadDocx` and `handleDownloadPdf` to use template config.
+- Analyze Master Resume completeness
+- Detect: real achievements vs assumed, quantified results, category diversity
+- Return strength score (0-100%)
+- Show warning if below threshold (65%)
 
 ---
 
 ## Implementation Order
 
-1. **High Priority (Core Functionality)**
-   - Phase 2: Question Capture Flow
-   - Phase 8: Auto-Validation After Rewrite
-   - Phase 1: Shared Schema Validators
+### Priority 1: Technical Debt (Do First)
+1. Refactor all 9 edge functions to use shared schemas
+2. Integrate VersionDiff into VersionHistory sheet
 
-2. **Medium Priority (UX Improvements)**
-   - Phase 3: Add Bullet Form
-   - Phase 4: ATS Format Checks
-   - Phase 7: Per-Bullet Evidence Linking
-   - Phase 9: Score Recalculation
-   - Phase 5: Text Selection Micro-Edit
-
-3. **Low Priority (Polish)**
-   - Phase 6: Version History Diff View
-   - Phase 10: Template-Specific Export
+### Priority 2: World-Class Generation (Major Feature)
+1. Create industry research edge function + caching
+2. Build ideal section generator
+3. Build personalized section generator
+4. Create comparison UI components
+5. Update flow to use two-stage generation
+6. Add resume strength analyzer and warnings
 
 ---
 
 ## Estimated Effort
 
-| Phase | Complexity | Est. Time |
-|-------|------------|-----------|
-| 1. Schema Validators | Medium | 2-3 hours |
-| 2. Question Capture | High | 3-4 hours |
-| 3. Add Bullet Form | Medium | 2 hours |
-| 4. ATS Checks | Medium | 2-3 hours |
-| 5. Text Selection | Medium | 2 hours |
-| 6. Diff View | Low | 1-2 hours |
-| 7. Per-Bullet Evidence | Medium | 2-3 hours |
-| 8. Auto-Validation | High | 2-3 hours |
-| 9. Score Recalculation | Medium | 2 hours |
-| 10. Template Export | Low | 1-2 hours |
+| Category | Complexity | Time |
+|----------|------------|------|
+| Edge function refactoring | Medium | 2-3 hours |
+| VersionDiff integration | Low | 1 hour |
+| Industry research system | High | 3-4 hours |
+| Two-stage generation | High | 4-5 hours |
+| Comparison UI | Medium | 3-4 hours |
+| Resume strength analyzer | Low | 1-2 hours |
 
-**Total: ~20-25 hours of implementation**
+**Total: ~15-20 hours**
 
