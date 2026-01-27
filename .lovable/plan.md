@@ -1,121 +1,162 @@
 
 
-# Audit Fix Plan: World-Class Resume Generation (Final Polish Round 3)
+# Critical Quick Score Audit - Complete Breakdown
 
-## Summary
-The implementation is **97% complete**. This audit identified 1 critical issue, 3 medium issues, and 3 minor improvements. Estimated effort: **30-45 minutes**.
+## Executive Summary
+
+After extensive investigation, I've identified **5 critical issues** that explain exactly why the Quick Score feature is failing. The user is 100% correct - the implementation is NOT using the comprehensive "must-interview" prompts that exist in the codebase.
 
 ---
 
-## Critical Fix
+## Issue #1: Keywords Are Just a "Giant Pile" - No Organization
 
-### Fix 1: Guard Dialog Props When Missing Data
-**File**: `src/pages/resume-builder/studio/SummaryPage.tsx`
+### Root Cause
+The `instant-resume-score` edge function uses a **SIMPLIFIED PROMPT** that explicitly strips out all organization and context:
 
-Even though validation blocks opening, the dialog should not receive empty strings. Add an early return or conditional render:
-
-```typescript
-{/* Only render dialog when all required data is present */}
-{project?.role_title && project?.industry && project?.seniority_level && project?.jd_text && (
-  <TwoStageGenerationDialog
-    open={showTwoStage}
-    onOpenChange={setShowTwoStage}
-    projectId={projectId || ''}
-    sectionName={SECTION_NAME}
-    roleTitle={project.role_title}
-    seniorityLevel={project.seniority_level}
-    industry={project.industry}
-    jobDescription={project.jd_text}
-    onContentSelect={handleWorldClassContent}
-  />
-)}
+```text
+// Lines 331-341 of instant-resume-score/index.ts
+EXTRACTION RULES:
+1. Extract the TOP 20 most important matched keywords
+2. Extract the TOP 15 most important missing keywords  
+3. Keywords should be single terms or short phrases (1-4 words max)
+5. DO NOT include context phrases - just the keyword itself  <-- THIS IS THE PROBLEM
 ```
 
+### What Should Happen (From resume-prompts.ts)
+The comprehensive prompts in `supabase/functions/_shared/resume-prompts.ts` (lines 74-139) include:
+- Competency extraction with categories (required/preferred/nice-to-have)
+- Hiring manager priorities with "why_it_matters" and "evidence_needed"
+- Gap analysis with severity levels and structured recommendations
+- Proper ATS keyword tiers: critical, important, bonus
+
+### The Fix
+Replace the simplified scoring prompt with the comprehensive `JOB_BLUEPRINT_USER_PROMPT` and `RESUME_ASSESSMENT_USER_PROMPT` from the shared library, then properly render the organized output in the UI.
+
 ---
 
-## Medium Fixes
+## Issue #2: Resume & Job Description Don't Carry Over to Resume Optimizer
 
-### Fix 2: Clear Preview Evidence on Project Change
-**File**: `src/components/resume-builder/TwoStageGenerationDialog.tsx`
-
-Reset evidence when projectId changes:
-
+### Root Cause
+Quick Score navigates to `/resume-builder` with state data:
 ```typescript
-useEffect(() => {
-  if (open && projectId) {
-    // Clear stale evidence first
-    setPreviewEvidence([]);
-    
-    supabase
-      .from('rb_evidence')
-      .select('...')
-      // ... rest of fetch
-  } else {
-    // Clear when dialog closes
-    setPreviewEvidence([]);
+// Lines 270-297 of QuickScore.tsx
+navigate('/resume-builder', {
+  state: {
+    fromQuickScore: true,
+    resumeText,           // <-- PASSED BUT IGNORED
+    jobDescription,       // <-- PASSED BUT IGNORED
+    scoreResult,          // <-- PASSED BUT IGNORED
+    identifiedGaps,
+    keywordAnalysis,
+    ...
   }
-}, [open, projectId]);
+});
 ```
 
-### Fix 3: Wrap handleClose in useCallback
-**File**: `src/components/resume-builder/TwoStageGenerationDialog.tsx`
-
+But `ResumeBuilderIndex.tsx` **completely ignores** the navigation state:
 ```typescript
-const handleClose = useCallback(() => {
-  reset();
-  setShowBlendEditor(false);
-  setPreviewEvidence([]);
-  onOpenChange(false);
-}, [reset, onOpenChange]);
+// Lines 98-147 - No useLocation() hook, no state handling
+export default function ResumeBuilderIndex() {
+  const navigate = useNavigate();
+  const [projects, setProjects] = useState<RBProject[]>([]);
+  // ... NO state handling from Quick Score
 ```
 
-### Fix 4: Remove Redundant Word Count Fallback
-**File**: `src/components/resume-builder/TwoStageGenerationDialog.tsx`
-
-Since the edge function now guarantees word_count, simplify:
-
-```typescript
-personalizedWordCount: personalizedContent?.word_count || 0,
-```
+### The Fix
+Add `useLocation()` to ResumeBuilderIndex to detect `fromQuickScore: true` state, then:
+1. Auto-create a new project with the resume/JD pre-populated
+2. Navigate directly to the processing/report step
+3. Pass keyword analysis and gap data to pre-fill the builder
 
 ---
 
-## Minor Fixes (Optional)
+## Issue #3: Two "Project" Buttons That Don't Work
 
-### Fix 5: Add Initial Content Prop to BlendEditor
-**File**: `src/components/resume-builder/BlendEditor.tsx`
+### Root Cause
+The user sees two "New Project" buttons in ResumeBuilderIndex:
+1. Line 164-171: Header button "New Project"
+2. Line 187-194: Empty state button "Create First Project"
 
+Both buttons call `createNewProject()` which creates a blank project and navigates to `/resume-builder/:id/upload`. 
+
+When coming FROM Quick Score, this is the wrong behavior - the user expects to continue with their already-analyzed resume, not start over.
+
+### The Fix
+When `fromQuickScore: true` is detected:
+- Hide the "New Project" buttons
+- Show a "Continue with Analysis" flow instead
+- Auto-create project with pre-filled data
+
+---
+
+## Issue #4: The "20 Prompts" Not Integrated
+
+### What Exists But Isn't Used
+The codebase has comprehensive prompts in `supabase/functions/_shared/resume-prompts.ts`:
+
+| Prompt | Purpose | Currently Used? |
+|--------|---------|-----------------|
+| `RESUME_ARCHITECT_SYSTEM_PROMPT` | Must-interview rules, anti-hallucination | **NO** |
+| `JOB_BLUEPRINT_USER_PROMPT` | Deep job analysis with hiring manager priorities | **NO** |
+| `RESUME_ASSESSMENT_USER_PROMPT` | Score + gap analysis with severity levels | **NO** |
+| `GAP_SUGGESTION_USER_PROMPT` | Editable suggestions with interview questions | **NO** |
+| `SECTION_REWRITE_USER_PROMPT` | Section-specific rewriting guidelines | **NO** |
+| `INLINE_BULLET_REWRITE_USER_PROMPT` | Quick bullet improvements | **NO** |
+
+Instead, `instant-resume-score` uses an ad-hoc simplified prompt that produces unorganized output.
+
+### The Fix
+Refactor `instant-resume-score` to:
+1. Import and use `RESUME_ARCHITECT_SYSTEM_PROMPT` as the system prompt
+2. Use `JOB_BLUEPRINT_USER_PROMPT` for job analysis
+3. Use `RESUME_ASSESSMENT_USER_PROMPT` for scoring and gap analysis
+4. Return structured data that matches the comprehensive schema
+
+---
+
+## Issue #5: UI Doesn't Render Organized Analysis
+
+### Current State
+The `KeywordAnalysisPanel.tsx` component only receives flat keyword arrays:
 ```typescript
-interface BlendEditorProps {
-  idealContent: string;
-  personalizedContent: string;
-  initialContent?: 'ideal' | 'personalized'; // NEW
-  onSave: (blendedContent: string) => void;
-  onCancel: () => void;
-  isLoading?: boolean;
+interface Keyword {
+  keyword: string;
+  priority: 'critical' | 'high' | 'medium';
+  // Missing: why_it_matters, evidence_needed, category
 }
-
-// In component:
-const [blendedContent, setBlendedContent] = useState(
-  initialContent === 'ideal' ? idealContent : personalizedContent
-);
 ```
 
-### Fix 6: Unify SpanLocation Type Definition
-**Files**: `src/types/resume-builder.ts` and `supabase/functions/_shared/rb-schemas.ts`
+### What The UI Should Show
+Based on the comprehensive prompts, the UI should display:
+- **Competencies** grouped by category (required/preferred/nice-to-have)
+- **Hiring Manager Priorities** with explanations
+- **Gap Analysis** with severity badges and actionable recommendations
+- **Interview-defensible suggestions**
 
-Update TypeScript interface to match Zod enum:
+---
 
-```typescript
-// In src/types/resume-builder.ts
-export interface SpanLocation {
-  section: 'summary' | 'skills' | 'experience' | 'education' | 'other'; // Was: string
-  jobIndex?: number;
-  bulletIndex?: number;
-  startChar: number;
-  endChar: number;
-}
-```
+## Implementation Plan
+
+### Phase 1: Fix Data Flow (Critical)
+1. Update `ResumeBuilderIndex.tsx` to handle Quick Score state
+2. Auto-create project with resume/JD pre-filled when `fromQuickScore: true`
+3. Navigate to appropriate step with analysis data
+
+### Phase 2: Upgrade Scoring Engine
+1. Import shared prompts into `instant-resume-score`
+2. Replace simplified prompt with `JOB_BLUEPRINT_USER_PROMPT` + `RESUME_ASSESSMENT_USER_PROMPT`
+3. Update response schema to match comprehensive output
+
+### Phase 3: Upgrade UI Components
+1. Refactor `KeywordAnalysisPanel` to show organized competencies
+2. Add "Hiring Manager Priorities" section
+3. Show gap analysis with severity and recommendations
+4. Add "Why This Matters" context for each item
+
+### Phase 4: Add Missing Context
+1. Extract JD context for each keyword
+2. Show suggested phrasing for missing keywords
+3. Add interview question previews
 
 ---
 
@@ -123,42 +164,36 @@ export interface SpanLocation {
 
 | File | Changes |
 |------|---------|
-| `src/pages/resume-builder/studio/SummaryPage.tsx` | Conditional dialog render |
-| `src/components/resume-builder/TwoStageGenerationDialog.tsx` | Clear stale evidence, useCallback, simplify word count |
-| `src/components/resume-builder/BlendEditor.tsx` | (Optional) Add initialContent prop |
-| `src/types/resume-builder.ts` | (Optional) Tighten SpanLocation type |
-
----
-
-## Testing Checklist
-
-After implementing fixes:
-1. Verify dialog cannot open with missing project data
-2. Switch between projects and verify evidence resets
-3. Complete full generation flow end-to-end
-4. Verify blend editor works correctly
-5. Check for console errors or TypeScript warnings
-6. Test with minimal/no evidence to verify warnings appear
+| `src/pages/resume-builder/ResumeBuilderIndex.tsx` | Handle Quick Score navigation state, auto-create project |
+| `supabase/functions/instant-resume-score/index.ts` | Use comprehensive prompts, structured output |
+| `src/components/quick-score/KeywordAnalysisPanel.tsx` | Render organized competencies with context |
+| `src/pages/QuickScore.tsx` | Handle new structured response format |
+| New: `src/components/quick-score/HiringPrioritiesPanel.tsx` | Display hiring manager priorities |
+| New: `src/components/quick-score/CompetencyGrid.tsx` | Organized competency display |
 
 ---
 
 ## Estimated Effort
 
-| Task | Complexity | Time |
-|------|------------|------|
-| Guard dialog props | Low | 5 min |
-| Clear stale evidence | Low | 5 min |
-| Add useCallback | Low | 5 min |
-| Simplify word count | Low | 2 min |
-| (Optional) BlendEditor prop | Low | 10 min |
-| (Optional) SpanLocation type | Low | 5 min |
-| Testing | Low | 15 min |
+| Phase | Complexity | Time |
+|-------|------------|------|
+| Phase 1: Data Flow Fix | Medium | 1-2 hours |
+| Phase 2: Scoring Engine | High | 2-3 hours |
+| Phase 3: UI Components | Medium | 2-3 hours |
+| Phase 4: Context Enhancement | Low | 1 hour |
+| Testing | Medium | 1-2 hours |
 
-**Total: ~30-45 minutes**
+**Total: 7-11 hours**
 
 ---
 
-## Verification Notes
+## Testing Checklist
 
-The implementation is now production-ready with minor polish items remaining. The core two-stage generation workflow, evidence handling, strength analysis, and UI are all working correctly. The fixes above are refinements rather than critical bugs.
+1. Run Quick Score with real resume and JD
+2. Verify keywords are grouped by category with context
+3. Click "Fix My Resume" and verify data carries over
+4. Verify project is created with resume/JD pre-populated
+5. Verify no "New Project" buttons shown when coming from Quick Score
+6. Verify hiring manager priorities are displayed
+7. Verify gap analysis shows severity and recommendations
 
