@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const evidenceContext = evidence_claims?.length > 0
+    const evidenceContext = (evidence_claims && evidence_claims.length > 0)
       ? `\n\nAVAILABLE EVIDENCE (you may ONLY use these facts):\n${evidence_claims.map((c, i) => 
           `${i + 1}. "${c.claim}" (from ${c.source})`
         ).join('\n')}`

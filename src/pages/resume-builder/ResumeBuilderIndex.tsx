@@ -1,5 +1,5 @@
-import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,44 @@ import { Plus, FileText, ArrowRight, Loader2, Clock, CheckCircle2, Wand2, AlertC
 import { format } from "date-fns";
 import { ResumeBuilderShell } from "@/components/resume-builder/ResumeBuilderShell";
 import type { RBProject } from "@/types/resume-builder";
+import { useToast } from "@/hooks/use-toast";
+
+// Quick Score navigation state interface
+interface QuickScoreState {
+  fromQuickScore: boolean;
+  resumeText: string;
+  jobDescription: string;
+  scoreResult?: {
+    overallScore: number;
+    detected: {
+      role: string;
+      industry: string;
+      level: string;
+    };
+  };
+  identifiedGaps?: Array<{
+    type: string;
+    issue: string;
+    recommendation: string;
+    impact: string;
+    priority: number;
+  }>;
+  keywordAnalysis?: {
+    matched: Array<{ keyword: string; priority: string }>;
+    missing: Array<{ keyword: string; priority: string }>;
+  };
+  jobTitle?: string;
+  industry?: string;
+  focusedAction?: {
+    type: 'add_keyword' | 'fix_gap';
+    keyword?: string;
+    issue?: string;
+    recommendation?: string;
+    suggestedPhrasing?: string;
+    jdContext?: string;
+    category?: string;
+  };
+}
 
 type StatusConfig = {
   label: string;
@@ -97,13 +135,107 @@ function getScoreColor(score: number | null): string {
 
 export default function ResumeBuilderIndex() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { toast } = useToast();
   const [projects, setProjects] = useState<RBProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [processingQuickScore, setProcessingQuickScore] = useState(false);
+  const quickScoreHandled = useRef(false);
+
+  // Handle Quick Score navigation state
+  const quickScoreState = location.state as QuickScoreState | null;
 
   useEffect(() => {
     loadProjects();
   }, []);
+
+  // Handle incoming Quick Score data - auto-create project with pre-filled data
+  useEffect(() => {
+    if (quickScoreState?.fromQuickScore && !quickScoreHandled.current) {
+      quickScoreHandled.current = true;
+      handleQuickScoreTransition(quickScoreState);
+    }
+  }, [quickScoreState]);
+
+  const handleQuickScoreTransition = async (state: QuickScoreState) => {
+    setProcessingQuickScore(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Create project with pre-filled data from Quick Score
+      const { data: project, error } = await supabase
+        .from("rb_projects")
+        .insert({
+          user_id: user.id,
+          status: "processing", // Skip upload/JD steps since we have the data
+          role_title: state.jobTitle || state.scoreResult?.detected?.role || null,
+          industry: state.industry || state.scoreResult?.detected?.industry || null,
+          seniority_level: state.scoreResult?.detected?.level || null,
+          jd_text: state.jobDescription,
+          current_score: state.scoreResult?.overallScore || null,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Store the resume text as a document (rb_documents uses raw_text and file_name)
+      if (state.resumeText) {
+        await supabase
+          .from("rb_documents")
+          .insert({
+            project_id: project.id,
+            file_name: "quick-score-import.txt",
+            raw_text: state.resumeText,
+          });
+      }
+
+      // Store keyword analysis if available (rb_keyword_decisions uses decision without priority)
+      if (state.keywordAnalysis) {
+        const keywordDecisions = [
+          ...state.keywordAnalysis.matched.map((k) => ({
+            project_id: project.id,
+            keyword: k.keyword,
+            decision: "add" as const, // "keep" is not valid, use "add" for matched keywords too
+          })),
+          ...state.keywordAnalysis.missing.map((k) => ({
+            project_id: project.id,
+            keyword: k.keyword,
+            decision: "add" as const,
+          })),
+        ];
+
+        if (keywordDecisions.length > 0) {
+          await supabase.from("rb_keyword_decisions").insert(keywordDecisions);
+        }
+      }
+
+      toast({
+        title: "Analysis imported!",
+        description: "Your Quick Score data has been loaded. Let's optimize your resume.",
+      });
+
+      // Navigate to the report step with the pre-analyzed data
+      navigate(`/resume-builder/${project.id}/report`, {
+        state: {
+          fromQuickScore: true,
+          identifiedGaps: state.identifiedGaps,
+          focusedAction: state.focusedAction,
+        },
+        replace: true,
+      });
+    } catch (err) {
+      console.error("Failed to create project from Quick Score:", err);
+      toast({
+        title: "Import failed",
+        description: "Could not import Quick Score data. Please try again.",
+        variant: "destructive",
+      });
+      setProcessingQuickScore(false);
+    }
+  };
 
   const loadProjects = async () => {
     try {
@@ -149,6 +281,21 @@ export default function ResumeBuilderIndex() {
   const getNextRoute = (project: RBProject) => {
     return `/resume-builder/${project.id}/${project.status}`;
   };
+
+  // Show loading state when processing Quick Score data
+  if (processingQuickScore) {
+    return (
+      <ResumeBuilderShell>
+        <div className="flex flex-col items-center justify-center py-20 space-y-6">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <div className="text-center">
+            <h2 className="text-xl font-medium mb-2">Importing Your Analysis...</h2>
+            <p className="text-sm text-muted-foreground">Setting up your project with Quick Score data</p>
+          </div>
+        </div>
+      </ResumeBuilderShell>
+    );
+  }
 
   return (
     <ResumeBuilderShell>
