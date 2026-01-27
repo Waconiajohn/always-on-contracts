@@ -1,24 +1,23 @@
-import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { ModuleGate } from "@/components/ModuleGate";
-import { ResumeMatchWorkspace } from "@/components/resume-match";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-
-const ResumeOptimizerContent = () => {
-  return (
-    <div className="container mx-auto py-6 px-4 h-[calc(100vh-4rem)]">
-      <ResumeMatchWorkspace className="h-full" />
-    </div>
-  );
-};
+import { useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
 
 export default function ResumeOptimizer() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Redirect to Quick Score, preserving any state
+    navigate('/quick-score', { 
+      replace: true,
+      state: location.state 
+    });
+  }, [navigate, location.state]);
+
   return (
-    <ProtectedRoute>
-      <ModuleGate module="resume_jobs_studio">
-        <ErrorBoundary>
-          <ResumeOptimizerContent />
-        </ErrorBoundary>
-      </ModuleGate>
-    </ProtectedRoute>
+    <div className="flex items-center justify-center h-screen">
+      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <span className="ml-2 text-muted-foreground">Redirecting to Quick Score...</span>
+    </div>
   );
 }
