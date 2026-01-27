@@ -5,8 +5,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { HeroScoreDisplay } from '@/components/quick-score/HeroScoreDisplay';
 import { ScoreBreakdownGrid } from '@/components/quick-score/ScoreBreakdownGrid';
-import { KeywordAnalysisPanel } from '@/components/quick-score/KeywordAnalysisPanel';
-import { KeywordWithContext } from '@/components/quick-score/KeywordContextPopover';
+import { OrganizedKeywordPanel, OrganizedKeyword } from '@/components/quick-score/OrganizedKeywordPanel';
+import { HiringPrioritiesPanel, HiringPriority } from '@/components/quick-score/HiringPrioritiesPanel';
 import { ActionCards, PriorityFix } from '@/components/quick-score/ActionCards';
 import { BuilderGateway } from '@/components/quick-score/BuilderGateway';
 import { ModernGapAnalysis } from '@/components/quick-score/ModernGapAnalysis';
@@ -69,6 +69,8 @@ type KeywordLike =
   | {
       keyword?: string;
       priority?: 'critical' | 'high' | 'medium';
+      category?: 'required' | 'preferred' | 'nice-to-have';
+      type?: 'technical' | 'domain' | 'leadership' | 'soft' | 'certification' | 'tool';
       prevalence?: string;
       frequency?: number;
       jdContext?: string;
@@ -76,15 +78,7 @@ type KeywordLike =
       suggestedPhrasing?: string;
     };
 
-function normalizeKeywords(input: unknown): Array<{
-  keyword: string;
-  priority: 'critical' | 'high' | 'medium';
-  prevalence?: string;
-  frequency?: number;
-  jdContext?: string;
-  resumeContext?: string;
-  suggestedPhrasing?: string;
-}> {
+function normalizeKeywords(input: unknown): OrganizedKeyword[] {
   if (!Array.isArray(input)) {
     console.warn('[QuickScore] Keywords not an array:', typeof input);
     return [];
@@ -115,11 +109,24 @@ function normalizeKeywords(input: unknown): Array<{
         const priority = (['critical', 'high', 'medium'].includes(item.priority as string) 
           ? item.priority 
           : 'high') as 'critical' | 'high' | 'medium';
+
+        // Normalize category
+        const validCategories = ['required', 'preferred', 'nice-to-have'];
+        const category = validCategories.includes(itemObj.category as string) 
+          ? itemObj.category as 'required' | 'preferred' | 'nice-to-have'
+          : undefined;
+
+        // Normalize type
+        const validTypes = ['technical', 'domain', 'leadership', 'soft', 'certification', 'tool'];
+        const type = validTypes.includes(itemObj.type as string)
+          ? itemObj.type as 'technical' | 'domain' | 'leadership' | 'soft' | 'certification' | 'tool'
+          : undefined;
           
         return {
           keyword,
           priority,
-          prevalence: item.prevalence,
+          category,
+          type,
           frequency: item.frequency,
           jdContext: item.jdContext || (itemObj.context as string | undefined),
           resumeContext: item.resumeContext,
@@ -131,6 +138,25 @@ function normalizeKeywords(input: unknown): Array<{
       return null;
     })
     .filter((k): k is NonNullable<typeof k> => k !== null && k.keyword.length > 0);
+}
+
+// Normalize hiring priorities from API response
+function normalizeHiringPriorities(input: unknown): HiringPriority[] {
+  if (!Array.isArray(input)) return [];
+  
+  return input
+    .filter((p): p is Record<string, unknown> => 
+      p && typeof p === 'object' && 'priority' in p && 'whyItMatters' in p
+    )
+    .map(p => ({
+      priority: String(p.priority || ''),
+      whyItMatters: String(p.whyItMatters || ''),
+      evidenceNeeded: String(p.evidenceNeeded || ''),
+      candidateStatus: ['strong', 'partial', 'missing'].includes(p.candidateStatus as string) 
+        ? p.candidateStatus as 'strong' | 'partial' | 'missing'
+        : 'missing',
+      candidateEvidence: typeof p.candidateEvidence === 'string' ? p.candidateEvidence : null
+    }));
 }
 
 export default function QuickScore() {
@@ -263,7 +289,7 @@ export default function QuickScore() {
     setScoreResult(null);
   };
 
-  const handleFixResume = (focusedKeyword?: KeywordWithContext) => {
+  const handleFixResume = (focusedKeyword?: OrganizedKeyword) => {
     const matchedKeywords = normalizeKeywords(scoreResult?.breakdown?.jdMatch?.matchedKeywords);
     const missingKeywords = normalizeKeywords(scoreResult?.breakdown?.jdMatch?.missingKeywords);
 
@@ -297,7 +323,7 @@ export default function QuickScore() {
     });
   };
 
-  const handleAddKeywordToResume = (keyword: KeywordWithContext) => {
+  const handleAddKeywordToResume = (keyword: OrganizedKeyword) => {
     handleFixResume(keyword);
   };
 
@@ -539,12 +565,19 @@ export default function QuickScore() {
               {/* Score Breakdown Grid */}
               <ScoreBreakdownGrid scores={scoreResult.scores} />
 
-              {/* Keyword Analysis - ALL keywords shown */}
-              <KeywordAnalysisPanel
+              {/* Organized Keyword Analysis - grouped by category with context */}
+              <OrganizedKeywordPanel
                 matchedKeywords={matchedKeywordsForUi}
                 missingKeywords={missingKeywordsForUi}
                 onAddToResume={handleAddKeywordToResume}
               />
+
+              {/* Hiring Manager Priorities - what they really care about */}
+              {scoreResult.breakdown?.hiringPriorities && (
+                <HiringPrioritiesPanel 
+                  priorities={normalizeHiringPriorities(scoreResult.breakdown.hiringPriorities)} 
+                />
+              )}
 
               {/* Action Cards - ALL improvements shown */}
               {(scoreResult.priorityFixes?.length || 0) > 0 && (

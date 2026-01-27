@@ -5,6 +5,7 @@ import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
 import { getCorsHeaders, handleCorsPreFlight } from '../_shared/cors.ts';
 import { checkRateLimit } from '../_shared/rate-limiter.ts';
+import { RESUME_ARCHITECT_SYSTEM_PROMPT } from '../_shared/resume-prompts.ts';
 
 interface ScoreTier {
   tier: 'FREEZING' | 'COLD' | 'LUKEWARM' | 'WARM' | 'HOT' | 'ON_FIRE';
@@ -24,9 +25,12 @@ function getScoreTier(score: number): ScoreTier {
 
 // Normalize keyword arrays to ensure consistent structure
 // AI may return keywords with various property names (name, term, skill, text, value)
+// Now includes category, type, and context fields for organized display
 function normalizeKeywordArray(arr: unknown): Array<{
   keyword: string;
   priority: 'critical' | 'high' | 'medium';
+  category?: 'required' | 'preferred' | 'nice-to-have';
+  type?: 'technical' | 'domain' | 'leadership' | 'soft' | 'certification' | 'tool';
   frequency?: number;
   jdContext?: string;
   resumeContext?: string;
@@ -61,9 +65,23 @@ function normalizeKeywordArray(arr: unknown): Array<{
           ? item.priority as 'critical' | 'high' | 'medium'
           : 'high';
 
+        // Normalize category (required/preferred/nice-to-have)
+        const validCategories = ['required', 'preferred', 'nice-to-have'];
+        const category = validCategories.includes(item.category) 
+          ? item.category as 'required' | 'preferred' | 'nice-to-have'
+          : undefined;
+
+        // Normalize type (technical/domain/leadership/soft/certification/tool)
+        const validTypes = ['technical', 'domain', 'leadership', 'soft', 'certification', 'tool'];
+        const type = validTypes.includes(item.type)
+          ? item.type as 'technical' | 'domain' | 'leadership' | 'soft' | 'certification' | 'tool'
+          : undefined;
+
         return {
           keyword,
           priority,
+          category,
+          type,
           frequency: typeof item.frequency === 'number' ? item.frequency : undefined,
           jdContext: typeof item.jdContext === 'string' ? item.jdContext : 
                      typeof item.context === 'string' ? item.context : undefined,
@@ -223,13 +241,13 @@ Return JSON: { "role": "...", "industry": "...", "level": "..." }`;
       }
     }
 
-    // STEP 2: Use tool calling for reliable structured output
-    // SIMPLIFIED: No context extraction to reduce token usage
+    // STEP 2: Use tool calling with COMPREHENSIVE analysis schema
+    // This schema matches the comprehensive prompts for organized output
     const scoringTool = {
       type: "function" as const,
       function: {
         name: "return_score_analysis",
-        description: "Return the complete resume score analysis with all required fields",
+        description: "Return the complete resume score analysis with organized competencies and hiring priorities",
         parameters: {
           type: "object",
           properties: {
@@ -249,34 +267,63 @@ Return JSON: { "role": "...", "industry": "...", "level": "..." }`;
                 jdMatch: {
                   type: "object",
                   properties: {
+                    // ORGANIZED keyword structure - by category
                     matchedKeywords: {
                       type: "array",
+                      description: "Keywords found in both JD and resume, with context",
                       items: {
                         type: "object",
                         properties: {
-                          keyword: { type: "string", description: "The keyword or skill (1-4 words)" },
-                          priority: { type: "string", enum: ["critical", "high", "medium"] }
+                          keyword: { type: "string", description: "The exact keyword/skill (1-4 words)" },
+                          priority: { type: "string", enum: ["critical", "high", "medium"] },
+                          category: { type: "string", enum: ["required", "preferred", "nice-to-have"], description: "How the JD categorizes this requirement" },
+                          type: { type: "string", enum: ["technical", "domain", "leadership", "soft", "certification", "tool"] },
+                          jdContext: { type: "string", description: "1-2 sentence quote from JD showing how this keyword is used" },
+                          resumeContext: { type: "string", description: "1-2 sentence quote from resume showing how candidate demonstrates this" }
                         },
-                        required: ["keyword", "priority"]
+                        required: ["keyword", "priority", "category", "type"]
                       },
-                      maxItems: 20
+                      maxItems: 25
                     },
                     missingKeywords: {
                       type: "array",
+                      description: "Keywords in JD but NOT in resume, with suggested phrasing",
                       items: {
                         type: "object",
                         properties: {
-                          keyword: { type: "string", description: "The keyword or skill (1-4 words)" },
-                          priority: { type: "string", enum: ["critical", "high", "medium"] }
+                          keyword: { type: "string", description: "The exact keyword/skill (1-4 words)" },
+                          priority: { type: "string", enum: ["critical", "high", "medium"] },
+                          category: { type: "string", enum: ["required", "preferred", "nice-to-have"] },
+                          type: { type: "string", enum: ["technical", "domain", "leadership", "soft", "certification", "tool"] },
+                          jdContext: { type: "string", description: "1-2 sentence quote from JD showing why this is important" },
+                          suggestedPhrasing: { type: "string", description: "How the candidate could naturally add this to their resume" },
+                          frequency: { type: "number", description: "How many times this appears in the JD" }
                         },
-                        required: ["keyword", "priority"]
+                        required: ["keyword", "priority", "category", "type", "jdContext", "suggestedPhrasing"]
                       },
-                      maxItems: 15
+                      maxItems: 20
                     },
                     skillsMatch: { type: "number" },
                     experienceMatch: { type: "number" }
                   },
                   required: ["matchedKeywords", "missingKeywords", "skillsMatch", "experienceMatch"]
+                },
+                // NEW: Hiring Manager Priorities section
+                hiringPriorities: {
+                  type: "array",
+                  description: "Top 5-8 things the hiring manager REALLY cares about based on JD analysis",
+                  items: {
+                    type: "object",
+                    properties: {
+                      priority: { type: "string", description: "What the hiring manager is looking for" },
+                      whyItMatters: { type: "string", description: "Why this is important for the role" },
+                      evidenceNeeded: { type: "string", description: "What evidence would convince a hiring manager" },
+                      candidateStatus: { type: "string", enum: ["strong", "partial", "missing"], description: "How well the candidate demonstrates this" },
+                      candidateEvidence: { type: "string", description: "Quote from resume showing this, or null if missing" }
+                    },
+                    required: ["priority", "whyItMatters", "evidenceNeeded", "candidateStatus"]
+                  },
+                  maxItems: 8
                 },
                 industryBenchmark: {
                   type: "object",
@@ -307,14 +354,49 @@ Return JSON: { "role": "...", "industry": "...", "level": "..." }`;
                   required: ["aiProbability", "concerns", "humanElements"]
                 }
               },
-              required: ["jdMatch", "industryBenchmark", "atsCompliance", "humanVoice"]
+              required: ["jdMatch", "hiringPriorities", "industryBenchmark", "atsCompliance", "humanVoice"]
             },
             gapAnalysis: {
               type: "object",
               properties: {
-                fullMatches: { type: "array", items: { type: "object", properties: { requirement: { type: "string" }, evidence: { type: "string" } } }, maxItems: 10 },
-                partialMatches: { type: "array", items: { type: "object", properties: { requirement: { type: "string" }, currentStatus: { type: "string" }, recommendation: { type: "string" } } }, maxItems: 8 },
-                missingRequirements: { type: "array", items: { type: "object", properties: { requirement: { type: "string" }, workaround: { type: "string" } } }, maxItems: 8 },
+                fullMatches: { 
+                  type: "array", 
+                  items: { 
+                    type: "object", 
+                    properties: { 
+                      requirement: { type: "string" }, 
+                      evidence: { type: "string" },
+                      strength: { type: "string", enum: ["strong", "adequate"] }
+                    } 
+                  }, 
+                  maxItems: 10 
+                },
+                partialMatches: { 
+                  type: "array", 
+                  items: { 
+                    type: "object", 
+                    properties: { 
+                      requirement: { type: "string" }, 
+                      currentStatus: { type: "string" }, 
+                      recommendation: { type: "string" },
+                      severity: { type: "string", enum: ["critical", "important", "nice-to-have"] }
+                    } 
+                  }, 
+                  maxItems: 8 
+                },
+                missingRequirements: { 
+                  type: "array", 
+                  items: { 
+                    type: "object", 
+                    properties: { 
+                      requirement: { type: "string" }, 
+                      workaround: { type: "string" },
+                      severity: { type: "string", enum: ["critical", "important", "nice-to-have"] },
+                      interviewRisk: { type: "string", description: "What interview question might expose this gap" }
+                    } 
+                  }, 
+                  maxItems: 8 
+                },
                 overqualifications: { type: "array", items: { type: "object", properties: { experience: { type: "string" }, recommendation: { type: "string" } } }, maxItems: 3 },
                 irrelevantContent: { type: "array", items: { type: "object", properties: { content: { type: "string" }, recommendation: { type: "string" } } }, maxItems: 3 },
                 gapSummary: { type: "array", items: { type: "string" }, maxItems: 5 }
@@ -328,27 +410,53 @@ Return JSON: { "role": "...", "industry": "...", "level": "..." }`;
       }
     };
 
-    // SIMPLIFIED PROMPT: No context extraction - just keywords
-    const systemPrompt = `You are an expert resume analyst. Analyze the resume against the job description.
+    // COMPREHENSIVE SYSTEM PROMPT - Uses the shared must-interview framework
+    const systemPrompt = `${RESUME_ARCHITECT_SYSTEM_PROMPT}
 
-EXTRACTION RULES:
-1. Extract the TOP 20 most important matched keywords (critical/high priority first)
-2. Extract the TOP 15 most important missing keywords (critical/high priority first)
-3. Keywords should be single terms or short phrases (1-4 words max)
-4. Focus on technical skills, certifications, key competencies, and industry-specific terms
-5. DO NOT include context phrases - just the keyword itself
+## ADDITIONAL SCORING RULES:
+
+1. **ORGANIZED KEYWORD EXTRACTION**
+   - Group keywords by category: required, preferred, nice-to-have
+   - Tag each keyword by type: technical, domain, leadership, soft, certification, tool
+   - For MATCHED keywords: include exact quotes from BOTH the JD and resume showing context
+   - For MISSING keywords: include JD context AND a suggested phrasing for the candidate
+
+2. **HIRING MANAGER PRIORITIES**
+   - Identify 5-8 things that would make a hiring manager say "we MUST interview this person"
+   - For each priority, explain WHY it matters and what EVIDENCE would be convincing
+   - Assess the candidate's current status: strong, partial, or missing
+
+3. **GAP SEVERITY LEVELS**
+   - critical: Would likely result in rejection
+   - important: Would hurt chances but not disqualify
+   - nice-to-have: Would strengthen application
+
+4. **INTERVIEW RISK AWARENESS**
+   - For each missing requirement, note what interview question might expose this gap
+   - This helps the candidate prepare or address the gap proactively
 
 SCORING WEIGHTS: jdMatch=60%, industryBenchmark=20%, atsCompliance=12%, humanVoice=8%`;
 
     const userPrompt = `ROLE: ${detectedRole} | INDUSTRY: ${detectedIndustry} | LEVEL: ${detectedLevel}
 
-JOB DESCRIPTION:
-${jobDescription.substring(0, 4000)}
+## JOB DESCRIPTION:
+${jobDescription.substring(0, 6000)}
 
-RESUME:
-${resumeText.substring(0, 5000)}
+## RESUME:
+${resumeText.substring(0, 6000)}
 
-Analyze and return structured analysis via the return_score_analysis function.`;
+Analyze this resume against the job description and return a COMPREHENSIVE analysis.
+
+Your analysis must:
+1. Score the resume on all 4 dimensions (jdMatch, industryBenchmark, atsCompliance, humanVoice)
+2. Extract ALL relevant keywords, organized by category (required/preferred/nice-to-have) and type
+3. For MATCHED keywords: provide context quotes from BOTH the JD and resume
+4. For MISSING keywords: provide JD context AND a suggested phrasing for how to add it
+5. Identify the TOP 5-8 hiring manager priorities and assess the candidate's status on each
+6. Provide gap analysis with severity levels (critical/important/nice-to-have)
+7. Include interview risk notes for missing requirements
+
+Return via the return_score_analysis function.`;
 
     let scoreData: any;
     let metrics: any;
@@ -482,6 +590,7 @@ RESUME: ${resumeText.substring(0, 3000)}` }
     });
 
     // Ensure breakdown has all required fields with normalized keywords
+    // Now includes hiringPriorities for organized display
     const breakdown = {
       jdMatch: {
         matchedKeywords: normalizedMatchedKeywords,
@@ -489,6 +598,20 @@ RESUME: ${resumeText.substring(0, 3000)}` }
         skillsMatch: scoreData.breakdown?.jdMatch?.skillsMatch || 0,
         experienceMatch: scoreData.breakdown?.jdMatch?.experienceMatch || 0
       },
+      // NEW: Hiring manager priorities with candidate status
+      hiringPriorities: Array.isArray(scoreData.breakdown?.hiringPriorities)
+        ? scoreData.breakdown.hiringPriorities.filter((p: any) => 
+            p && typeof p === 'object' && p.priority && p.whyItMatters
+          ).map((p: any) => ({
+            priority: p.priority || '',
+            whyItMatters: p.whyItMatters || '',
+            evidenceNeeded: p.evidenceNeeded || '',
+            candidateStatus: ['strong', 'partial', 'missing'].includes(p.candidateStatus) 
+              ? p.candidateStatus 
+              : 'missing',
+            candidateEvidence: p.candidateEvidence || null
+          }))
+        : [],
       industryBenchmark: {
         roleStandards: scoreData.breakdown?.industryBenchmark?.roleStandards || [],
         meetingStandards: scoreData.breakdown?.industryBenchmark?.meetingStandards || [],
