@@ -10,6 +10,43 @@ import { ResumeBuilderShell } from "@/components/resume-builder/ResumeBuilderShe
 import type { RBProject } from "@/types/resume-builder";
 import { useToast } from "@/hooks/use-toast";
 
+// Canonical workflow statuses (must match DB constraint rb_projects_status_check)
+export const RB_PROJECT_STATUSES = [
+  'upload', 'jd', 'target', 'processing', 'report', 'fix', 'studio', 'review', 'export', 'complete'
+] as const;
+export type RBProjectStatus = typeof RB_PROJECT_STATUSES[number];
+
+// Map Quick Score detected level to DB-allowed seniority values
+function mapSeniorityLevel(detectedLevel: string | undefined | null): string | null {
+  if (!detectedLevel) return null;
+  
+  const normalized = detectedLevel.toLowerCase().trim();
+  const mapping: Record<string, string> = {
+    'entry': 'IC',
+    'junior': 'IC',
+    'mid': 'IC',
+    'mid-level': 'IC',
+    'senior': 'Senior IC',
+    'lead': 'Senior IC',
+    'staff': 'Senior IC',
+    'principal': 'Senior IC',
+    'manager': 'Manager',
+    'senior manager': 'Senior Manager',
+    'director': 'Director',
+    'senior director': 'Senior Director',
+    'vp': 'VP',
+    'vice president': 'VP',
+    'svp': 'SVP',
+    'senior vice president': 'SVP',
+    'c-level': 'C-Level',
+    'c_level': 'C-Level',
+    'executive': 'Director',
+    'cxo': 'C-Level',
+  };
+  
+  return mapping[normalized] || null;
+}
+
 // Quick Score navigation state interface
 interface QuickScoreState {
   fromQuickScore: boolean;
@@ -165,14 +202,17 @@ export default function ResumeBuilderIndex() {
       if (!user) throw new Error("Not authenticated");
 
       // Create project with pre-filled data from Quick Score
+      // Map seniority level to DB-allowed values
+      const mappedSeniority = mapSeniorityLevel(state.scoreResult?.detected?.level);
+      
       const { data: project, error } = await supabase
         .from("rb_projects")
         .insert({
           user_id: user.id,
-          status: "processing", // Skip upload/JD steps since we have the data
+          status: "processing" as const, // Skip upload/JD steps since we have the data
           role_title: state.jobTitle || state.scoreResult?.detected?.role || null,
           industry: state.industry || state.scoreResult?.detected?.industry || null,
-          seniority_level: state.scoreResult?.detected?.level || null,
+          seniority_level: mappedSeniority,
           jd_text: state.jobDescription,
           current_score: state.scoreResult?.overallScore || null,
         })
@@ -226,11 +266,21 @@ export default function ResumeBuilderIndex() {
         },
         replace: true,
       });
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Failed to create project from Quick Score:", err);
+      // Extract meaningful error message for user
+      let errorDetail = "Please try again.";
+      if (err && typeof err === 'object' && 'message' in err) {
+        const msg = (err as { message: string }).message;
+        if (msg.includes('seniority_level')) {
+          errorDetail = "Invalid seniority level detected. Starting fresh project instead.";
+        } else if (msg.includes('status')) {
+          errorDetail = "Invalid project status. Please contact support.";
+        }
+      }
       toast({
         title: "Import failed",
-        description: "Could not import Quick Score data. Please try again.",
+        description: `Could not import Quick Score data. ${errorDetail}`,
         variant: "destructive",
       });
       setProcessingQuickScore(false);
@@ -300,7 +350,7 @@ export default function ResumeBuilderIndex() {
   return (
     <ResumeBuilderShell>
       <div className="space-y-8">
-        {/* Header */}
+        {/* Header - only show button when projects exist */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Resume Builder</h1>
@@ -308,14 +358,16 @@ export default function ResumeBuilderIndex() {
               Create job-targeted resumes with AI-powered optimization
             </p>
           </div>
-          <Button onClick={createNewProject} disabled={creating}>
-            {creating ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Plus className="h-4 w-4 mr-2" />
-            )}
-            New Project
-          </Button>
+          {projects.length > 0 && (
+            <Button onClick={createNewProject} disabled={creating}>
+              {creating ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4 mr-2" />
+              )}
+              New Resume Project
+            </Button>
+          )}
         </div>
 
         {/* Projects Grid */}
@@ -329,15 +381,15 @@ export default function ResumeBuilderIndex() {
               <FileText className="h-12 w-12 text-muted-foreground/50 mb-4" />
               <h3 className="text-lg font-medium mb-2">No projects yet</h3>
               <p className="text-sm text-muted-foreground text-center max-w-sm mb-4">
-                Start by creating a new project to optimize your resume for a specific job.
+                Optimize your resume for a specific job posting with AI-powered suggestions.
               </p>
-              <Button onClick={createNewProject} disabled={creating}>
+              <Button onClick={createNewProject} disabled={creating} size="lg">
                 {creating ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
                   <Plus className="h-4 w-4 mr-2" />
                 )}
-                Create First Project
+                Start a Resume Project
               </Button>
             </CardContent>
           </Card>
