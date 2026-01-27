@@ -1,183 +1,161 @@
 
-# Comprehensive Audit: Quick Score & Resume Optimizer Alignment
+## What’s actually going on (why it “crashes” + why my prior audit was wrong)
 
-## Audit Against the 20 ChatGPT Prompts
+You’re right to question it. The current problems are not “small wiring issues”—they’re **schema/contract mismatches** between the Resume Builder UI and the backend database rules. That mismatch makes inserts/updates fail, which then cascades into the “Import failed” toast and leaves you on a confusing “Projects” screen with duplicate CTAs.
 
-After reviewing the prompts in `resume-prompts.ts` against the current implementation, here's the status:
+### Root cause #1 — `rb_projects.status` DB constraint does NOT match the app’s workflow states
+**Database currently allows only:**
+- `draft`, `processing`, `ready`, `completed`, `archived`  
+(confirmed by DB check constraint `rb_projects_status_check`)
 
-### Prompts Currently Implemented
+**But the Resume Builder UI writes and expects:**
+- `upload`, `jd`, `target`, `processing`, `report`, `fix`, `studio`, `review`, `export`, `complete`  
+(confirmed in `UploadPage.tsx`, `JDPage.tsx`, `ProcessingPage.tsx`, and `ResumeBuilderIndex.tsx`)
 
-| Prompt | Status | Notes |
-|--------|--------|-------|
-| `RESUME_ARCHITECT_SYSTEM_PROMPT` | ✅ Imported & Used | Line 8 and 414 of `instant-resume-score/index.ts` |
-| Competency Extraction (required/preferred/nice-to-have) | ✅ Schema Correct | Lines 276-305 define the organized keyword schema |
-| Hiring Manager Priorities | ✅ Schema Correct | Lines 311-327 define candidateStatus, whyItMatters, evidenceNeeded |
-| Gap Severity Levels | ✅ Implemented | Lines 428-433 define critical/important/nice-to-have |
-| Interview Risk Awareness | ✅ Schema Added | Line 395 includes interviewRisk field |
+So:
+- Clicking **New Project** (which inserts `{ status: "upload" }`) will violate the DB constraint.
+- Progressing through the builder (e.g. setting status `"jd"` or `"report"`) will also violate the DB constraint.
 
-### What's Actually Working
+This alone can cause:
+- “Project creation failed”
+- empty project list
+- duplicated “New Project / Create First Project” state looking broken
+- unexpected behavior after Quick Score import
 
-The **edge function** (`instant-resume-score`) is correctly configured with:
-- Comprehensive system prompt
-- Organized keyword schema with category/type/context
-- Hiring priorities with candidateStatus
-- Gap analysis with severity
+### Root cause #2 — `rb_projects.seniority_level` constraint rejects Quick Score’s detected level
+**Database allows only these values:**
+- `IC`, `Senior IC`, `Manager`, `Senior Manager`, `Director`, `Senior Director`, `VP`, `SVP`, `C-Level`
 
-### The Real Problems (Why It Looks Broken)
+But Quick Score passes `detected.level` as something like:
+- `entry | mid | senior | executive | c-level` (or similar)
 
-1. **Quick Score UI is correct** - It uses `OrganizedKeywordPanel` which properly groups by category and shows context popovers
-
-2. **Resume Optimizer is the problem** - It uses a completely different, simpler `KeywordBreakdown` component that:
-   - Ignores `category` field (required/preferred/nice-to-have)
-   - Ignores `jdContext` and `suggestedPhrasing` fields
-   - Ignores `hiringPriorities` entirely
-   - Has NO navigation to Resume Builder
-
-3. **Data flow breaks at navigation** - Even when Quick Score passes data correctly, Resume Builder doesn't always receive it properly
-
----
-
-## Consolidation Recommendation
-
-Since Quick Score and Resume Optimizer serve the **exact same purpose** (analyze resume vs JD), they should be consolidated:
-
-**Decision: Redirect Resume Optimizer to Quick Score**
-
-| Feature | Quick Score | Resume Optimizer |
-|---------|------------|------------------|
-| Upload resume | ✅ | ✅ |
-| Paste JD | ✅ | ✅ |
-| Show score | ✅ | ✅ |
-| Organized keywords | ✅ | ❌ (flat list) |
-| Hiring priorities | ✅ | ❌ (missing) |
-| Context popovers | ✅ | ❌ (basic tooltip) |
-| Resume Builder nav | ✅ | ❌ (dead end) |
-
-**Conclusion: Resume Optimizer is redundant and incomplete. Consolidate into Quick Score.**
-
----
-
-## Implementation Plan
-
-### Phase 1: Redirect Resume Optimizer to Quick Score
-
-**File: `src/pages/ResumeOptimizer.tsx`**
-
-Replace the entire page with a redirect to Quick Score:
-
-```typescript
-import { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
-
-export default function ResumeOptimizer() {
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  useEffect(() => {
-    // Redirect to Quick Score, preserving any state
-    navigate('/quick-score', { 
-      replace: true,
-      state: location.state 
-    });
-  }, [navigate, location.state]);
-
-  return (
-    <div className="flex items-center justify-center h-screen">
-      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      <span className="ml-2 text-muted-foreground">Redirecting to Quick Score...</span>
-    </div>
-  );
-}
+And the import code currently does:
+```ts
+seniority_level: state.scoreResult?.detected?.level || null
 ```
+That is exactly the error you’re seeing:
+> violates check constraint "rb_projects_seniority_level_check"
 
-### Phase 2: Verify Quick Score Already Uses Comprehensive Prompts
+### Root cause #3 — Duplicate buttons are real (and illogical)
+`ResumeBuilderIndex.tsx` renders:
+- Header button: **New Project**
+- Empty-state button: **Create First Project**
 
-The audit confirms `instant-resume-score` already:
-- Uses `RESUME_ARCHITECT_SYSTEM_PROMPT` (line 414)
-- Has comprehensive tool schema with organized keywords
-- Returns `hiringPriorities` with candidateStatus
+They do the same thing (call `createNewProject()`), so your complaint is accurate even if everything else worked.
 
-No changes needed to the edge function.
-
-### Phase 3: Update Navigation Labels
-
-**File: `src/components/layout/Sidebar.tsx` or navigation config**
-
-Update any navigation items that say "Resume Optimizer" or "ResumeMatch" to point to Quick Score or use consistent naming.
-
-### Phase 4: Verify Data Flow to Resume Builder
-
-The Quick Score already has proper navigation in place (lines 292-324 of `QuickScore.tsx`):
-
-```typescript
-navigate('/resume-builder', {
-  state: {
-    fromQuickScore: true,
-    resumeText,
-    jobDescription,
-    scoreResult,
-    identifiedGaps: scoreResult?.priorityFixes?.map(...),
-    keywordAnalysis: {
-      matched: matchedKeywords,
-      missing: missingKeywords
-    },
-    jobTitle: scoreResult?.detected?.role,
-    industry: scoreResult?.detected?.industry,
-    focusedAction: focusedKeyword ? {...} : undefined
-  }
-});
-```
-
-And `ResumeBuilderIndex.tsx` was already updated to handle this state.
+### Where my prior “audit” was wrong
+I previously claimed “everything is aligned.” It’s not. The biggest gap is that **the database schema constraints were not aligned with the product’s step-by-step builder states**, meaning the workflow cannot be reliable regardless of how good prompts/UI are.
 
 ---
 
-## Files to Modify
+## What we will do now (start-from-scratch reassessment, but with concrete fixes)
 
-| File | Action |
-|------|--------|
-| `src/pages/ResumeOptimizer.tsx` | Replace with redirect to Quick Score |
-| `src/App.tsx` or router config | Verify `/resume-optimizer` route still exists for backward compatibility |
-| Navigation/Sidebar | Update labels if needed |
+We’ll fix the system by enforcing a single “contract” across:
+1) database constraints  
+2) builder routing/status machine  
+3) Quick Score → Builder import mapping  
+4) UI wording and duplicate CTAs  
 
----
-
-## What This Accomplishes
-
-1. **Eliminates duplicate feature** - No more confusion between two similar tools
-2. **Users get organized keywords** - Quick Score's `OrganizedKeywordPanel` groups by category with context popovers
-3. **Hiring priorities visible** - `HiringPrioritiesPanel` shows what hiring managers care about
-4. **Seamless Resume Builder flow** - "Fix My Resume" button creates project with all data
-5. **No prompt changes needed** - Edge function already uses comprehensive prompts
+This is the minimum required to restore trust and stability.
 
 ---
 
-## Verification Checklist
+## Implementation Plan (what I will change once you switch me back to default mode)
 
-After implementation:
-1. Navigate to `/resume-optimizer` → Should redirect to `/quick-score`
-2. Run Quick Score with real resume/JD
-3. Verify keywords are grouped by Required/Preferred/Nice-to-have
-4. Verify clicking a keyword shows JD context and suggested phrasing
-5. Verify Hiring Priorities panel appears with candidateStatus
-6. Click "Fix My Resume" and verify Resume Builder receives all data
-7. Verify project is created with resume/JD pre-populated
+### Phase A — Fix the backend contract (so inserts/updates stop failing)
+**A1. Update `rb_projects_status_check`**
+- Change the DB check constraint to allow the actual workflow statuses used by the builder:
+  - `upload`, `jd`, `target`, `processing`, `report`, `fix`, `studio`, `review`, `export`, `complete`
+- Optionally keep: `draft`, `ready`, `completed`, `archived` if you want backwards compatibility, but we should pick one canonical set to avoid drift.
+
+**Why this matters:** it removes a fundamental blocker that currently makes the builder impossible to use end-to-end.
+
+**A2. Add/confirm a canonical “status list”**
+- We’ll define a single source of truth in code (a const array) matching the DB constraint values to prevent drift.
+
+### Phase B — Fix Quick Score → Builder import so it never violates constraints
+**B1. Map detected seniority to allowed DB values**
+Add a deterministic mapper like:
+- `entry` → `IC`
+- `mid` → `IC`
+- `senior` → `Senior IC`
+- `manager` → `Manager`
+- `executive` → `Director` (or `VP` depending on your preference)
+- `c-level` / `c_level` → `C-Level`
+
+If the value can’t be mapped safely:
+- set `seniority_level = null` and let the Target step collect/confirm it later.
+
+**B2. Improve import error visibility**
+When import fails, show the *actual* reason in the toast (sanitized), e.g.:
+- “Import failed: invalid seniority level (mid).”
+
+That way you’re not stuck with vague “Could not import” messages.
+
+### Phase C — Fix the duplicate/illogical buttons (and make the screen coherent)
+**C1. Remove the “two buttons” problem**
+On the Projects screen:
+- If there are no projects: show *one* primary CTA.
+- If there are projects: show *one* “New project” CTA in the header.
+
+**C2. Rename to Apple-simple, unambiguous labels**
+Recommended:
+- Header: “New resume project”
+- Empty state: “Start a resume project”
+
+Or even simpler:
+- Just one button everywhere: “Start” (with subtitle explaining what it does)
+
+### Phase D — Re-audit against your “20 prompts” + all AI prompts (so we don’t repeat this)
+This is not about rewriting prompts; it’s about verifying every prompt is:
+- **used somewhere** (or intentionally not used)
+- **wired to the correct UI surface**
+- **returning data that is rendered, not ignored**
+- **not blocked by DB contract issues** (like the ones above)
+
+Deliverable: a table that for each of your prompts answers:
+- Where it is invoked (function/file)
+- What data it produces (schema fields)
+- Where that data is shown in UI (component)
+- What happens if the field is missing/malformed (fallback behavior)
+
+This will explicitly identify any remaining “giant gaps” vs “just wiring.”
 
 ---
 
-## Estimated Effort
+## Specific files and areas we’ll touch (once in default mode)
+1) **Database migration**
+- Update `rb_projects_status_check`
+- (Optional) add helper comments / normalize
 
-| Task | Time |
-|------|------|
-| Redirect ResumeOptimizer | 10 min |
-| Update navigation labels | 10 min |
-| Testing | 30 min |
+2) **Resume Builder**
+- `src/pages/resume-builder/ResumeBuilderIndex.tsx`
+  - seniority mapping in `handleQuickScoreTransition`
+  - remove duplicate CTAs
+  - rename labels
 
-**Total: ~50 minutes**
+3) **Quick Score**
+- `src/pages/QuickScore.tsx`
+  - (optional) normalize `detected.level` earlier, or pass raw + mapped value
 
 ---
 
-## Summary
+## Verification checklist (what we will test)
+1) Run Quick Score, click “Fix My Resume”:
+- project insert succeeds
+- no “Import failed”
+- lands on `/resume-builder/:id/report`
 
-The **edge function is already correct** - it uses the comprehensive prompts and returns organized data. The problem was that **Resume Optimizer uses outdated UI components** that ignore the rich data structure. Rather than upgrade Resume Optimizer to match Quick Score, the simpler solution is to **consolidate by redirecting** Resume Optimizer to Quick Score, which already has the correct implementation.
+2) From `/resume-builder` Projects page:
+- only one CTA is shown (no duplicates)
+- creating a new project works (no DB constraint errors)
+- moving upload → jd → target → processing → report works
+
+3) Confirm no console errors:
+- specifically no constraint errors `23514` for `status` or `seniority_level`
+
+---
+
+## Why this will restore trust
+Right now the system fails for deterministic reasons (DB constraints). Fixing prompts/UI without fixing the DB contract is like polishing a dashboard while the engine won’t start. This plan fixes the engine first, then validates the prompt + UI work against real end-to-end behavior.
+
