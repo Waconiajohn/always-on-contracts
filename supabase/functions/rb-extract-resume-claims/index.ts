@@ -3,19 +3,18 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { ClaimsExtractionSchema, parseAndValidate } from '../_shared/rb-schemas.ts';
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { getCorsHeaders, handleCorsPreFlight } from '../_shared/cors.ts';
 
 interface ExtractClaimsRequest {
   project_id: string;
 }
 
 serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPreFlight(origin);
   }
 
   try {

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, FileText, ArrowRight, Loader2, Clock, CheckCircle2, Wand2, AlertCircle, Upload } from "lucide-react";
+import { Plus, FileText, ArrowRight, Loader2, Clock, CheckCircle2, Wand2, AlertCircle, Upload, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { ResumeBuilderShell } from "@/components/resume-builder/ResumeBuilderShell";
 import type { RBProject } from "@/types/resume-builder";
@@ -170,6 +170,8 @@ function getScoreColor(score: number | null): string {
   return "text-destructive";
 }
 
+const PROJECTS_PER_PAGE = 12;
+
 export default function ResumeBuilderIndex() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -179,6 +181,10 @@ export default function ResumeBuilderIndex() {
   const [creating, setCreating] = useState(false);
   const [processingQuickScore, setProcessingQuickScore] = useState(false);
   const quickScoreHandled = useRef(false);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Handle Quick Score navigation state
   const quickScoreState = location.state as QuickScoreState | null;
@@ -289,19 +295,34 @@ export default function ResumeBuilderIndex() {
     }
   };
 
-  const loadProjects = async () => {
+  const loadProjects = async (page: number = 1) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      // Get total count for pagination
+      const { count, error: countError } = await supabase
+        .from("rb_projects")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+
+      if (countError) throw countError;
+      setTotalCount(count || 0);
+
+      // Get paginated results
+      const from = (page - 1) * PROJECTS_PER_PAGE;
+      const to = from + PROJECTS_PER_PAGE - 1;
 
       const { data, error } = await supabase
         .from("rb_projects")
         .select("*")
         .eq("user_id", user.id)
-        .order("updated_at", { ascending: false });
+        .order("updated_at", { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
       setProjects((data as unknown as RBProject[]) || []);
+      setCurrentPage(page);
     } catch (err) {
       console.error("Failed to load projects:", err);
     } finally {
@@ -396,55 +417,84 @@ export default function ResumeBuilderIndex() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {projects.map((project) => {
-              const statusConfig = getStatusConfig(project.status);
-              const StatusIcon = statusConfig.icon;
-              
-              return (
-                <Card 
-                  key={project.id} 
-                  className="cursor-pointer hover:border-primary/50 transition-colors group"
-                  onClick={() => navigate(getNextRoute(project))}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="space-y-1 min-w-0 flex-1">
-                        <CardTitle className="text-base truncate">
-                          {project.role_title || "Untitled Project"}
-                        </CardTitle>
-                        <CardDescription className="text-xs">
-                          {project.industry && project.seniority_level
-                            ? `${project.seniority_level} • ${project.industry}`
-                            : "No target set"}
-                        </CardDescription>
-                      </div>
-                      {project.current_score !== null && (
-                        <div className={`text-2xl font-semibold tabular-nums ${getScoreColor(project.current_score)}`}>
-                          {project.current_score}
+          <>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {projects.map((project) => {
+                const statusConfig = getStatusConfig(project.status);
+                const StatusIcon = statusConfig.icon;
+
+                return (
+                  <Card
+                    key={project.id}
+                    className="cursor-pointer hover:border-primary/50 transition-colors group"
+                    onClick={() => navigate(getNextRoute(project))}
+                  >
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <CardTitle className="text-base truncate">
+                            {project.role_title || "Untitled Project"}
+                          </CardTitle>
+                          <CardDescription className="text-xs">
+                            {project.industry && project.seniority_level
+                              ? `${project.seniority_level} • ${project.industry}`
+                              : "No target set"}
+                          </CardDescription>
                         </div>
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">
-                        {format(new Date(project.updated_at), "MMM d, yyyy")}
-                      </span>
-                      <Badge 
-                        variant={statusConfig.badgeVariant}
-                        className="flex items-center gap-1.5 text-xs"
-                      >
-                        <StatusIcon className={`h-3 w-3 ${statusConfig.color}`} />
-                        {statusConfig.label}
-                        <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                        {project.current_score !== null && (
+                          <div className={`text-2xl font-semibold tabular-nums ${getScoreColor(project.current_score)}`}>
+                            {project.current_score}
+                          </div>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(project.updated_at), "MMM d, yyyy")}
+                        </span>
+                        <Badge
+                          variant={statusConfig.badgeVariant}
+                          className="flex items-center gap-1.5 text-xs"
+                        >
+                          <StatusIcon className={`h-3 w-3 ${statusConfig.color}`} />
+                          {statusConfig.label}
+                          <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalCount > PROJECTS_PER_PAGE && (
+              <div className="flex items-center justify-center gap-4 pt-6">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => loadProjects(currentPage - 1)}
+                  disabled={currentPage === 1 || loading}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Page {currentPage} of {Math.ceil(totalCount / PROJECTS_PER_PAGE)}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => loadProjects(currentPage + 1)}
+                  disabled={currentPage >= Math.ceil(totalCount / PROJECTS_PER_PAGE) || loading}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </ResumeBuilderShell>

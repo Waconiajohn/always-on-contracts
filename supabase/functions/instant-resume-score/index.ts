@@ -643,28 +643,40 @@ RESUME: ${sanitizedResume.substring(0, 3000)}` }
     // Generate priorityFixes from gapAnalysis for backward compatibility
     const priorityFixes: any[] = [];
     let priority = 1;
-    
+
+    // Calculate realistic point impacts based on gap counts and current score
+    const totalGaps = gapAnalysis.missingRequirements.length + gapAnalysis.partialMatches.length;
+    const pointsAvailable = 100 - overallScore;
+
+    // Distribute available points: missing reqs get 60%, partial matches get 40%
+    const missingCount = gapAnalysis.missingRequirements.length || 1;
+    const partialCount = gapAnalysis.partialMatches.length || 1;
+    const pointsPerMissing = totalGaps > 0 ? Math.round((pointsAvailable * 0.6) / missingCount) : 0;
+    const pointsPerPartial = totalGaps > 0 ? Math.round((pointsAvailable * 0.4) / partialCount) : 0;
+
     // Add ALL missing requirements as critical fixes
     for (const item of gapAnalysis.missingRequirements) {
+      const impact = Math.max(2, Math.min(pointsPerMissing, 20)); // Clamp between 2-20
       priorityFixes.push({
         priority: priority++,
         category: 'jdMatch',
         gapType: 'missing_requirement',
         issue: item.requirement,
         fix: item.workaround,
-        impact: '+15 points'
+        impact: `+${impact} points`
       });
     }
-    
+
     // Add ALL partial matches as important fixes
     for (const item of gapAnalysis.partialMatches) {
+      const impact = Math.max(1, Math.min(pointsPerPartial, 15)); // Clamp between 1-15
       priorityFixes.push({
         priority: priority++,
         category: 'jdMatch',
         gapType: 'partial_match',
         issue: item.currentStatus,
         fix: item.recommendation,
-        impact: '+10 points'
+        impact: `+${impact} points`
       });
     }
 
