@@ -25,7 +25,7 @@ const ResearchHub = () => {
         </div>
 
         <Tabs defaultValue="summary" className="space-y-8">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-8 h-auto">
+          <TabsList className="grid w-full grid-cols-4 md:grid-cols-4 lg:grid-cols-8 h-auto gap-1">
             <TabsTrigger value="summary" className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
               <span className="hidden sm:inline">Summary</span>

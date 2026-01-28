@@ -231,7 +231,7 @@ export default function Pricing() {
             </TabsList>
 
             <TabsContent value="bundles">
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {BUNDLES.map((bundle) => {
                   const Icon = bundle.icon;
                   return (
@@ -304,7 +304,7 @@ export default function Pricing() {
             </TabsContent>
 
             <TabsContent value="modules">
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {MODULES.map((module) => {
                   const Icon = module.icon;
                   return (

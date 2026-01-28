@@ -73,7 +73,7 @@ export default function AdminPromptManager() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6">
           <TabsTrigger value="viewer" className="flex items-center gap-2">
             <Code className="w-4 h-4" />
             <span className="hidden sm:inline">Prompts</span>

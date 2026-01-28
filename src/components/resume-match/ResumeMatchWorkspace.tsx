@@ -142,7 +142,7 @@ export function ResumeMatchWorkspace({ className }: ResumeMatchWorkspaceProps) {
       {/* 3-Panel Layout */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0">
         {/* Left: Resume Input */}
-        <div className="flex flex-col min-h-[300px] lg:min-h-0">
+        <div className="flex flex-col min-h-[200px] sm:min-h-[250px] lg:min-h-0">
           <ResumeInputPanel
             resumeText={resumeText}
             onResumeChange={updateResume}
@@ -151,7 +151,7 @@ export function ResumeMatchWorkspace({ className }: ResumeMatchWorkspaceProps) {
         </div>
 
         {/* Center: Job Description */}
-        <div className="flex flex-col min-h-[300px] lg:min-h-0">
+        <div className="flex flex-col min-h-[200px] sm:min-h-[250px] lg:min-h-0">
           <JobDescriptionPanel
             jobDescription={jobDescription}
             onJobDescriptionChange={updateJobDescription}
@@ -160,7 +160,7 @@ export function ResumeMatchWorkspace({ className }: ResumeMatchWorkspaceProps) {
         </div>
 
         {/* Right: Results */}
-        <div className="flex flex-col min-h-[400px] lg:min-h-0">
+        <div className="flex flex-col min-h-[250px] sm:min-h-[300px] lg:min-h-0">
           <ResultsPanel
             result={result}
             isAnalyzing={isAnalyzing}
