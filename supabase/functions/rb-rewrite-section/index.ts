@@ -232,6 +232,30 @@ Return the full section with the edit applied. Maintain consistency with the res
       });
     }
 
+    // Prune old versions - keep only the 10 most recent per section
+    const MAX_VERSIONS_PER_SECTION = 10;
+    const { data: allVersions } = await supabase
+      .from("rb_versions")
+      .select("id, version_number")
+      .eq("project_id", project_id)
+      .eq("section_name", section_name)
+      .order("version_number", { ascending: false });
+
+    if (allVersions && allVersions.length > MAX_VERSIONS_PER_SECTION) {
+      const versionsToDelete = allVersions.slice(MAX_VERSIONS_PER_SECTION);
+      const idsToDelete = versionsToDelete.map((v: { id: string }) => v.id);
+
+      const { error: deleteError } = await supabase
+        .from("rb_versions")
+        .delete()
+        .in("id", idsToDelete);
+
+      if (deleteError) {
+        console.warn("Failed to prune old versions:", deleteError);
+        // Non-blocking - don't fail the request if pruning fails
+      }
+    }
+
     return new Response(JSON.stringify({ 
       success: true,
       version_number: nextVersionNumber,

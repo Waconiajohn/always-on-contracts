@@ -1,13 +1,16 @@
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { CheckCircle2, AlertCircle, HelpCircle } from 'lucide-react';
+import { CheckCircle2, AlertCircle, HelpCircle, AlertTriangle, Loader2 } from 'lucide-react';
 
 interface EvidenceClaim {
+  id?: string;
   claim: string;
   source: string;
 }
@@ -15,6 +18,7 @@ interface EvidenceClaim {
 interface BulletEvidenceIndicatorProps {
   bulletText: string;
   evidenceClaims?: EvidenceClaim[];
+  onMarkInaccurate?: (claimId: string) => void;
 }
 
 type EvidenceStrength = 'high' | 'medium' | 'none';
@@ -85,9 +89,10 @@ function findMatchingEvidence(
 /**
  * Visual indicator showing evidence support level for a bullet point
  */
-export function BulletEvidenceIndicator({ bulletText, evidenceClaims }: BulletEvidenceIndicatorProps) {
+export function BulletEvidenceIndicator({ bulletText, evidenceClaims, onMarkInaccurate }: BulletEvidenceIndicatorProps) {
+  const [markingId, setMarkingId] = useState<string | null>(null);
   const { strength, matches } = findMatchingEvidence(bulletText, evidenceClaims || []);
-  
+
   const config = {
     high: {
       icon: CheckCircle2,
@@ -114,6 +119,14 @@ export function BulletEvidenceIndicator({ bulletText, evidenceClaims }: BulletEv
 
   const { icon: Icon, label, className, badgeVariant, description } = config[strength];
 
+  const handleMarkInaccurate = (claimId: string) => {
+    if (!onMarkInaccurate || !claimId) return;
+    setMarkingId(claimId);
+    onMarkInaccurate(claimId);
+    // Reset after a short delay (parent will handle actual update)
+    setTimeout(() => setMarkingId(null), 1000);
+  };
+
   return (
     <TooltipProvider>
       <Tooltip>
@@ -138,6 +151,28 @@ export function BulletEvidenceIndicator({ bulletText, evidenceClaims }: BulletEv
                     <span className="block text-muted-foreground mt-0.5">
                       Source: {match.source}
                     </span>
+                    {/* Mark inaccurate action */}
+                    {onMarkInaccurate && match.id && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-5 px-1.5 mt-1 text-[10px] text-muted-foreground hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMarkInaccurate(match.id!);
+                        }}
+                        disabled={markingId === match.id}
+                      >
+                        {markingId === match.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <>
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            Not accurate
+                          </>
+                        )}
+                      </Button>
+                    )}
                   </div>
                 ))}
                 {matches.length > 2 && (

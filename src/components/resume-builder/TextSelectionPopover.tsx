@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Wand2, ArrowDownNarrowWide, Zap, Plus } from 'lucide-react';
+import { Loader2, Wand2, ArrowDownNarrowWide, Zap, Plus, Target, Tags } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -23,6 +23,8 @@ const QUICK_ACTIONS = [
   { id: 'strengthen', label: 'Strengthen', icon: Zap, instruction: 'Make this more impactful with stronger action verbs' },
   { id: 'shorter', label: 'Shorter', icon: ArrowDownNarrowWide, instruction: 'Make this more concise while keeping the meaning' },
   { id: 'add_metric', label: '+ Metric', icon: Plus, instruction: 'Add a quantified metric or result if possible' },
+  { id: 'clarify_scope', label: 'Clarify', icon: Target, instruction: 'Clarify the scope and context of this responsibility or achievement' },
+  { id: 'add_keywords', label: '+ Keywords', icon: Tags, instruction: 'Incorporate relevant industry keywords naturally into this text' },
   { id: 'rewrite', label: 'Rewrite', icon: Wand2, instruction: 'Rewrite this completely for better impact' },
 ];
 
