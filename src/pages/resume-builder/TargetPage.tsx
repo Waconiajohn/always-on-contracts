@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { ResumeBuilderShell } from "@/components/resume-builder/ResumeBuilderShell";
 import { toast } from "sonner";
+import { mapUILevelToDB, mapDBLevelToUI } from "@/lib/seniority-utils";
 import type { RBProject } from "@/types/resume-builder";
 
 const SENIORITY_LEVELS = [
@@ -42,22 +43,7 @@ const SENIORITY_LEVELS = [
   "C-Level",
 ];
 
-// Map edge function seniority values to UI dropdown values
-function mapSeniorityToUI(edgeLevel: string | null): string {
-  if (!edgeLevel) return "";
-  const mapping: Record<string, string> = {
-    "IC": "Mid-Level",
-    "Senior IC": "Senior",
-    "Manager": "Manager",
-    "Senior Manager": "Lead",
-    "Director": "Director",
-    "Senior Director": "Director",
-    "VP": "VP",
-    "SVP": "VP",
-    "C-Level": "C-Level",
-  };
-  return mapping[edgeLevel] || edgeLevel;
-}
+// mapSeniorityToUI moved to seniority-utils.ts as mapDBLevelToUI
 
 const INDUSTRIES = [
   "Technology",
@@ -145,7 +131,7 @@ export default function TargetPage() {
       if (error) throw error;
 
       setRoleTitle(data.role_title || "");
-      setSeniorityLevel(mapSeniorityToUI(data.seniority_level) || "");
+      setSeniorityLevel(mapDBLevelToUI(data.seniority_level) || "");
       setIndustry(data.industry || "");
       setSubIndustry(data.sub_industry || "");
       setConfidence(data.confidence || 0);
@@ -194,7 +180,7 @@ export default function TargetPage() {
         .from("rb_projects")
         .update({
           role_title: roleTitle.trim(),
-          seniority_level: seniorityLevel,
+          seniority_level: mapUILevelToDB(seniorityLevel),
           industry,
           sub_industry: subIndustry || null,
           target_confirmed: true,

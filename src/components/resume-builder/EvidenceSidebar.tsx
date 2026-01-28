@@ -126,13 +126,12 @@ export function EvidenceSidebar({ evidence, maxItems = 10, onEvidenceRemoved, re
   const handleMarkInaccurate = async (evidenceId: string) => {
     setRemovingId(evidenceId);
     try {
-      // Mark as inactive and update confidence to indicate it was marked inaccurate
-      // Note: confidence is a numeric field, so use 0.1 instead of 'low'
+      // Mark as inactive - confidence is a string enum ('high' | 'medium')
       const { error } = await supabase
         .from('rb_evidence')
         .update({
           is_active: false,
-          confidence: 0.1 // Downgrade confidence when marked inaccurate (numeric value)
+          confidence: 'medium' // Mark as lower confidence when marked inaccurate
         })
         .eq('id', evidenceId);
 

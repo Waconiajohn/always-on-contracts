@@ -5,7 +5,17 @@
 // Core Enums & Constants
 // ============================================
 
-export type ProjectStatus = 'draft' | 'processing' | 'ready' | 'completed' | 'archived';
+export type ProjectStatus = 
+  | 'upload' 
+  | 'jd' 
+  | 'target' 
+  | 'processing' 
+  | 'report' 
+  | 'fix' 
+  | 'studio' 
+  | 'review' 
+  | 'export' 
+  | 'complete';
 
 export type SeniorityLevel = 
   | 'IC' 

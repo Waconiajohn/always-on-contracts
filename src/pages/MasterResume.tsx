@@ -11,7 +11,7 @@ import { MasterResumeRoadmap } from "@/components/master-resume/MasterResumeRoad
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, FileText, Plus, ArrowRight, Sparkles, Target, Map } from "lucide-react";
+import { FileText, Plus, ArrowRight, Sparkles, Target, Map } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type TabValue = 'content' | 'gaps' | 'roadmap';

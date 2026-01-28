@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, Trash2, List, LayoutGrid, Calendar, Briefcase } from "lucide-react";
+import { Sparkles, Trash2, List, LayoutGrid, Calendar, Briefcase } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useApplicationQueue } from "@/hooks/useApplicationQueue";
 import { EmptyState } from "@/components/EmptyState";
