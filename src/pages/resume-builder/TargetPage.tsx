@@ -42,6 +42,23 @@ const SENIORITY_LEVELS = [
   "C-Level",
 ];
 
+// Map edge function seniority values to UI dropdown values
+function mapSeniorityToUI(edgeLevel: string | null): string {
+  if (!edgeLevel) return "";
+  const mapping: Record<string, string> = {
+    "IC": "Mid-Level",
+    "Senior IC": "Senior",
+    "Manager": "Manager",
+    "Senior Manager": "Lead",
+    "Director": "Director",
+    "Senior Director": "Director",
+    "VP": "VP",
+    "SVP": "VP",
+    "C-Level": "C-Level",
+  };
+  return mapping[edgeLevel] || edgeLevel;
+}
+
 const INDUSTRIES = [
   "Technology",
   "Finance & Banking",
@@ -121,28 +138,30 @@ export default function TargetPage() {
     if (!projectId) return;
     setClassifying(true);
     try {
-      const { data, error } = await supabase.functions.invoke("classify-job-description", {
-        body: { jdText },
+      const { data, error } = await supabase.functions.invoke("rb-classify-jd", {
+        body: { jd_text: jdText },
       });
 
       if (error) throw error;
 
-      setRoleTitle(data.roleTitle || "");
-      setSeniorityLevel(data.seniorityLevel || "");
+      setRoleTitle(data.role_title || "");
+      setSeniorityLevel(mapSeniorityToUI(data.seniority_level) || "");
       setIndustry(data.industry || "");
-      setSubIndustry(data.subIndustry || "");
+      setSubIndustry(data.sub_industry || "");
       setConfidence(data.confidence || 0);
-      setReasoning(data.reasoning || null);
+      setReasoning(data.justification ? 
+        `Role: ${data.justification.role}\nLevel: ${data.justification.level}\nIndustry: ${data.justification.industry}` 
+        : null);
       setHasClassified(true);
 
       // Save classification results
       await supabase
         .from("rb_projects")
         .update({
-          role_title: data.roleTitle,
-          seniority_level: data.seniorityLevel,
+          role_title: data.role_title,
+          seniority_level: data.seniority_level, // Keep original for DB
           industry: data.industry,
-          sub_industry: data.subIndustry,
+          sub_industry: data.sub_industry,
           jd_confidence: data.confidence,
         })
         .eq("id", projectId);
