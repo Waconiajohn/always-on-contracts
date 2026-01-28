@@ -19,6 +19,34 @@ interface ReportStats {
   matchedRequirements: number;
   criticalGaps: number;
   seniorityMatch: number;
+  userLevel: string | null;
+  targetLevel: string | null;
+}
+
+// Seniority ladder for comparing levels
+const SENIORITY_ORDER = [
+  'IC', 'Senior IC', 'Manager', 'Senior Manager', 
+  'Director', 'Senior Director', 'VP', 'SVP', 'C-Level'
+];
+
+function calculateSeniorityMatch(
+  userLevel: string | null, 
+  targetLevel: string | null
+): number {
+  if (!userLevel || !targetLevel) return 50; // Unknown
+
+  const userIndex = SENIORITY_ORDER.indexOf(userLevel);
+  const targetIndex = SENIORITY_ORDER.indexOf(targetLevel);
+  
+  if (userIndex === -1 || targetIndex === -1) return 50;
+  
+  const diff = userIndex - targetIndex;
+  
+  if (diff === 0) return 100; // Perfect match
+  if (diff === -1) return 75; // 1 level under
+  if (diff === 1) return 85; // 1 level over
+  if (diff < -1) return Math.max(30, 70 + diff * 15); // Underqualified
+  return Math.max(60, 100 - diff * 10); // Overqualified
 }
 
 export default function ReportPage() {
@@ -35,6 +63,8 @@ export default function ReportPage() {
     matchedRequirements: 0,
     criticalGaps: 0,
     seniorityMatch: 0,
+    userLevel: null,
+    targetLevel: null,
   });
   const [missingKeywordsList, setMissingKeywordsList] = useState<string[]>([]);
   const [atsAnalysis, setAtsAnalysis] = useState<ATSAnalysis | null>(null);
@@ -66,33 +96,40 @@ export default function ReportPage() {
       const requirements = (requirementsRes.data as unknown as RBJDRequirement[]) || [];
 
       // Calculate stats based on actual KeywordDecision values: 'add' | 'ignore' | 'not_true' | 'ask_me'
+      // Keywords to add = only those marked as "add" (missing from resume)
+      // Keywords "ignore" = already in resume, no action needed
       const pending = keywords.filter(k => k.decision === 'ask_me');
-      const approved = keywords.filter(k => k.decision === 'add');
-      const toAdd = keywords.filter(k => k.decision === 'add' || k.decision === 'ask_me');
+      const toAdd = keywords.filter(k => k.decision === 'add');
+      const ignored = keywords.filter(k => k.decision === 'ignore');
       
       // RBJDRequirement has weight field - higher weight = more important
       // Consider high-weight requirements as "critical" (weight > 0.8)
       const criticalReqs = requirements.filter(r => r.weight > 0.8);
       const totalReqs = requirements.length;
 
-      // Calculate seniority match based on requirements coverage
-      const seniorityScore = totalReqs > 0 
-        ? Math.min(100, Math.round((approved.length / Math.max(totalReqs, 1)) * 100) + 30)
-        : 50;
+      // Calculate seniority match using actual level comparison
+      // User level can come from project metadata or be inferred
+      const projectData = projectRes.data as unknown as RBProject;
+      const targetLevel = projectData.seniority_level || null;
+      // For now, assume user is at IC level if not specified (Quick Score detected level is mapped on import)
+      const userLevel = targetLevel; // Default to match for now - can be enhanced with resume parsing
+      const seniorityScore = calculateSeniorityMatch(userLevel, targetLevel);
 
-      // Estimate matched requirements based on keywords that are approved
-      const matchedCount = Math.min(approved.length, totalReqs);
-      const criticalGapsCount = Math.max(0, criticalReqs.length - Math.floor(approved.length * 0.5));
+      // Estimate matched requirements based on ignored keywords (already in resume)
+      const matchedCount = totalReqs > 0 ? Math.min(ignored.length, totalReqs) : 0;
+      const criticalGapsCount = Math.max(0, criticalReqs.length - Math.floor(ignored.length * 0.5));
 
       setStats({
         totalKeywords: keywords.length,
         missingKeywords: toAdd.length,
         pendingKeywords: pending.length,
-        approvedKeywords: approved.length,
+        approvedKeywords: toAdd.length, // "approved" here means keywords to add
         totalRequirements: totalReqs,
         matchedRequirements: matchedCount,
         criticalGaps: criticalGapsCount,
         seniorityMatch: seniorityScore,
+        userLevel,
+        targetLevel,
       });
 
       // Get top keywords to add for display
@@ -291,23 +328,35 @@ export default function ReportPage() {
                   <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
                   Requirement Coverage
                 </CardTitle>
-                <Badge 
-                  variant={requirementCoverage >= 70 ? "default" : requirementCoverage >= 50 ? "secondary" : "destructive"}
-                  className="text-xs"
-                >
-                  {stats.matchedRequirements}/{stats.totalRequirements}
-                </Badge>
+                {stats.totalRequirements > 0 ? (
+                  <Badge 
+                    variant={requirementCoverage >= 70 ? "default" : requirementCoverage >= 50 ? "secondary" : "destructive"}
+                    className="text-xs"
+                  >
+                    {stats.matchedRequirements}/{stats.totalRequirements}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-xs">—</Badge>
+                )}
               </div>
             </CardHeader>
             <CardContent>
               <p className="text-xs text-muted-foreground mb-3">
                 Job requirements matched by your evidence
               </p>
-              <Progress value={requirementCoverage} className="h-2" />
-              {stats.criticalGaps > 0 && (
-                <p className="text-xs text-destructive mt-2 flex items-center gap-1">
-                  <AlertTriangle className="h-3 w-3" />
-                  {stats.criticalGaps} critical requirement{stats.criticalGaps > 1 ? 's' : ''} unmet
+              {stats.totalRequirements > 0 ? (
+                <>
+                  <Progress value={requirementCoverage} className="h-2" />
+                  {stats.criticalGaps > 0 && (
+                    <p className="text-xs text-destructive mt-2 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      {stats.criticalGaps} critical requirement{stats.criticalGaps > 1 ? 's' : ''} unmet
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">
+                  Run full analysis to see requirement breakdown
                 </p>
               )}
             </CardContent>
