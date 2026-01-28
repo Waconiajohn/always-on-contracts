@@ -19,7 +19,8 @@ import {
   Loader2,
   CheckCircle2,
   ArrowLeft,
-  Eye
+  Eye,
+  PackageOpen
 } from 'lucide-react';
 import type { RBProject, RBVersion } from '@/types/resume-builder';
 import { 
@@ -53,6 +54,7 @@ export default function ExportPage() {
   const [copied, setCopied] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isPdfExporting, setIsPdfExporting] = useState(false);
+  const [isBulkExporting, setIsBulkExporting] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateId>('standard');
 
   useEffect(() => {
@@ -304,6 +306,173 @@ export default function ExportPage() {
     }
   };
 
+  const handleBulkExport = async () => {
+    if (!versions.length) {
+      toast.error('No content to export');
+      return;
+    }
+
+    setIsBulkExporting(true);
+    const baseFileName = project?.role_title?.replace(/\s+/g, '_') || 'resume';
+    let successCount = 0;
+    const totalFiles = 6; // 3 templates × 2 formats (DOCX + PDF)
+
+    toast.info(`Generating ${totalFiles} files...`);
+
+    try {
+      // Generate all templates
+      for (const template of TEMPLATES) {
+        const templateId = template.id;
+        const formattedSections = applyTemplateFormatting(versions, templateId);
+        const templateSuffix = templateId === 'executive' ? '_exec' :
+                               templateId === 'ats-safe' ? '_ats' : '_std';
+
+        // Generate DOCX
+        try {
+          const docxStyles = getDocxStyles(templateId);
+          const children: (typeof Paragraph.prototype)[] = [];
+
+          if (project?.role_title) {
+            children.push(
+              new Paragraph({
+                text: project.role_title,
+                heading: HeadingLevel.TITLE,
+                alignment: AlignmentType.CENTER,
+              })
+            );
+            children.push(new Paragraph({ text: '' }));
+          }
+
+          for (const section of formattedSections) {
+            children.push(
+              new Paragraph({
+                text: section.title,
+                heading: HeadingLevel.HEADING_1,
+              })
+            );
+
+            const lines = section.content.split('\n').filter(line => line.trim());
+            for (const line of lines) {
+              const isBullet = line.trim().startsWith('•') || line.trim().startsWith('-');
+              children.push(
+                new Paragraph({
+                  children: [new TextRun({
+                    text: line.replace(/^[•-]\s*/, ''),
+                    size: docxStyles.body.size * 2,
+                  })],
+                  bullet: isBullet ? { level: 0 } : undefined,
+                })
+              );
+            }
+            children.push(new Paragraph({ text: '' }));
+          }
+
+          const doc = new Document({
+            sections: [{
+              properties: {
+                page: {
+                  margin: {
+                    top: convertInchesToTwip(docxStyles.margins.top),
+                    bottom: convertInchesToTwip(docxStyles.margins.bottom),
+                    left: convertInchesToTwip(docxStyles.margins.left),
+                    right: convertInchesToTwip(docxStyles.margins.right),
+                  },
+                },
+              },
+              children,
+            }],
+          });
+
+          const docxBlob = await Packer.toBlob(doc);
+          saveAs(docxBlob, `${baseFileName}${templateSuffix}.docx`);
+          successCount++;
+        } catch (err) {
+          console.error(`DOCX export error for ${templateId}:`, err);
+        }
+
+        // Generate PDF
+        try {
+          const pdfStyles = getPdfStyles(templateId);
+          const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4',
+          });
+
+          const pageWidth = pdf.internal.pageSize.getWidth();
+          const margin = pdfStyles.margins;
+          const maxWidth = pageWidth - margin * 2;
+          let yPosition = margin;
+          const lineHeight = pdfStyles.lineHeight;
+          const sectionGap = pdfStyles.sectionGap;
+
+          if (project?.role_title) {
+            pdf.setFontSize(pdfStyles.title.fontSize);
+            pdf.setFont('helvetica', 'bold');
+            const titleWidth = pdf.getTextWidth(project.role_title);
+            pdf.text(project.role_title, (pageWidth - titleWidth) / 2, yPosition);
+            yPosition += 12;
+          }
+
+          for (const section of formattedSections) {
+            if (yPosition > 270) {
+              pdf.addPage();
+              yPosition = margin;
+            }
+
+            pdf.setFontSize(pdfStyles.heading.fontSize);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(section.title, margin, yPosition);
+            yPosition += lineHeight + 2;
+
+            pdf.setFontSize(pdfStyles.body.fontSize);
+            pdf.setFont('helvetica', 'normal');
+
+            const lines = section.content.split('\n').filter(line => line.trim());
+            for (const line of lines) {
+              if (yPosition > 280) {
+                pdf.addPage();
+                yPosition = margin;
+              }
+
+              const isBullet = line.trim().startsWith('•') || line.trim().startsWith('-');
+              const cleanLine = line.replace(/^[•-]\s*/, '');
+              const prefix = isBullet ? '• ' : '';
+              const xOffset = isBullet ? margin + 3 : margin;
+
+              const wrappedLines = pdf.splitTextToSize(prefix + cleanLine, maxWidth - (isBullet ? 3 : 0));
+              for (const wrappedLine of wrappedLines) {
+                if (yPosition > 280) {
+                  pdf.addPage();
+                  yPosition = margin;
+                }
+                pdf.text(wrappedLine, xOffset, yPosition);
+                yPosition += lineHeight;
+              }
+            }
+
+            yPosition += sectionGap;
+          }
+
+          pdf.save(`${baseFileName}${templateSuffix}.pdf`);
+          successCount++;
+        } catch (err) {
+          console.error(`PDF export error for ${templateId}:`, err);
+        }
+
+        // Small delay between files to prevent browser issues
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+
+      toast.success(`Downloaded ${successCount} of ${totalFiles} files`);
+    } catch (err) {
+      console.error('Bulk export error:', err);
+      toast.error('Some exports failed');
+    } finally {
+      setIsBulkExporting(false);
+    }
+  };
+
   const handleMarkComplete = async () => {
     if (!projectId) return;
 
@@ -372,6 +541,43 @@ export default function ExportPage() {
                   <p className="text-xs text-muted-foreground">{template.description}</p>
                 </button>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Bulk Export - Download All Formats */}
+        <Card className="border-primary/50 bg-primary/5">
+          <CardContent className="pt-6">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <PackageOpen className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Download All Formats</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Get all 3 templates in DOCX & PDF (6 files total)
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="lg"
+                onClick={handleBulkExport}
+                disabled={isBulkExporting || !versions.length}
+                className="gap-2 whitespace-nowrap"
+              >
+                {isBulkExporting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4" />
+                    Download All
+                  </>
+                )}
+              </Button>
             </div>
           </CardContent>
         </Card>
