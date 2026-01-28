@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, FileText, Plus, ArrowRight, Sparkles, Target, Map } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type TabValue = 'content' | 'gaps' | 'roadmap';
 
@@ -63,8 +64,50 @@ const MasterResumeContent = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="max-w-4xl mx-auto space-y-6 p-6">
+        {/* Header skeleton */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-72" />
+          </div>
+          <Skeleton className="h-10 w-24" />
+        </div>
+
+        {/* Tabs skeleton */}
+        <Skeleton className="h-10 w-80" />
+
+        {/* Content skeleton - mimics editor layout */}
+        <Card className="p-6">
+          <div className="space-y-4">
+            <Skeleton className="h-6 w-32" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+
+            <Skeleton className="h-6 w-40 mt-6" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+
+            <Skeleton className="h-6 w-36 mt-6" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-2/3" />
+          </div>
+        </Card>
+
+        {/* History sidebar skeleton */}
+        <div className="flex gap-4">
+          <div className="flex-1">
+            <Skeleton className="h-64 w-full rounded-lg" />
+          </div>
+          <div className="w-64 space-y-2">
+            <Skeleton className="h-5 w-24" />
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-16 w-full rounded-lg" />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }

@@ -65,11 +65,11 @@ export function useMasterResume() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ 
-      content, 
-      structured_data 
-    }: { 
-      content: string; 
+    mutationFn: async ({
+      content,
+      structured_data
+    }: {
+      content: string;
       structured_data?: StructuredResumeData;
     }): Promise<MasterResume> => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -93,13 +93,39 @@ export function useMasterResume() {
         structured_data: (data.structured_data || {}) as StructuredResumeData
       };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["master-resume"] });
-      toast.success("Master Resume updated!");
+    onMutate: async ({ content, structured_data }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["master-resume"] });
+
+      // Snapshot the previous value
+      const previousResume = queryClient.getQueryData<MasterResume | null>(["master-resume"]);
+
+      // Optimistically update the cache
+      if (previousResume) {
+        queryClient.setQueryData<MasterResume>(["master-resume"], {
+          ...previousResume,
+          content,
+          structured_data: structured_data || previousResume.structured_data,
+          updated_at: new Date().toISOString(),
+        });
+      }
+
+      return { previousResume };
     },
-    onError: (error) => {
+    onError: (error, _variables, context) => {
+      // Rollback on error
+      if (context?.previousResume) {
+        queryClient.setQueryData(["master-resume"], context.previousResume);
+      }
       console.error("Error updating master resume:", error);
       toast.error("Failed to update Master Resume");
+    },
+    onSuccess: () => {
+      toast.success("Master Resume updated!");
+    },
+    onSettled: () => {
+      // Always refetch after error or success
+      queryClient.invalidateQueries({ queryKey: ["master-resume"] });
     },
   });
 
@@ -145,7 +171,7 @@ export function useMasterResume() {
 
       const { data, error } = await supabase
         .from("master_resume")
-        .update({ 
+        .update({
           content: historyItem.content,
           structured_data: JSON.parse(JSON.stringify(historyItem.structured_data || {}))
         })
@@ -159,14 +185,40 @@ export function useMasterResume() {
         structured_data: (data.structured_data || {}) as StructuredResumeData
       };
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["master-resume"] });
-      queryClient.invalidateQueries({ queryKey: ["master-resume-history"] });
-      toast.success(`Restored to Version ${variables.version}`);
+    onMutate: async (historyItem) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["master-resume"] });
+
+      // Snapshot the previous value
+      const previousResume = queryClient.getQueryData<MasterResume | null>(["master-resume"]);
+
+      // Optimistically update the cache with historical content
+      if (previousResume) {
+        queryClient.setQueryData<MasterResume>(["master-resume"], {
+          ...previousResume,
+          content: historyItem.content,
+          structured_data: historyItem.structured_data || previousResume.structured_data,
+          updated_at: new Date().toISOString(),
+        });
+      }
+
+      return { previousResume };
     },
-    onError: (error) => {
+    onError: (error, _variables, context) => {
+      // Rollback on error
+      if (context?.previousResume) {
+        queryClient.setQueryData(["master-resume"], context.previousResume);
+      }
       console.error("Error restoring master resume:", error);
       toast.error("Failed to restore version");
+    },
+    onSuccess: (_, variables) => {
+      toast.success(`Restored to Version ${variables.version}`);
+    },
+    onSettled: () => {
+      // Always refetch after error or success
+      queryClient.invalidateQueries({ queryKey: ["master-resume"] });
+      queryClient.invalidateQueries({ queryKey: ["master-resume-history"] });
     },
   });
 

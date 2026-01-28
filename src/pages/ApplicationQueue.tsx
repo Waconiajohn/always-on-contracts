@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Sparkles, Trash2, List, LayoutGrid, Calendar, Briefcase } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useApplicationQueue } from "@/hooks/useApplicationQueue";
 import { EmptyState } from "@/components/EmptyState";
 import { AISuggestionItem } from "@/components/AISuggestionItem";
@@ -109,11 +110,42 @@ export default function ApplicationQueue() {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-8">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center space-y-4">
-            <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
-            <p className="text-muted-foreground">Loading your application queue...</p>
+      <div className="container mx-auto py-8 px-6">
+        <div className="space-y-6">
+          {/* Header skeleton */}
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-64" />
+            <Skeleton className="h-5 w-96" />
+          </div>
+
+          {/* Stats skeleton */}
+          <div className="flex flex-wrap gap-3">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-12 w-28 rounded-lg" />
+            ))}
+          </div>
+
+          {/* Tabs skeleton */}
+          <Skeleton className="h-10 w-72" />
+
+          {/* Queue items skeleton */}
+          <div className="space-y-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Card key={i} className="p-4">
+                <div className="flex items-start gap-4">
+                  <Skeleton className="h-12 w-12 rounded" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-5 w-48" />
+                    <Skeleton className="h-4 w-32" />
+                    <div className="flex gap-2 mt-2">
+                      <Skeleton className="h-6 w-20 rounded-full" />
+                      <Skeleton className="h-6 w-16 rounded-full" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-8 w-24" />
+                </div>
+              </Card>
+            ))}
           </div>
         </div>
       </div>

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, Wrench, Wand2, AlertTriangle, CheckCircle2, Target, TrendingUp, XCircle, AlertCircle, MessageSquare, SplitSquareVertical } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ResumeBuilderShell } from "@/components/resume-builder/ResumeBuilderShell";
 import { runATSAnalysis, getATSScoreBadge, type ATSAnalysis } from "@/lib/ats-checks";
 import type { RBProject, RBJDRequirement, RBKeywordDecision } from "@/types/resume-builder";
@@ -179,8 +180,45 @@ export default function ReportPage() {
   if (loading) {
     return (
       <ResumeBuilderShell>
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <div className="max-w-3xl mx-auto space-y-8">
+          {/* Header skeleton */}
+          <div className="flex items-start justify-between">
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+            <div className="flex gap-2">
+              <Skeleton className="h-10 w-32" />
+              <Skeleton className="h-10 w-32" />
+            </div>
+          </div>
+
+          {/* Score card skeleton */}
+          <Card>
+            <CardContent className="py-8">
+              <div className="text-center space-y-3">
+                <Skeleton className="h-16 w-20 mx-auto" />
+                <Skeleton className="h-6 w-28 mx-auto" />
+                <Skeleton className="h-4 w-64 mx-auto" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Category cards skeleton */}
+          <div className="grid gap-4 md:grid-cols-2">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i}>
+                <CardHeader className="pb-2">
+                  <Skeleton className="h-5 w-32" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-4 w-full mb-3" />
+                  <Skeleton className="h-2 w-full mb-2" />
+                  <Skeleton className="h-3 w-3/4" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       </ResumeBuilderShell>
     );

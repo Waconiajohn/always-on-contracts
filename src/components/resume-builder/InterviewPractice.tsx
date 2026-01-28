@@ -25,6 +25,10 @@ import {
   Clock,
   Mic,
   MicOff,
+  ThumbsUp,
+  AlertCircle,
+  TrendingUp,
+  Loader2,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -36,6 +40,15 @@ interface InterviewQuestion {
   why_asked: string;
   good_answer_elements: string[];
   related_requirement?: string;
+}
+
+interface AnswerFeedback {
+  is_sufficient: boolean;
+  quality_score: number;
+  missing_elements: string[];
+  follow_up_prompt: string;
+  strengths?: string[];
+  guided_prompts?: Record<string, { question: string; options: string[] }>;
 }
 
 interface InterviewPracticeProps {
@@ -60,6 +73,8 @@ export function InterviewPractice({ projectId }: InterviewPracticeProps) {
   const [preparationTips, setPreparationTips] = useState<string[]>([]);
   const [completedQuestions, setCompletedQuestions] = useState<Set<number>>(new Set());
   const [isRecording, setIsRecording] = useState(false);
+  const [feedback, setFeedback] = useState<Record<number, AnswerFeedback>>({});
+  const [isEvaluating, setIsEvaluating] = useState(false);
 
   const generateQuestions = async () => {
     setIsLoading(true);
@@ -90,6 +105,7 @@ export function InterviewPractice({ projectId }: InterviewPracticeProps) {
         setCurrentQuestionIndex(0);
         setCompletedQuestions(new Set());
         setUserAnswer('');
+        setFeedback({});
         toast.success(`Generated ${data.questions.length} interview questions`);
       }
     } catch (error) {
@@ -126,6 +142,50 @@ export function InterviewPractice({ projectId }: InterviewPracticeProps) {
       toast.info('Recording started - speak your answer');
       // In a real implementation, this would use the Web Speech API
     }
+  };
+
+  const evaluateAnswer = async () => {
+    if (!currentQuestion || !userAnswer.trim()) {
+      toast.error('Please write an answer first');
+      return;
+    }
+
+    setIsEvaluating(true);
+    try {
+      const response = await supabase.functions.invoke('validate-interview-response', {
+        body: {
+          question: currentQuestion.question,
+          answer: userAnswer,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      const feedbackData = response.data as AnswerFeedback;
+      setFeedback(prev => ({
+        ...prev,
+        [currentQuestionIndex]: feedbackData,
+      }));
+
+      if (feedbackData.is_sufficient) {
+        toast.success('Great answer!');
+      } else {
+        toast.info('Feedback received - check the suggestions below');
+      }
+    } catch (error) {
+      console.error('Failed to evaluate answer:', error);
+      toast.error('Failed to evaluate answer');
+    } finally {
+      setIsEvaluating(false);
+    }
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return 'text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-300';
+    if (score >= 60) return 'text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-300';
+    return 'text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-300';
   };
 
   const currentQuestion = questions[currentQuestionIndex];
@@ -344,7 +404,108 @@ export function InterviewPractice({ projectId }: InterviewPracticeProps) {
                 </span>
                 <span>{userAnswer.split(/\s+/).filter(Boolean).length} words</span>
               </div>
+
+              {/* Get Feedback Button */}
+              <Button
+                onClick={evaluateAnswer}
+                disabled={isEvaluating || !userAnswer.trim()}
+                variant="secondary"
+                className="w-full"
+              >
+                {isEvaluating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Evaluating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Get AI Feedback
+                  </>
+                )}
+              </Button>
             </div>
+
+            {/* Feedback Display */}
+            {feedback[currentQuestionIndex] && (
+              <div className="space-y-3 p-4 bg-muted/30 rounded-lg border">
+                {/* Score Header */}
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4" />
+                    Answer Analysis
+                  </h4>
+                  <Badge className={getScoreColor(feedback[currentQuestionIndex].quality_score)}>
+                    {feedback[currentQuestionIndex].quality_score}/100
+                  </Badge>
+                </div>
+
+                {/* Feedback Message */}
+                <p className="text-sm text-muted-foreground">
+                  {feedback[currentQuestionIndex].follow_up_prompt}
+                </p>
+
+                {/* Strengths */}
+                {feedback[currentQuestionIndex].strengths && feedback[currentQuestionIndex].strengths!.length > 0 && (
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-medium text-green-700 dark:text-green-400 flex items-center gap-1">
+                      <ThumbsUp className="h-3 w-3" />
+                      Strengths
+                    </p>
+                    <ul className="space-y-1">
+                      {feedback[currentQuestionIndex].strengths!.map((strength, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-green-600 mt-0.5 shrink-0" />
+                          <span>{strength}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Missing Elements */}
+                {feedback[currentQuestionIndex].missing_elements.length > 0 && (
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-medium text-amber-700 dark:text-amber-400 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      Areas to Improve
+                    </p>
+                    <ul className="space-y-1">
+                      {feedback[currentQuestionIndex].missing_elements.map((element, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm">
+                          <span className="text-amber-500 mt-0.5">•</span>
+                          <span>{element}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Guided Prompts for Improvement */}
+                {feedback[currentQuestionIndex].guided_prompts && Object.keys(feedback[currentQuestionIndex].guided_prompts!).length > 0 && (
+                  <div className="space-y-2 pt-2 border-t">
+                    <p className="text-xs font-medium flex items-center gap-1">
+                      <Lightbulb className="h-3 w-3 text-amber-500" />
+                      Consider adding:
+                    </p>
+                    <div className="grid gap-2">
+                      {Object.entries(feedback[currentQuestionIndex].guided_prompts!).map(([key, prompt]) => (
+                        <div key={key} className="text-sm p-2 bg-background rounded border">
+                          <p className="font-medium text-xs mb-1">{prompt.question}</p>
+                          <div className="flex flex-wrap gap-1">
+                            {prompt.options.slice(0, 4).map((option, i) => (
+                              <Badge key={i} variant="outline" className="text-xs font-normal">
+                                {option}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Hints Toggle */}
             <Collapsible open={showHints} onOpenChange={setShowHints}>

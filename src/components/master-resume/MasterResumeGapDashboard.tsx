@@ -8,6 +8,7 @@ import { Loader2, AlertTriangle, Target, ArrowRight, Sparkles, Clock, TrendingUp
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { LinkedInConsistencyCheck } from "./LinkedInConsistencyCheck";
 
 interface GapItem {
   category: string;
@@ -288,6 +289,9 @@ export function MasterResumeGapDashboard({ resumeContent, vaultId }: MasterResum
           </CardContent>
         </Card>
       )}
+
+      {/* LinkedIn Consistency Check */}
+      <LinkedInConsistencyCheck resumeContent={resumeContent} />
 
       {/* Refresh Analysis */}
       <div className="flex justify-center">

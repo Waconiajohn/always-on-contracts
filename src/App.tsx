@@ -44,6 +44,7 @@ const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
 const AdminPromptManager = lazy(() => import("./pages/AdminPromptManager"));
 const UserRoleManagement = lazy(() => import("./pages/UserRoleManagement"));
 const AdminSetup = lazy(() => import("./pages/AdminSetup"));
+const AICostDashboard = lazy(() => import("./pages/admin/AICostDashboard"));
 const MasterResume = lazy(() => import("./pages/MasterResume"));
 const LearningCenter = lazy(() => import("./pages/LearningCenter"));
 const ResearchHub = lazy(() => import("./pages/ResearchHub"));
@@ -150,6 +151,7 @@ const AppContent = () => {
             <Route path="/admin-prompt-manager" element={<ProtectedRoute><AdminRoute><AdminPromptManager /></AdminRoute></ProtectedRoute>} />
             <Route path="/admin/user-roles" element={<ProtectedRoute><AdminRoute><UserRoleManagement /></AdminRoute></ProtectedRoute>} />
             <Route path="/admin-setup" element={<ProtectedRoute><AdminSetup /></ProtectedRoute>} />
+            <Route path="/admin/ai-costs" element={<ProtectedRoute><AdminRoute><AICostDashboard /></AdminRoute></ProtectedRoute>} />
             <Route path="/master-resume" element={<ProtectedRoute><MasterResume /></ProtectedRoute>} />
             {/* Note: Legacy /career-vault routes removed - will 404 */}
             {/* Legacy redirects */}
