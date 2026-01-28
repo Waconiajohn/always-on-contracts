@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
   Popover,
   PopoverContent,
@@ -12,7 +14,8 @@ import {
   HelpCircle, 
   Ban,
   Check,
-  ChevronDown
+  ChevronDown,
+  AlertCircle
 } from 'lucide-react';
 import type { KeywordDecision, SectionHint } from '@/types/resume-builder';
 
@@ -170,8 +173,6 @@ export function KeywordChipGroup({
   icon,
   emptyMessage = 'None' 
 }: KeywordChipGroupProps) {
-  const { Card } = require('@/components/ui/card');
-  const { Badge } = require('@/components/ui/badge');
 
   if (keywords.length === 0) {
     return (
@@ -215,10 +216,6 @@ interface GapCardProps {
 }
 
 export function GapCard({ category, requirement, severity, onAddBullet }: GapCardProps) {
-  const { Card } = require('@/components/ui/card');
-  const { Badge } = require('@/components/ui/badge');
-  const { Button } = require('@/components/ui/button');
-  const { AlertCircle, Plus } = require('lucide-react');
 
   const severityConfig = {
     critical: { 
