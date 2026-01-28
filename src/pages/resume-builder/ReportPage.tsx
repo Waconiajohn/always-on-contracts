@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Wrench, Wand2, AlertTriangle, CheckCircle2, Target, TrendingUp, XCircle, AlertCircle, MessageSquare, SplitSquareVertical } from "lucide-react";
+import { Wrench, Wand2, AlertTriangle, CheckCircle2, Target, TrendingUp, XCircle, AlertCircle, MessageSquare, SplitSquareVertical } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ResumeBuilderShell } from "@/components/resume-builder/ResumeBuilderShell";
 import { runATSAnalysis, getATSScoreBadge, type ATSAnalysis } from "@/lib/ats-checks";
@@ -114,8 +114,9 @@ export default function ReportPage() {
       const targetLevel = projectData.seniority_level || null;
       // User level should be extracted from resume analysis, not defaulted to target
       // Check for user_seniority_level field or infer from evidence
-      const userLevel = (projectData as Record<string, unknown>).user_seniority_level as string | null
-        || (projectData as Record<string, unknown>).detected_level as string | null
+      const projectDataAny = projectData as unknown as Record<string, unknown>;
+      const userLevel = (projectDataAny.user_seniority_level as string | null)
+        || (projectDataAny.detected_level as string | null)
         || null; // Don't default to target - show 50% if unknown
       const seniorityScore = calculateSeniorityMatch(userLevel, targetLevel);
 

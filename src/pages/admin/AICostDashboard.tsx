@@ -109,8 +109,9 @@ export default function AICostDashboard() {
       if (functionData) {
         const functionMap = new Map<string, { count: number; cost: number }>();
         functionData.forEach(row => {
-          const existing = functionMap.get(row.function_name) || { count: 0, cost: 0 };
-          functionMap.set(row.function_name, {
+          const funcName = row.function_name || 'unknown';
+          const existing = functionMap.get(funcName) || { count: 0, cost: 0 };
+          functionMap.set(funcName, {
             count: existing.count + 1,
             cost: existing.cost + (Number(row.cost_usd) || 0),
           });

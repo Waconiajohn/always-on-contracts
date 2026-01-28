@@ -227,7 +227,7 @@ export default function ResumeBuilderIndex() {
 
       if (error) throw error;
 
-      // Store the resume text as a document (rb_documents uses raw_text and file_name)
+      // Store the resume text as a document with doc_type
       if (state.resumeText) {
         await supabase
           .from("rb_documents")
@@ -235,6 +235,7 @@ export default function ResumeBuilderIndex() {
             project_id: project.id,
             file_name: "quick-score-import.txt",
             raw_text: state.resumeText,
+            doc_type: "resume",
           });
       }
 
@@ -259,6 +260,24 @@ export default function ResumeBuilderIndex() {
             await supabase.from("rb_keyword_decisions").insert(keywordDecisions);
           }
         }
+
+      // Trigger JD requirements extraction in background
+      if (state.jobDescription) {
+        supabase.functions.invoke('rb-extract-jd-requirements', {
+          body: { 
+            project_id: project.id, 
+            jd_text: state.jobDescription,
+            role_title: state.jobTitle || state.scoreResult?.detected?.role || 'Unknown',
+            seniority_level: mappedSeniority || 'IC',
+          }
+        }).then((result) => {
+          if (result.error) {
+            console.error('Failed to extract JD requirements:', result.error);
+          } else {
+            console.log('JD requirements extracted:', result.data?.requirements_count);
+          }
+        });
+      }
 
       toast({
         title: "Analysis imported!",

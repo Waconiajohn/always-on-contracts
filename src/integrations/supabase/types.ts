@@ -3243,6 +3243,7 @@ export type Database = {
       rb_documents: {
         Row: {
           created_at: string
+          doc_type: string | null
           file_name: string
           id: string
           parsed_json: Json | null
@@ -3253,6 +3254,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          doc_type?: string | null
           file_name: string
           id?: string
           parsed_json?: Json | null
@@ -3263,6 +3265,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          doc_type?: string | null
           file_name?: string
           id?: string
           parsed_json?: Json | null

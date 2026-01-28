@@ -79,7 +79,7 @@ export default function FixPage() {
   const [_loading, setLoading] = useState(true);
   const [oldExperiences, setOldExperiences] = useState<OldExperience[]>([]);
   const [showOldExpDetails, setShowOldExpDetails] = useState(false);
-  const [jobUrl, setJobUrl] = useState<string | undefined>();
+  // jobUrl removed - column doesn't exist in rb_projects
   const [jobText, setJobText] = useState<string | undefined>();
   const [resumeSections, setResumeSections] = useState<any>(null);
   const [jdRequirements, setJdRequirements] = useState<any[]>([]);
@@ -103,7 +103,7 @@ export default function FixPage() {
         .from('rb_jd_requirements')
         .select('*')
         .eq('project_id', projectId)
-        .order('priority', { ascending: false });
+        .order('weight', { ascending: false });
 
       // Store requirements for comparison view
       setJdRequirements(reqData || []);
@@ -148,19 +148,7 @@ export default function FixPage() {
 
       // Load JD info for ATS detection
       if (jdDoc) {
-        setJobUrl(jdDoc.source_url || undefined);
         setJobText(jdDoc.raw_text || undefined);
-      }
-
-      // Load project for additional job URL
-      const { data: projectData } = await supabase
-        .from('rb_projects')
-        .select('job_posting_url')
-        .eq('id', projectId)
-        .single();
-
-      if (projectData?.job_posting_url) {
-        setJobUrl(projectData.job_posting_url);
       }
 
       // Check if there are cached questions from gap analysis
@@ -530,7 +518,7 @@ export default function FixPage() {
 
           <TabsContent value="ats" className="space-y-4">
             <ATSOptimizationCard
-              jobUrl={jobUrl}
+              jobUrl={undefined}
               jobText={jobText}
             />
           </TabsContent>

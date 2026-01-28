@@ -575,7 +575,7 @@ export function InterviewPractice({ projectId }: InterviewPracticeProps) {
           <CardContent className="py-3">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs text-muted-foreground mr-2">Jump to:</span>
-              {questions.map((q, i) => (
+              {questions.map((_, i) => (
                 <Button
                   key={i}
                   variant={i === currentQuestionIndex ? 'default' : completedQuestions.has(i) ? 'secondary' : 'outline'}

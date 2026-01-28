@@ -129,6 +129,8 @@ export function useStudioPageData({ projectId, sectionName }: UseStudioPageDataO
     }
   }, [originalContent]);
 
+  const hasChanges = content !== originalContent && content.trim().length > 0;
+
   // Warn user about unsaved changes before leaving
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -208,7 +210,7 @@ export function useStudioPageData({ projectId, sectionName }: UseStudioPageDataO
     source: e.source,
   }));
 
-  const hasChanges = content !== originalContent && content.trim().length > 0;
+  // hasChanges is declared earlier in the file (line ~132)
 
   // Block in-app navigation when there are unsaved changes
   const blocker = useBlocker(

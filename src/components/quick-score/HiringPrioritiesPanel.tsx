@@ -28,22 +28,22 @@ const statusConfig = {
     icon: CheckCircle2,
     label: 'Strong Match',
     color: 'text-primary',
-    bgColor: 'bg-primary/10',
-    borderColor: 'border-primary/30'
+    bgColor: 'bg-card',
+    borderColor: 'border-border'
   },
   partial: {
     icon: AlertCircle,
     label: 'Partial Match',
     color: 'text-amber-500',
-    bgColor: 'bg-amber-500/10',
-    borderColor: 'border-amber-500/30'
+    bgColor: 'bg-card',
+    borderColor: 'border-border'
   },
   missing: {
     icon: XCircle,
     label: 'Not Shown',
     color: 'text-destructive',
-    bgColor: 'bg-destructive/10',
-    borderColor: 'border-destructive/30'
+    bgColor: 'bg-card',
+    borderColor: 'border-border'
   }
 };
 
