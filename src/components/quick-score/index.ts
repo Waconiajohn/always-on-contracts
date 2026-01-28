@@ -6,7 +6,8 @@
 // ========================================
 export { HeroScoreDisplay } from './HeroScoreDisplay';
 export { ScoreBreakdownGrid } from './ScoreBreakdownGrid';
-export { KeywordAnalysisPanel } from './KeywordAnalysisPanel';
+export { KeywordComparisonTable } from './KeywordComparisonTable';
+export type { KeywordRowData } from './KeywordComparisonTable';
 export { KeywordContextPopover } from './KeywordContextPopover';
 export type { KeywordWithContext } from './KeywordContextPopover';
 export { ActionCards } from './ActionCards';
@@ -15,10 +16,7 @@ export { BuilderGateway } from './BuilderGateway';
 export { ModernGapAnalysis } from './ModernGapAnalysis';
 
 // ========================================
-// LEGACY COMPONENTS (Deprecated - not in use)
-// Kept for reference, will be removed in future cleanup
+// LEGACY COMPONENTS (Deprecated - removed)
 // ========================================
-// export { ThermometerScore } from './ThermometerScore';
-// export { ScoreBreakdownCards } from './ScoreBreakdownCards';
-// export { ModernScoreDisplay } from './ModernScoreDisplay';
-// export { ModernScoreBreakdown } from './ModernScoreBreakdown';
+// KeywordAnalysisPanel - replaced by KeywordComparisonTable
+// OrganizedKeywordPanel - replaced by KeywordComparisonTable

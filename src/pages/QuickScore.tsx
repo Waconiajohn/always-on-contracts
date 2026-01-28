@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { HeroScoreDisplay } from '@/components/quick-score/HeroScoreDisplay';
 import { ScoreBreakdownGrid } from '@/components/quick-score/ScoreBreakdownGrid';
-import { OrganizedKeywordPanel, OrganizedKeyword } from '@/components/quick-score/OrganizedKeywordPanel';
+import { KeywordComparisonTable, KeywordRowData } from '@/components/quick-score/KeywordComparisonTable';
 import { HiringPrioritiesPanel, HiringPriority } from '@/components/quick-score/HiringPrioritiesPanel';
 import { ActionCards, PriorityFix } from '@/components/quick-score/ActionCards';
 import { BuilderGateway } from '@/components/quick-score/BuilderGateway';
@@ -78,7 +78,7 @@ type KeywordLike =
       suggestedPhrasing?: string;
     };
 
-function normalizeKeywords(input: unknown): OrganizedKeyword[] {
+function normalizeKeywords(input: unknown, isMatched: boolean = false): KeywordRowData[] {
   if (!Array.isArray(input)) {
     console.warn('[QuickScore] Keywords not an array:', typeof input);
     return [];
@@ -90,7 +90,7 @@ function normalizeKeywords(input: unknown): OrganizedKeyword[] {
       if (typeof item === 'string') {
         const keyword = item.trim();
         if (!keyword) return null;
-        return { keyword, priority: 'high' as const };
+        return { keyword, priority: 'high' as const, isMatched };
       }
 
       // Handle objects - check multiple possible property names AI might use
@@ -127,6 +127,7 @@ function normalizeKeywords(input: unknown): OrganizedKeyword[] {
           priority,
           category,
           type,
+          isMatched,
           frequency: item.frequency,
           jdContext: item.jdContext || (itemObj.context as string | undefined),
           resumeContext: item.resumeContext,
@@ -289,9 +290,9 @@ export default function QuickScore() {
     setScoreResult(null);
   };
 
-  const handleFixResume = (focusedKeyword?: OrganizedKeyword) => {
-    const matchedKeywords = normalizeKeywords(scoreResult?.breakdown?.jdMatch?.matchedKeywords);
-    const missingKeywords = normalizeKeywords(scoreResult?.breakdown?.jdMatch?.missingKeywords);
+  const handleFixResume = (focusedKeyword?: KeywordRowData) => {
+    const matchedKeywords = normalizeKeywords(scoreResult?.breakdown?.jdMatch?.matchedKeywords, true);
+    const missingKeywords = normalizeKeywords(scoreResult?.breakdown?.jdMatch?.missingKeywords, false);
 
     navigate('/resume-builder', {
       state: {
@@ -323,13 +324,13 @@ export default function QuickScore() {
     });
   };
 
-  const handleAddKeywordToResume = (keyword: OrganizedKeyword) => {
+  const handleAddKeywordToResume = (keyword: KeywordRowData) => {
     handleFixResume(keyword);
   };
 
   const handleFixIssue = (fix: PriorityFix) => {
-    const matchedKeywords = normalizeKeywords(scoreResult?.breakdown?.jdMatch?.matchedKeywords);
-    const missingKeywords = normalizeKeywords(scoreResult?.breakdown?.jdMatch?.missingKeywords);
+    const matchedKeywords = normalizeKeywords(scoreResult?.breakdown?.jdMatch?.matchedKeywords, true);
+    const missingKeywords = normalizeKeywords(scoreResult?.breakdown?.jdMatch?.missingKeywords, false);
 
     navigate('/resume-builder', {
       state: {
@@ -361,8 +362,8 @@ export default function QuickScore() {
   };
 
   // Calculate gap count for BuilderGateway
-  const matchedKeywordsForUi = normalizeKeywords(scoreResult?.breakdown?.jdMatch?.matchedKeywords);
-  const missingKeywordsForUi = normalizeKeywords(scoreResult?.breakdown?.jdMatch?.missingKeywords);
+  const matchedKeywordsForUi = normalizeKeywords(scoreResult?.breakdown?.jdMatch?.matchedKeywords, true);
+  const missingKeywordsForUi = normalizeKeywords(scoreResult?.breakdown?.jdMatch?.missingKeywords, false);
 
   const gapCount = scoreResult 
     ? (scoreResult.priorityFixes?.length || 0) + 
@@ -565,11 +566,10 @@ export default function QuickScore() {
               {/* Score Breakdown Grid */}
               <ScoreBreakdownGrid scores={scoreResult.scores} />
 
-              {/* Organized Keyword Analysis - grouped by category with context */}
-              <OrganizedKeywordPanel
-                matchedKeywords={matchedKeywordsForUi}
-                missingKeywords={missingKeywordsForUi}
-                onAddToResume={handleAddKeywordToResume}
+              {/* Keyword Comparison Table - two-column layout */}
+              <KeywordComparisonTable
+                keywords={[...matchedKeywordsForUi, ...missingKeywordsForUi]}
+                onAddKeyword={handleAddKeywordToResume}
               />
 
               {/* Hiring Manager Priorities - what they really care about */}
