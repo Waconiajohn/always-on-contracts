@@ -71,6 +71,7 @@ const RBExperiencePage = lazy(() => import("./pages/resume-builder/studio/Experi
 const RBEducationPage = lazy(() => import("./pages/resume-builder/studio/EducationPage"));
 const RBReviewPage = lazy(() => import("./pages/resume-builder/ReviewPage"));
 const RBExportPage = lazy(() => import("./pages/resume-builder/ExportPage"));
+const RBInterviewPage = lazy(() => import("./pages/resume-builder/InterviewPage"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -184,6 +185,7 @@ const AppContent = () => {
             <Route path="/resume-builder/:projectId/studio/education" element={<ProtectedRoute><RBEducationPage /></ProtectedRoute>} />
             <Route path="/resume-builder/:projectId/review" element={<ProtectedRoute><RBReviewPage /></ProtectedRoute>} />
             <Route path="/resume-builder/:projectId/export" element={<ProtectedRoute><RBExportPage /></ProtectedRoute>} />
+            <Route path="/resume-builder/:projectId/interview" element={<ProtectedRoute><RBInterviewPage /></ProtectedRoute>} />
             {/* Resume Optimizer Marketing Page */}
             <Route path="/resume-optimizer-info" element={<ResumeOptimizerMarketing />} />
             {/* V2 Resume Tailoring - Benchmark-based scoring */}

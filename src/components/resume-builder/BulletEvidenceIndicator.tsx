@@ -111,14 +111,14 @@ export function BulletEvidenceIndicator({ bulletText, evidenceClaims }: BulletEv
       description: 'No matching evidence found',
     },
   };
-  
+
   const { icon: Icon, label, className, badgeVariant, description } = config[strength];
-  
+
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Badge 
+          <Badge
             variant={badgeVariant}
             className="h-5 px-1.5 cursor-help gap-1 text-[10px] font-normal opacity-0 group-hover:opacity-100 transition-opacity"
           >

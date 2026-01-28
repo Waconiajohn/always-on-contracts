@@ -104,12 +104,14 @@ export type ClaimsExtraction = z.infer<typeof ClaimsExtractionSchema>;
 export type ExtractedClaim = z.infer<typeof ExtractedClaimSchema>;
 
 // ============================================================================
-// AI Call #5: Gap Analysis Response
+// AI Call #5: Gap Analysis Response (with Semantic Matching)
 // ============================================================================
 export const MetRequirementSchema = z.object({
   requirement_text: z.string(),
   evidence_quote: z.string(),
   weight: z.number().min(1).max(5),
+  match_type: z.enum(["exact", "semantic"]).optional().default("exact"),
+  semantic_match_reason: z.string().optional().describe("Explanation if semantic match"),
 });
 
 export const PartialRequirementSchema = z.object({
@@ -125,12 +127,19 @@ export const UnmetRequirementSchema = z.object({
   weight: z.number().min(1).max(5),
 });
 
+export const SemanticSuggestionSchema = z.object({
+  resume_phrase: z.string().describe("What the candidate wrote"),
+  jd_term: z.string().describe("What the JD is looking for"),
+  suggestion: z.string().describe("How to bridge the gap"),
+});
+
 export const GapAnalysisSchema = z.object({
   met: z.array(MetRequirementSchema).default([]),
   partial: z.array(PartialRequirementSchema).default([]),
   unmet: z.array(UnmetRequirementSchema).default([]),
   questions: z.array(z.string()).default([]).describe("Questions to ask candidate for missing info"),
   safe_keyword_insertions: z.array(z.string()).default([]).describe("Keywords safe to add"),
+  semantic_suggestions: z.array(SemanticSuggestionSchema).default([]).describe("Semantic bridging suggestions"),
   score_breakdown: z.object({
     met_weight: z.number(),
     partial_weight: z.number(),

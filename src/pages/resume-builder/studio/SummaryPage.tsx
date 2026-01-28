@@ -42,6 +42,8 @@ export default function SummaryPage() {
     handleRewrite,
     handleSave,
     handleRevert,
+    saveStatus,
+    lastSaved,
   } = useStudioPageData({ projectId: projectId || '', sectionName: SECTION_NAME });
 
   // Get original content from first version or empty
@@ -78,6 +80,10 @@ export default function SummaryPage() {
     <ResumeBuilderShell>
       <StudioLayout
         leftPanel={<OriginalContentPanel content={originalContent} />}
+        score={project?.current_score}
+        previousScore={project?.original_score}
+        saveStatus={saveStatus}
+        lastSaved={lastSaved}
       >
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Professional Summary</h2>

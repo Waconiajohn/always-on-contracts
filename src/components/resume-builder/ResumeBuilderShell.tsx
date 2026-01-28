@@ -31,6 +31,7 @@ const pathLabels: Record<string, string> = {
   'education': 'Education',
   'review': 'Final Review',
   'export': 'Export',
+  'interview': 'Interview Practice',
 };
 
 export function ResumeBuilderShell({ 

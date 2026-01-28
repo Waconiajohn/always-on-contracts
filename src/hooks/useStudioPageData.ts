@@ -1,8 +1,9 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSectionContent, useVersionHistory, useRewriteSection } from '@/hooks/useRewriteSection';
 import { calculateResumeScore } from '@/lib/calculate-resume-score';
 import type { RBEvidence, RBProject, ActionSource, RBKeywordDecision, RBJDRequirement } from '@/types/resume-builder';
+import type { SaveStatus } from '@/components/resume-builder/AutoSaveIndicator';
 
 interface UseStudioPageDataOptions {
   projectId: string;
@@ -16,11 +17,17 @@ export function useStudioPageData({ projectId, sectionName }: UseStudioPageDataO
   const [keywordDecisions, setKeywordDecisions] = useState<RBKeywordDecision[]>([]);
   const [jdRequirements, setJdRequirements] = useState<RBJDRequirement[]>([]);
 
-  const { content, setContent, originalContent, isLoading: loadingContent, loadContent } = 
+  const { content, setContent, originalContent, isLoading: loadingContent, loadContent } =
     useSectionContent(projectId, sectionName);
-  const { versions, loadVersions, revertToVersion } = 
+  const { versions, loadVersions, revertToVersion } =
     useVersionHistory(projectId, sectionName);
   const { rewrite, isLoading: rewriting } = useRewriteSection();
+
+  // Auto-save state
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const lastSavedContent = useRef<string>('');
+  const autoSaveTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const loadProject = useCallback(async () => {
     if (!projectId) return;
@@ -73,6 +80,53 @@ export function useStudioPageData({ projectId, sectionName }: UseStudioPageDataO
     loadKeywordDecisions();
     loadJDRequirements();
   }, [loadContent, loadVersions, loadEvidence, loadProject, loadKeywordDecisions, loadJDRequirements]);
+
+  // Auto-save effect
+  useEffect(() => {
+    // Skip if content hasn't changed or is empty
+    if (!content.trim() || content === lastSavedContent.current || content === originalContent) {
+      return;
+    }
+
+    // Clear existing timeout
+    if (autoSaveTimeout.current) {
+      clearTimeout(autoSaveTimeout.current);
+    }
+
+    setSaveStatus('saving');
+
+    // Debounced auto-save after 2 seconds of inactivity
+    autoSaveTimeout.current = setTimeout(async () => {
+      try {
+        await rewrite({
+          projectId,
+          sectionName,
+          currentContent: content,
+          actionSource: 'manual',
+        });
+        lastSavedContent.current = content;
+        setLastSaved(new Date());
+        setSaveStatus('saved');
+        loadVersions();
+      } catch (err) {
+        console.error('Auto-save failed:', err);
+        setSaveStatus('error');
+      }
+    }, 2000);
+
+    return () => {
+      if (autoSaveTimeout.current) {
+        clearTimeout(autoSaveTimeout.current);
+      }
+    };
+  }, [content, originalContent, projectId, sectionName, rewrite, loadVersions]);
+
+  // Initialize lastSavedContent when content loads
+  useEffect(() => {
+    if (originalContent && !lastSavedContent.current) {
+      lastSavedContent.current = originalContent;
+    }
+  }, [originalContent]);
 
   // Recalculate score utility
   const recalculateScore = useCallback(async (newContent: string) => {
@@ -148,19 +202,23 @@ export function useStudioPageData({ projectId, sectionName }: UseStudioPageDataO
     evidence,
     project,
     versions,
-    
+
     // State
     showHistory,
     setShowHistory,
     hasChanges,
     isLoading: rewriting || loadingContent,
-    
+
+    // Auto-save state
+    saveStatus,
+    lastSaved,
+
     // Actions
     handleRewrite,
     handleSave,
     handleRevert,
     recalculateScore,
-    
+
     // Derived
     evidenceContext,
   };

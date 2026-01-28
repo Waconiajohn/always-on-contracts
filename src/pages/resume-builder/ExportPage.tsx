@@ -11,14 +11,15 @@ import { toast } from 'sonner';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, convertInchesToTwip } from 'docx';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
-import { 
-  Copy, 
-  FileText, 
+import {
+  Copy,
+  FileText,
   Download,
   FileDown,
   Loader2,
   CheckCircle2,
-  ArrowLeft
+  ArrowLeft,
+  Eye
 } from 'lucide-react';
 import type { RBProject, RBVersion } from '@/types/resume-builder';
 import { 
@@ -461,15 +462,83 @@ export default function ExportPage() {
           <CardHeader>
             <CardTitle>Resume Preview</CardTitle>
             <CardDescription>
-              {versions.length} sections compiled
+              {versions.length} sections compiled • Template: {TEMPLATES.find(t => t.id === selectedTemplate)?.name}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="plain">
+            <Tabs defaultValue="document">
               <TabsList>
+                <TabsTrigger value="document" className="gap-1.5">
+                  <Eye className="h-3.5 w-3.5" />
+                  Document
+                </TabsTrigger>
                 <TabsTrigger value="plain">Plain Text</TabsTrigger>
                 <TabsTrigger value="sections">By Section</TabsTrigger>
               </TabsList>
+
+              {/* Document Preview - Visual mockup of how PDF/DOCX will look */}
+              <TabsContent value="document" className="mt-4">
+                <div className="flex justify-center">
+                  <div
+                    className="w-[612px] min-h-[792px] bg-white shadow-lg border rounded-sm p-12 text-black"
+                    style={{
+                      fontFamily: 'Georgia, serif',
+                      fontSize: selectedTemplate === 'executive' ? '10px' : '11px',
+                      lineHeight: selectedTemplate === 'executive' ? '1.3' : '1.5',
+                    }}
+                  >
+                    {/* Header/Title */}
+                    {project?.role_title && (
+                      <div className="text-center mb-6">
+                        <h1 className="text-xl font-bold tracking-tight" style={{ fontFamily: 'Arial, sans-serif' }}>
+                          {project.role_title}
+                        </h1>
+                        {project.seniority_level && (
+                          <p className="text-xs text-gray-600 mt-1">{project.seniority_level}</p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Sections */}
+                    {(() => {
+                      const formattedSections = applyTemplateFormatting(versions, selectedTemplate);
+                      return formattedSections.map((section, idx) => (
+                        <div key={idx} className="mb-5">
+                          <h2
+                            className="text-sm font-bold uppercase tracking-wide border-b border-gray-300 pb-1 mb-2"
+                            style={{ fontFamily: 'Arial, sans-serif' }}
+                          >
+                            {section.title}
+                          </h2>
+                          <div className="text-xs leading-relaxed">
+                            {section.content.split('\n').filter(line => line.trim()).map((line, lineIdx) => {
+                              const isBullet = line.trim().startsWith('•') || line.trim().startsWith('-');
+                              const cleanLine = line.replace(/^[•-]\s*/, '');
+                              return (
+                                <p
+                                  key={lineIdx}
+                                  className={isBullet ? 'pl-4 relative mb-1' : 'mb-2'}
+                                >
+                                  {isBullet && <span className="absolute left-0">•</span>}
+                                  {cleanLine}
+                                </p>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ));
+                    })()}
+
+                    {/* Page indicator */}
+                    <div className="absolute bottom-4 right-4 text-[8px] text-gray-400">
+                      Page 1 of {selectedTemplate === 'executive' ? '1' : '1-2'}
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-center text-muted-foreground mt-3">
+                  This is an approximate preview. Actual document may vary slightly in formatting.
+                </p>
+              </TabsContent>
 
               <TabsContent value="plain" className="mt-4">
                 <ScrollArea className="h-[400px] rounded-md border bg-muted/30 p-4">

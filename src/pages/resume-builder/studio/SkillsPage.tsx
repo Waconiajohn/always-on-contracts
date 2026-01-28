@@ -97,6 +97,8 @@ export default function SkillsPage() {
     handleRewrite,
     handleSave,
     handleRevert,
+    saveStatus,
+    lastSaved,
   } = useStudioPageData({ projectId: projectId || '', sectionName: SECTION_NAME });
 
   useEffect(() => {
@@ -121,6 +123,10 @@ export default function SkillsPage() {
     <ResumeBuilderShell>
       <StudioLayout
         leftPanel={<KeywordStatusPanel keywords={keywords} />}
+        score={project?.current_score}
+        previousScore={project?.original_score}
+        saveStatus={saveStatus}
+        lastSaved={lastSaved}
       >
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Skills & Keywords</h2>

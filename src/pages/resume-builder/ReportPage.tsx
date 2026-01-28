@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Wrench, Wand2, AlertTriangle, CheckCircle2, Target, TrendingUp, XCircle, AlertCircle } from "lucide-react";
+import { Loader2, Wrench, Wand2, AlertTriangle, CheckCircle2, Target, TrendingUp, XCircle, AlertCircle, MessageSquare, SplitSquareVertical } from "lucide-react";
 import { ResumeBuilderShell } from "@/components/resume-builder/ResumeBuilderShell";
 import { runATSAnalysis, getATSScoreBadge, type ATSAnalysis } from "@/lib/ats-checks";
 import type { RBProject, RBJDRequirement, RBKeywordDecision } from "@/types/resume-builder";
@@ -436,10 +436,55 @@ export default function ReportPage() {
           </Card>
         </div>
 
+        {/* Additional Tools */}
+        <div className="grid gap-4 md:grid-cols-2">
+          {/* Interview Practice */}
+          <Card
+            className="cursor-pointer hover:border-primary/50 transition-colors"
+            onClick={() => navigate(`/resume-builder/${projectId}/interview`)}
+          >
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                Interview Practice
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-muted-foreground mb-2">
+                Practice interview questions tailored to this job
+              </p>
+              <Button variant="outline" size="sm" className="text-xs">
+                Start Practice →
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Side-by-Side Comparison */}
+          <Card
+            className="cursor-pointer hover:border-primary/50 transition-colors"
+            onClick={() => navigate(`/resume-builder/${projectId}/fix?tab=comparison`)}
+          >
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <SplitSquareVertical className="h-4 w-4 text-muted-foreground" />
+                Compare Resume & JD
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-muted-foreground mb-2">
+                See your resume side-by-side with job requirements
+              </p>
+              <Button variant="outline" size="sm" className="text-xs">
+                View Comparison →
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Navigation */}
         <div className="text-center pt-4">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             onClick={() => navigate(`/resume-builder/${projectId}/target`)}
           >
             ← Back to Target Settings

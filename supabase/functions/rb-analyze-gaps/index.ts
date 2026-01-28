@@ -69,31 +69,41 @@ serve(async (req) => {
       .filter((d: { decision: string }) => d.decision === "not_true" || d.decision === "ignore")
       .map((d: { keyword: string }) => d.keyword);
 
-    const systemPrompt = `You are an expert resume analyst comparing a candidate's evidence against job requirements.
+    const systemPrompt = `You are an expert resume analyst using SEMANTIC MATCHING to compare a candidate's evidence against job requirements.
+
+SEMANTIC MATCHING RULES (go beyond exact keywords):
+1. "Managed a team of 5 engineers" MATCHES "leadership experience" or "team management"
+2. "Reduced costs by 30%" MATCHES "cost optimization" or "budget management"
+3. "Built REST APIs" MATCHES "API development" or "backend development"
+4. "Collaborated with stakeholders" MATCHES "cross-functional collaboration"
+5. Look for EQUIVALENT MEANING, not just identical words
+
+MATCHING CRITERIA:
+1. MET = Evidence clearly demonstrates the requirement (exact OR semantic match)
+2. PARTIAL = Evidence shows related experience but lacks specificity or scope
+3. UNMET = No evidence supports this requirement even semantically
 
 CRITICAL RULES:
-1. A requirement is MET only if there is EXPLICIT evidence supporting it
-2. A requirement is PARTIAL if some evidence exists but is incomplete
-3. A requirement is UNMET if there is no supporting evidence
-4. NEVER assume skills or experience not explicitly stated
-5. Respect suppressed keywords - do not suggest adding them
+- Use semantic understanding: "Python scripting" matches "programming experience"
+- Consider transferable skills: "managed $2M budget" matches "financial oversight"
+- Respect suppressed keywords - do not suggest adding them
+- NEVER fabricate or assume skills not demonstrated in evidence
 
 For unmet requirements, recommend:
-- "add_keyword": Safe to add to skills section if candidate likely has it
-- "ask_user": Need to verify if candidate has this experience
-- "ignore": Low priority or candidate clearly doesn't have it
+- "add_keyword": Candidate likely has this (semantic evidence suggests it)
+- "ask_user": Need to verify - evidence is ambiguous
+- "ignore": Clearly outside candidate's background
 
-Generate questions to ask the candidate about partial/unmet requirements where additional evidence would help.
-
-Identify safe keyword insertions - keywords clearly supported by evidence that could be added to enhance keyword matching.
+Include semantic_match_reason when a match is NOT exact keyword but semantic.
 
 Respond ONLY with valid JSON:
 {
-  "met": [{ "requirement_text": "...", "evidence_quote": "...", "weight": 1-5 }],
+  "met": [{ "requirement_text": "...", "evidence_quote": "...", "weight": 1-5, "match_type": "exact|semantic", "semantic_match_reason": "optional explanation if semantic" }],
   "partial": [{ "requirement_text": "...", "what_is_missing": "...", "evidence_quote": "...|null", "weight": 1-5 }],
   "unmet": [{ "requirement_text": "...", "recommended_action": "add_keyword|ask_user|ignore", "weight": 1-5 }],
   "questions": ["Question to ask candidate about their experience with X..."],
   "safe_keyword_insertions": ["keyword1", "keyword2"],
+  "semantic_suggestions": [{ "resume_phrase": "what they wrote", "jd_term": "what JD wants", "suggestion": "how to bridge" }],
   "score_breakdown": {
     "met_weight": total weight of met requirements,
     "partial_weight": total weight of partial requirements (count at 50%),

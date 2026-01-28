@@ -29,6 +29,8 @@ export default function ExperiencePage() {
     handleSave,
     handleRevert,
     evidenceContext,
+    saveStatus,
+    lastSaved,
   } = useStudioPageData({ projectId: projectId || '', sectionName: SECTION_NAME });
 
   const handleWorldClassContent = (newContent: string) => {
@@ -39,6 +41,10 @@ export default function ExperiencePage() {
     <ResumeBuilderShell>
       <StudioLayout
         leftPanel={<EvidenceSidebar evidence={evidence} />}
+        score={project?.current_score}
+        previousScore={project?.original_score}
+        saveStatus={saveStatus}
+        lastSaved={lastSaved}
       >
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Work Experience</h2>

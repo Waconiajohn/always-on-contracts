@@ -2,11 +2,13 @@ import { ReactNode, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  FileText, 
-  Briefcase, 
+import { ScoreIndicator } from './ScoreIndicator';
+import { AutoSaveIndicator, type SaveStatus } from './AutoSaveIndicator';
+import {
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  Briefcase,
   GraduationCap,
   Lightbulb,
   Check
@@ -16,6 +18,11 @@ interface StudioLayoutProps {
   children: ReactNode;
   leftPanel?: ReactNode;
   bottomControls?: ReactNode;
+  score?: number | null;
+  previousScore?: number | null;
+  isScoreUpdating?: boolean;
+  saveStatus?: SaveStatus;
+  lastSaved?: Date | null;
 }
 
 const studioSteps = [
@@ -25,7 +32,16 @@ const studioSteps = [
   { id: 'education', label: 'Education', icon: GraduationCap, path: 'education' },
 ];
 
-export function StudioLayout({ children, leftPanel, bottomControls }: StudioLayoutProps) {
+export function StudioLayout({
+  children,
+  leftPanel,
+  bottomControls,
+  score,
+  previousScore,
+  isScoreUpdating,
+  saveStatus = 'idle',
+  lastSaved,
+}: StudioLayoutProps) {
   const navigate = useNavigate();
   const { projectId } = useParams();
   const location = useLocation();
@@ -58,9 +74,11 @@ export function StudioLayout({ children, leftPanel, bottomControls }: StudioLayo
 
   return (
     <div className="flex flex-col h-[calc(100vh-12rem)]">
-      {/* Top Stepper */}
+      {/* Top Stepper with Score */}
       <div className="flex-shrink-0 mb-6">
-        <nav className="flex items-center justify-center gap-2">
+        <div className="flex items-center justify-between mb-4">
+          <div className="w-32" /> {/* Spacer for centering */}
+          <nav className="flex items-center justify-center gap-2">
           {studioSteps.map((step, index) => {
             const isActive = index === currentStepIndex;
             const isCompleted = index < currentStepIndex;
@@ -91,6 +109,20 @@ export function StudioLayout({ children, leftPanel, bottomControls }: StudioLayo
             );
           })}
         </nav>
+          {/* Score and Save Indicator */}
+          <div className="w-48 flex items-center justify-end gap-4">
+            <AutoSaveIndicator status={saveStatus} lastSaved={lastSaved} />
+            {score !== undefined && (
+              <ScoreIndicator
+                currentScore={score}
+                previousScore={previousScore}
+                isUpdating={isScoreUpdating}
+                size="sm"
+                showTrend={true}
+              />
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Main Content Area */}
