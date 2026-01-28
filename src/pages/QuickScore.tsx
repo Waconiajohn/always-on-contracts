@@ -174,6 +174,27 @@ export default function QuickScore() {
     const file = acceptedFiles[0];
     if (!file) return;
 
+    // File size validation (max 10MB)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_FILE_SIZE) {
+      toast({
+        title: 'File too large',
+        description: `Maximum file size is 10MB. Your file is ${(file.size / (1024 * 1024)).toFixed(1)}MB.`,
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Prevent race condition - if already processing, ignore new drops
+    if (isProcessingFile) {
+      toast({
+        title: 'Please wait',
+        description: 'A file is already being processed',
+        variant: 'default'
+      });
+      return;
+    }
+
     setIsProcessingFile(true);
     setResumeFileName(file.name);
 
@@ -188,7 +209,7 @@ export default function QuickScore() {
         reader.onerror = () => reject(new Error('Failed to read file'));
         reader.readAsDataURL(file);
       });
-      
+
       const { data, error } = await invokeEdgeFunction('parse-resume', {
         fileData: base64,
         fileName: file.name
@@ -214,7 +235,7 @@ export default function QuickScore() {
     } finally {
       setIsProcessingFile(false);
     }
-  }, [toast]);
+  }, [toast, isProcessingFile]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -232,6 +253,28 @@ export default function QuickScore() {
       toast({
         title: 'Missing information',
         description: 'Please upload a resume and paste a job description',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Content quality validation
+    const MIN_RESUME_LENGTH = 200;
+    const MIN_JD_LENGTH = 100;
+
+    if (resumeText.length < MIN_RESUME_LENGTH) {
+      toast({
+        title: 'Resume too short',
+        description: `Your resume appears too short (${resumeText.length} chars). Please ensure it contains your full work history.`,
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (jobDescription.length < MIN_JD_LENGTH) {
+      toast({
+        title: 'Job description too short',
+        description: `The job description appears too short (${jobDescription.length} chars). Please paste the complete JD.`,
         variant: 'destructive'
       });
       return;
@@ -411,8 +454,11 @@ export default function QuickScore() {
                       isDragActive && 'border-primary bg-primary/5',
                       isProcessingFile && 'opacity-50 cursor-wait'
                     )}
+                    role="button"
+                    aria-label={resumeFileName ? `Resume uploaded: ${resumeFileName}. Click to replace.` : 'Drop your resume here or click to browse'}
+                    tabIndex={0}
                   >
-                    <input {...getInputProps()} />
+                    <input {...getInputProps()} aria-label="Resume file upload" />
                     {isProcessingFile ? (
                       <div className="flex flex-col items-center gap-2">
                         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

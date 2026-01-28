@@ -127,11 +127,12 @@ export function EvidenceSidebar({ evidence, maxItems = 10, onEvidenceRemoved, re
     setRemovingId(evidenceId);
     try {
       // Mark as inactive and update confidence to indicate it was marked inaccurate
+      // Note: confidence is a numeric field, so use 0.1 instead of 'low'
       const { error } = await supabase
         .from('rb_evidence')
         .update({
           is_active: false,
-          confidence: 'low' // Downgrade confidence when marked inaccurate
+          confidence: 0.1 // Downgrade confidence when marked inaccurate (numeric value)
         })
         .eq('id', evidenceId);
 

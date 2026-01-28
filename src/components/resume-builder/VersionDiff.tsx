@@ -45,7 +45,7 @@ export function VersionDiff({
       <ScrollArea className="h-[400px] rounded-md border">
         <div className="p-4 font-mono text-sm">
           {diff.map((change, index) => (
-            <DiffLine key={index} change={change} />
+            <DiffLine key={`${index}-${change.value.substring(0, 20)}`} change={change} />
           ))}
         </div>
       </ScrollArea>
@@ -66,7 +66,7 @@ function DiffLine({ change }: { change: Change }) {
     <>
       {lines.map((line, i) => (
         <div
-          key={i}
+          key={`${i}-${line.substring(0, 30)}`}
           className={cn(
             'px-2 py-0.5 rounded-sm',
             change.added && 'bg-primary/10 text-primary border-l-2 border-primary',

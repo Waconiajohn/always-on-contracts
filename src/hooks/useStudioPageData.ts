@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { useBlocker } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useSectionContent, useVersionHistory, useRewriteSection } from '@/hooks/useRewriteSection';
 import { calculateResumeScore } from '@/lib/calculate-resume-score';
@@ -128,6 +129,20 @@ export function useStudioPageData({ projectId, sectionName }: UseStudioPageDataO
     }
   }, [originalContent]);
 
+  // Warn user about unsaved changes before leaving
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasChanges) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasChanges]);
+
   // Recalculate score utility
   const recalculateScore = useCallback(async (newContent: string) => {
     if (!projectId) return;
@@ -194,6 +209,26 @@ export function useStudioPageData({ projectId, sectionName }: UseStudioPageDataO
   }));
 
   const hasChanges = content !== originalContent && content.trim().length > 0;
+
+  // Block in-app navigation when there are unsaved changes
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      hasChanges && currentLocation.pathname !== nextLocation.pathname
+  );
+
+  // Handle the navigation block
+  useEffect(() => {
+    if (blocker.state === 'blocked') {
+      const shouldNavigate = window.confirm(
+        'You have unsaved changes. Are you sure you want to leave?'
+      );
+      if (shouldNavigate) {
+        blocker.proceed();
+      } else {
+        blocker.reset();
+      }
+    }
+  }, [blocker]);
 
   return {
     // Data

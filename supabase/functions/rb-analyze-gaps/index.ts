@@ -51,6 +51,20 @@ serve(async (req) => {
       });
     }
 
+    // Verify user owns this project
+    const { data: projectCheck, error: projectError } = await supabase
+      .from("rb_projects")
+      .select("id, user_id")
+      .eq("id", project_id)
+      .single();
+
+    if (projectError || !projectCheck || projectCheck.user_id !== user.id) {
+      return new Response(JSON.stringify({ error: "Project not found or access denied" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Fetch all data needed for gap analysis
     const [requirementsResult, benchmarksResult, evidenceResult, keywordDecisionsResult] = await Promise.all([
       supabase.from("rb_jd_requirements").select("*").eq("project_id", project_id),
@@ -155,10 +169,25 @@ Perform the gap analysis.`;
       });
     }
 
-    // Use centralized schema validation
-    const result = parseAndValidate(GapAnalysisSchema, content, "rb-analyze-gaps");
+    // Use centralized schema validation with error handling
+    let result;
+    try {
+      result = parseAndValidate(GapAnalysisSchema, content, "rb-analyze-gaps");
+    } catch (parseError) {
+      console.error("Schema validation failed:", parseError);
+      // Return minimal result on parse failure
+      result = {
+        met: [],
+        partial: [],
+        unmet: [],
+        questions: [],
+        safe_keyword_insertions: [],
+        semantic_suggestions: [],
+        score_breakdown: { met_weight: 0, partial_weight: 0, unmet_weight: 0, total_weight: 1 }
+      };
+    }
 
-    // Calculate score
+    // Calculate score with division by zero protection
     const breakdown = result.score_breakdown || {
       met_weight: 0,
       partial_weight: 0,
@@ -167,7 +196,9 @@ Perform the gap analysis.`;
     };
 
     const effectiveScore = breakdown.met_weight + (breakdown.partial_weight * 0.5);
-    const score = Math.round((effectiveScore / breakdown.total_weight) * 100);
+    // Protect against division by zero
+    const totalWeight = breakdown.total_weight > 0 ? breakdown.total_weight : 1;
+    const score = Math.round((effectiveScore / totalWeight) * 100);
 
     // Update project score
     const { error: updateError } = await supabase

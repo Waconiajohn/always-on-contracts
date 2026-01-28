@@ -331,3 +331,45 @@ export function parseAndValidate<T extends z.ZodType>(
     throw err;
   }
 }
+
+// ============================================================================
+// Helper: Sanitize User Input for AI
+// ============================================================================
+/**
+ * Sanitizes user input before sending to AI to prevent prompt injection
+ * and remove potentially harmful content.
+ */
+export function sanitizeForAI(input: string): string {
+  if (!input) return '';
+
+  return input
+    // Remove potential prompt injection attempts
+    .replace(/\b(ignore|disregard|forget)\s+(previous|all|above|prior)\s+(instructions?|rules?|prompts?)/gi, '[REMOVED]')
+    .replace(/\b(you\s+are|act\s+as|pretend|roleplay)\s+(now\s+)?(a|an|the)?\s*\w+/gi, '[REMOVED]')
+    .replace(/\b(system|assistant|user)\s*:/gi, '')
+    // Remove excessive whitespace
+    .replace(/\s+/g, ' ')
+    // Limit length to prevent token overflow (max ~10000 chars)
+    .substring(0, 10000)
+    .trim();
+}
+
+/**
+ * Strips common PII patterns from text before sending to AI.
+ * Note: This is a best-effort approach, not a guarantee.
+ */
+export function stripPII(text: string): string {
+  if (!text) return '';
+
+  return text
+    // SSN patterns
+    .replace(/\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b/g, '[SSN REDACTED]')
+    // Phone numbers (various formats)
+    .replace(/\b(\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g, '[PHONE REDACTED]')
+    // Email addresses
+    .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[EMAIL REDACTED]')
+    // Credit card numbers
+    .replace(/\b(?:\d{4}[-\s]?){3}\d{4}\b/g, '[CARD REDACTED]')
+    // Home addresses (partial - street numbers with street names)
+    .replace(/\b\d{1,5}\s+\w+\s+(street|st|avenue|ave|road|rd|drive|dr|lane|ln|way|court|ct|boulevard|blvd)\b/gi, '[ADDRESS REDACTED]');
+}

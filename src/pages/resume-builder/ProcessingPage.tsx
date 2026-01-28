@@ -56,13 +56,20 @@ export default function ProcessingPage() {
   const [stages, setStages] = useState<Stage[]>(INITIAL_STAGES);
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
   const [hasError, setHasError] = useState(false);
+  const [isCancelled, setIsCancelled] = useState(false);
   const pipelineStarted = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (projectId && !pipelineStarted.current) {
       pipelineStarted.current = true;
       runPipeline();
     }
+
+    // Cleanup: reset the ref when component unmounts or projectId changes
+    return () => {
+      pipelineStarted.current = false;
+    };
   }, [projectId]);
 
   const updateStage = (index: number, updates: Partial<Stage>) => {
@@ -71,9 +78,32 @@ export default function ProcessingPage() {
     ));
   };
 
+  const handleCancel = () => {
+    setIsCancelled(true);
+    abortControllerRef.current?.abort();
+    toast.info("Processing cancelled");
+    navigate(`/resume-builder/${projectId}/jd`);
+  };
+
+  const handleRetry = () => {
+    // Reset all state for retry
+    setStages(INITIAL_STAGES);
+    setCurrentStageIndex(0);
+    setHasError(false);
+    setIsCancelled(false);
+    pipelineStarted.current = false;
+    // Trigger re-run
+    setTimeout(() => {
+      pipelineStarted.current = true;
+      runPipeline();
+    }, 100);
+  };
+
   const runPipeline = async () => {
-    if (!projectId) return;
-    
+    if (!projectId || isCancelled) return;
+
+    abortControllerRef.current = new AbortController();
+
     try {
       // Load project data
       const { data: project, error: projectError } = await supabase
@@ -256,16 +286,25 @@ export default function ProcessingPage() {
           </CardContent>
         </Card>
 
-        {hasError && (
-          <div className="text-center">
-            <Button
-              variant="outline"
-              onClick={() => window.location.reload()}
-            >
-              Try Again
-            </Button>
-          </div>
-        )}
+        {/* Action buttons */}
+        <div className="flex justify-center gap-3">
+          {hasError ? (
+            <>
+              <Button variant="outline" onClick={() => navigate(`/resume-builder/${projectId}/jd`)}>
+                Go Back
+              </Button>
+              <Button onClick={handleRetry}>
+                Try Again
+              </Button>
+            </>
+          ) : (
+            !stages.every(s => s.status === 'complete') && (
+              <Button variant="ghost" onClick={handleCancel} className="text-muted-foreground">
+                Cancel
+              </Button>
+            )
+          )}
+        </div>
       </div>
     </ResumeBuilderShell>
   );

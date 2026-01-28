@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { MicroEditSchema, parseAndValidate } from '../_shared/rb-schemas.ts';
 
 const corsHeaders = {
@@ -27,7 +28,31 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { bullet_text, edit_instruction, context, evidence_claims } = 
+    // Authentication check
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "No authorization header" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(
+      authHeader.replace("Bearer ", "")
+    );
+
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { bullet_text, edit_instruction, context, evidence_claims } =
       await req.json() as MicroEditRequest;
 
     if (!bullet_text || !edit_instruction) {
@@ -106,8 +131,21 @@ If the edit cannot be made safely (e.g., would require hallucination), return th
       throw new Error('No content in AI response');
     }
 
-    // Use centralized schema validation
-    const result = parseAndValidate(MicroEditSchema, content, "rb-micro-edit");
+    // Use centralized schema validation with error handling
+    let result;
+    try {
+      result = parseAndValidate(MicroEditSchema, content, "rb-micro-edit");
+    } catch (parseError) {
+      console.error("Schema validation failed:", parseError);
+      // Return original text unchanged on parse failure
+      result = {
+        original: bullet_text,
+        edited: bullet_text,
+        changes_made: ["Edit could not be processed - returning original"],
+        evidence_used: [],
+        confidence: 0
+      };
+    }
 
     // Ensure defaults for original field
     const finalResult = {

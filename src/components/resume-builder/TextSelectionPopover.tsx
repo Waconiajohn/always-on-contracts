@@ -62,11 +62,26 @@ export function TextSelectionPopover({
     const rect = range.getBoundingClientRect();
     const containerRect = containerRef.current.getBoundingClientRect();
 
+    // Calculate initial position
+    let top = rect.top - containerRect.top - 40;
+    let left = rect.left - containerRect.left + rect.width / 2;
+
+    // Estimate popover width (approximately 400px for all buttons)
+    const popoverWidth = 400;
+    const popoverHalfWidth = popoverWidth / 2;
+
+    // Clamp left position to keep popover within container bounds
+    const minLeft = popoverHalfWidth;
+    const maxLeft = containerRect.width - popoverHalfWidth;
+    left = Math.max(minLeft, Math.min(left, maxLeft));
+
+    // If selection is near top edge, show popover below instead
+    if (top < 10) {
+      top = rect.bottom - containerRect.top + 10;
+    }
+
     setSelectedText(text);
-    setPosition({
-      top: rect.top - containerRect.top - 40,
-      left: rect.left - containerRect.left + rect.width / 2,
-    });
+    setPosition({ top, left });
     setIsVisible(true);
   }, [containerRef]);
 

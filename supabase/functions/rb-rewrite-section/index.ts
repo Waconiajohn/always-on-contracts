@@ -88,6 +88,20 @@ serve(async (req) => {
       });
     }
 
+    // Verify user owns this project
+    const { data: projectCheck, error: projectError } = await supabase
+      .from("rb_projects")
+      .select("id, user_id")
+      .eq("id", project_id)
+      .single();
+
+    if (projectError || !projectCheck || projectCheck.user_id !== user.id) {
+      return new Response(JSON.stringify({ error: "Project not found or access denied" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Fetch evidence and requirements
     const [evidenceResult, requirementsResult, keywordDecisionsResult] = await Promise.all([
       supabase.from("rb_evidence").select("*").eq("project_id", project_id).eq("is_active", true),

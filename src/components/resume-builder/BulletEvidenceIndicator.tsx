@@ -145,8 +145,8 @@ export function BulletEvidenceIndicator({ bulletText, evidenceClaims, onMarkInac
             {matches.length > 0 && (
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">Supporting evidence:</p>
-                {matches.slice(0, 2).map((match, i) => (
-                  <div key={i} className="text-xs bg-muted/50 rounded p-1.5">
+                {matches.slice(0, 2).map((match) => (
+                  <div key={match.id || match.claim} className="text-xs bg-muted/50 rounded p-1.5">
                     <span className="italic">"{match.claim.slice(0, 100)}{match.claim.length > 100 ? '...' : ''}"</span>
                     <span className="block text-muted-foreground mt-0.5">
                       Source: {match.source}

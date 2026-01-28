@@ -111,8 +111,11 @@ export default function ReportPage() {
       // User level can come from project metadata or be inferred
       const projectData = projectRes.data as unknown as RBProject;
       const targetLevel = projectData.seniority_level || null;
-      // For now, assume user is at IC level if not specified (Quick Score detected level is mapped on import)
-      const userLevel = targetLevel; // Default to match for now - can be enhanced with resume parsing
+      // User level should be extracted from resume analysis, not defaulted to target
+      // Check for user_seniority_level field or infer from evidence
+      const userLevel = (projectData as Record<string, unknown>).user_seniority_level as string | null
+        || (projectData as Record<string, unknown>).detected_level as string | null
+        || null; // Don't default to target - show 50% if unknown
       const seniorityScore = calculateSeniorityMatch(userLevel, targetLevel);
 
       // Estimate matched requirements based on ignored keywords (already in resume)

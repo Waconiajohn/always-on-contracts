@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { ValidationSchema, parseAndValidate } from '../_shared/rb-schemas.ts';
 
 const corsHeaders = {
@@ -23,7 +24,31 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { original_content, rewritten_content, section_name, evidence_claims } = 
+    // Authentication check
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "No authorization header" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(
+      authHeader.replace("Bearer ", "")
+    );
+
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { original_content, rewritten_content, section_name, evidence_claims } =
       await req.json() as ValidationRequest;
 
     if (!original_content || !rewritten_content) {
@@ -111,8 +136,27 @@ CRITICAL: Be strict. Any made-up metrics, titles, or achievements = hallucinatio
       throw new Error('No content in AI response');
     }
 
-    // Use centralized schema validation
-    const result = parseAndValidate(ValidationSchema, content, "rb-validate-rewrite");
+    // Use centralized schema validation with error handling
+    let result;
+    try {
+      result = parseAndValidate(ValidationSchema, content, "rb-validate-rewrite");
+    } catch (parseError) {
+      console.error("Schema validation failed:", parseError);
+      // Return a safe fallback response
+      result = {
+        is_valid: false,
+        confidence_score: 0,
+        issues: [{
+          type: "unsupported_claim" as const,
+          severity: "warning" as const,
+          description: "Unable to validate - please review manually",
+          problematic_text: "",
+          suggestion: "Review the rewritten content for accuracy"
+        }],
+        summary: "Validation could not be completed",
+        recommendation: "revise" as const
+      };
+    }
 
     return new Response(
       JSON.stringify(result),

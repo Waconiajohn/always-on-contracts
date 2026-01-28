@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
 import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
+import { sanitizeForAI, stripPII } from '../_shared/rb-schemas.ts';
 import { getCorsHeaders, handleCorsPreFlight } from '../_shared/cors.ts';
 import { checkRateLimit } from '../_shared/rate-limiter.ts';
 import { RESUME_ARCHITECT_SYSTEM_PROMPT } from '../_shared/resume-prompts.ts';
@@ -196,6 +197,10 @@ serve(async (req) => {
       throw new Error('Resume text and job description are required');
     }
 
+    // Sanitize user inputs before processing
+    const sanitizedResume = stripPII(sanitizeForAI(resumeText));
+    const sanitizedJD = sanitizeForAI(jobDescription);
+
     // Use service role client for data operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -211,10 +216,10 @@ serve(async (req) => {
 3. Seniority level (Entry-Level, Mid-Level, Senior, Executive)
 
 JOB DESCRIPTION:
-${jobDescription.substring(0, 2000)}
+${sanitizedJD.substring(0, 2000)}
 
 RESUME (first 1000 chars):
-${resumeText.substring(0, 1000)}
+${sanitizedResume.substring(0, 1000)}
 
 Return JSON: { "role": "...", "industry": "...", "level": "..." }`;
 
@@ -440,10 +445,10 @@ SCORING WEIGHTS: jdMatch=60%, industryBenchmark=20%, atsCompliance=12%, humanVoi
     const userPrompt = `ROLE: ${detectedRole} | INDUSTRY: ${detectedIndustry} | LEVEL: ${detectedLevel}
 
 ## JOB DESCRIPTION:
-${jobDescription.substring(0, 6000)}
+${sanitizedJD.substring(0, 6000)}
 
 ## RESUME:
-${resumeText.substring(0, 6000)}
+${sanitizedResume.substring(0, 6000)}
 
 Analyze this resume against the job description and return a COMPREHENSIVE analysis.
 
@@ -505,9 +510,9 @@ Return via the return_score_analysis function.`;
           { role: 'system', content: 'You are a resume analyst. Return JSON with scores and analysis.' },
           { role: 'user', content: `Analyze this resume against the job description. Return JSON with: scores (jdMatch, industryBenchmark, atsCompliance, humanVoice each with score 0-100 and weight), breakdown (jdMatch with matchedKeywords array and missingKeywords array), gapAnalysis (fullMatches, partialMatches, missingRequirements arrays), quickWins array.
 
-JOB: ${jobDescription.substring(0, 2000)}
+JOB: ${sanitizedJD.substring(0, 2000)}
 
-RESUME: ${resumeText.substring(0, 3000)}` }
+RESUME: ${sanitizedResume.substring(0, 3000)}` }
         ],
         model: LOVABLE_AI_MODELS.FAST,
         temperature: 0.1,
@@ -528,12 +533,17 @@ RESUME: ${resumeText.substring(0, 3000)}` }
       console.log('[instant-resume-score] Fallback parsing successful');
     }
 
-    // Calculate weighted overall score (60/20/12/8)
-    const weightedScore = 
-      (scoreData.scores.jdMatch.score * 0.60) +
-      (scoreData.scores.industryBenchmark.score * 0.20) +
-      (scoreData.scores.atsCompliance.score * 0.12) +
-      (scoreData.scores.humanVoice.score * 0.08);
+    // Calculate weighted overall score (60/20/12/8) with null safety
+    const jdMatchScore = scoreData?.scores?.jdMatch?.score ?? 0;
+    const industryScore = scoreData?.scores?.industryBenchmark?.score ?? 0;
+    const atsScore = scoreData?.scores?.atsCompliance?.score ?? 0;
+    const humanScore = scoreData?.scores?.humanVoice?.score ?? 0;
+
+    const weightedScore =
+      (jdMatchScore * 0.60) +
+      (industryScore * 0.20) +
+      (atsScore * 0.12) +
+      (humanScore * 0.08);
 
     const overallScore = Math.round(weightedScore);
     const tier = getScoreTier(overallScore);

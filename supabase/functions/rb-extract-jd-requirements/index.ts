@@ -54,6 +54,20 @@ serve(async (req) => {
       });
     }
 
+    // Verify user owns this project
+    const { data: project, error: projectError } = await supabase
+      .from("rb_projects")
+      .select("id, user_id")
+      .eq("id", project_id)
+      .single();
+
+    if (projectError || !project || project.user_id !== user.id) {
+      return new Response(JSON.stringify({ error: "Project not found or access denied" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const systemPrompt = `You are an expert at extracting requirements from job descriptions.
 Extract ALL requirements and categorize them. For each requirement:
 - Assign a weight (1-5): 5 = explicitly required/must-have, 3 = preferred/nice-to-have, 1 = implied

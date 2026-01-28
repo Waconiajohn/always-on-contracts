@@ -48,7 +48,23 @@ export function AddBulletForm({
   const [result, setResult] = useState<string>('');
   const [tools, setTools] = useState<string>('');
 
-  const canSubmit = achievement.trim().length > 0;
+  // Validation constants
+  const MAX_ACHIEVEMENT_LENGTH = 500;
+  const MAX_RESULT_LENGTH = 200;
+  const MAX_TOOLS_LENGTH = 200;
+
+  const achievementError = achievement.length > MAX_ACHIEVEMENT_LENGTH
+    ? `Achievement too long (${achievement.length}/${MAX_ACHIEVEMENT_LENGTH})`
+    : '';
+  const resultError = result.length > MAX_RESULT_LENGTH
+    ? `Result too long (${result.length}/${MAX_RESULT_LENGTH})`
+    : '';
+  const toolsError = tools.length > MAX_TOOLS_LENGTH
+    ? `Tools too long (${tools.length}/${MAX_TOOLS_LENGTH})`
+    : '';
+
+  const hasErrors = !!achievementError || !!resultError || !!toolsError;
+  const canSubmit = achievement.trim().length > 0 && !hasErrors;
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
@@ -176,8 +192,12 @@ export function AddBulletForm({
                 placeholder="e.g., a cross-functional team of 8 engineers to deliver the new payment platform"
                 value={achievement}
                 onChange={(e) => setAchievement(e.target.value)}
-                className="min-h-[60px] resize-none text-sm"
+                maxLength={MAX_ACHIEVEMENT_LENGTH + 50}
+                className={`min-h-[60px] resize-none text-sm ${achievementError ? 'border-destructive' : ''}`}
               />
+              {achievementError && (
+                <p className="text-xs text-destructive">{achievementError}</p>
+              )}
             </div>
 
             {/* Result/Metric */}
@@ -190,8 +210,12 @@ export function AddBulletForm({
                 placeholder="e.g., 40% increase in checkout conversion"
                 value={result}
                 onChange={(e) => setResult(e.target.value)}
-                className="text-sm"
+                maxLength={MAX_RESULT_LENGTH + 20}
+                className={`text-sm ${resultError ? 'border-destructive' : ''}`}
               />
+              {resultError && (
+                <p className="text-xs text-destructive">{resultError}</p>
+              )}
             </div>
 
             {/* Tools/Keywords */}
@@ -201,8 +225,12 @@ export function AddBulletForm({
                 placeholder="e.g., React, TypeScript, AWS Lambda"
                 value={tools}
                 onChange={(e) => setTools(e.target.value)}
-                className="text-sm"
+                maxLength={MAX_TOOLS_LENGTH + 20}
+                className={`text-sm ${toolsError ? 'border-destructive' : ''}`}
               />
+              {toolsError && (
+                <p className="text-xs text-destructive">{toolsError}</p>
+              )}
             </div>
 
             {/* Preview */}
