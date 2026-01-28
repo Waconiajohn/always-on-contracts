@@ -1,229 +1,114 @@
 
+# Fix Plan: Target Role Auto-Population from Job Description
 
-# Fix Plan: Quick Score to Match Report Data Flow + Metric Calculations
+## Problem Summary
 
-## Executive Summary
+When a user arrives at `/resume-builder/{projectId}/target` with a job description loaded, the role details should auto-populate. Currently this fails because of three mismatches between the frontend and backend:
 
-The Match Report shows **33 missing keywords** because of an import bug, while Quick Score correctly identified only **1 missing keyword**. Additionally, "Seniority Alignment" and "Requirement Coverage" metrics are placeholders with made-up calculations.
+| Issue | Frontend (TargetPage.tsx) | Backend (rb-classify-jd) |
+|-------|--------------------------|-------------------------|
+| Function name | `classify-job-description` | `rb-classify-jd` |
+| Request body | `{ jdText }` | `{ jd_text }` |
+| Response keys | `roleTitle`, `seniorityLevel` | `role_title`, `seniority_level` |
 
----
-
-## Problem #1: All Keywords Marked as "To Add"
-
-### Current (Broken) Code
-
-In `src/pages/resume-builder/ResumeBuilderIndex.tsx` lines 236-253:
-
-```typescript
-const keywordDecisions = [
-  ...state.keywordAnalysis.matched.map((k) => ({
-    project_id: project.id,
-    keyword: k.keyword,
-    decision: "add" as const, // ← BUG: Matched keywords shouldn't be "add"
-  })),
-  ...state.keywordAnalysis.missing.map((k) => ({
-    project_id: project.id,
-    keyword: k.keyword,
-    decision: "add" as const,
-  })),
-];
-```
-
-### Fixed Code
-
-```typescript
-const keywordDecisions = [
-  // Matched keywords: mark as "ignore" (already present in resume)
-  ...state.keywordAnalysis.matched.map((k) => ({
-    project_id: project.id,
-    keyword: k.keyword,
-    decision: "ignore" as const, // Already in resume, no action needed
-  })),
-  // Missing keywords: mark as "add" (need to be added)
-  ...state.keywordAnalysis.missing.map((k) => ({
-    project_id: project.id,
-    keyword: k.keyword,
-    decision: "add" as const,
-  })),
-];
-```
+Additionally, the **seniority levels don't align**:
+- UI dropdown: `Entry Level, Junior, Mid-Level, Senior, Lead, Principal, Manager, Director, VP, C-Level`
+- Edge function returns: `IC, Senior IC, Manager, Senior Manager, Director, Senior Director, VP, SVP, C-Level`
 
 ---
 
-## Problem #2: Seniority Alignment is a Made-Up Formula
+## Fix Details
 
-### Current (Fake) Code
+### File: `src/pages/resume-builder/TargetPage.tsx`
 
+#### 1. Fix function name (line 124)
+Change from:
 ```typescript
-const seniorityScore = totalReqs > 0 
-  ? Math.min(100, Math.round((approved.length / Math.max(totalReqs, 1)) * 100) + 30)
-  : 50;
+supabase.functions.invoke("classify-job-description", {
+```
+To:
+```typescript
+supabase.functions.invoke("rb-classify-jd", {
 ```
 
-This formula has **no relationship to actual seniority**.
-
-### How Seniority Alignment SHOULD Work
-
-**Compare two things:**
-1. **Target seniority** from JD (stored in `rb_projects.seniority_level`)
-2. **User's demonstrated seniority** (inferred from resume experience)
-
-**Seniority ladder:**
-```text
-IC < Senior IC < Manager < Senior Manager < Director < Senior Director < VP < SVP < C-Level
+#### 2. Fix request body key (line 125)
+Change from:
+```typescript
+body: { jdText },
+```
+To:
+```typescript
+body: { jd_text: jdText },
 ```
 
-**Scoring logic:**
-- **Match**: 100 points (user level = target level)
-- **Underqualified**: 50-80 points (user is 1 level below)
-- **Significantly underqualified**: 20-50 points (user is 2+ levels below)
-- **Overqualified**: 70-90 points (user is above target)
-
-### Implementation Approach
-
-For the Quick Score import, we can infer user's seniority by looking at:
-- Years of experience mentioned
-- Job titles held (Manager, Director, VP, etc.)
-- Team size managed
-
-Since this requires parsing the resume, we have two options:
-1. **Simple approach**: Use the AI's `detected.level` from Quick Score as the user's level
-2. **Full approach**: Add a new AI call to extract career trajectory from resume
-
-**I recommend the simple approach** for now: compare `project.seniority_level` (target) against the Quick Score detected level.
-
----
-
-## Problem #3: Requirement Coverage Shows 0/0
-
-### Why It Happens
-
-The `rb_jd_requirements` table is **empty** because the JD requirements extraction step (`rb-extract-jd-requirements`) is never called during the Quick Score import flow.
-
-### Two Solutions
-
-**Option A: Skip the metric**
-- Don't show "Requirement Coverage" if `rb_jd_requirements` is empty
-- Show a message: "Run full analysis to see requirement breakdown"
-
-**Option B: Trigger extraction (preferred)**
-- After creating the project, call the `rb-extract-jd-requirements` edge function
-- This populates `rb_jd_requirements` with the proper requirements
-- Then the coverage calculation will be meaningful
-
----
-
-## Implementation Details
-
-### Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/pages/resume-builder/ResumeBuilderIndex.tsx` | Fix keyword decision mapping (matched → "ignore", missing → "add") |
-| `src/pages/resume-builder/ReportPage.tsx` | Fix seniority calculation, add fallback for empty requirements |
-
-### Detailed Changes
-
-#### 1. Fix Keyword Import (ResumeBuilderIndex.tsx)
-
-**Lines 236-253**: Change matched keywords from `decision: "add"` to `decision: "ignore"`
-
-This ensures:
-- Matched keywords (32) → marked as already present
-- Missing keywords (1) → marked as needing to be added
-- Match Report will correctly show "1 to add"
-
-#### 2. Fix Seniority Calculation (ReportPage.tsx)
-
-Replace the fake formula with actual seniority comparison:
-
+#### 3. Fix response mapping (lines 130-135)
+Change from:
 ```typescript
-const SENIORITY_ORDER = [
-  'IC', 'Senior IC', 'Manager', 'Senior Manager', 
-  'Director', 'Senior Director', 'VP', 'SVP', 'C-Level'
-];
+setRoleTitle(data.roleTitle || "");
+setSeniorityLevel(data.seniorityLevel || "");
+setIndustry(data.industry || "");
+setSubIndustry(data.subIndustry || "");
+setConfidence(data.confidence || 0);
+setReasoning(data.reasoning || null);
+```
+To:
+```typescript
+setRoleTitle(data.role_title || "");
+setSeniorityLevel(mapSeniorityToUI(data.seniority_level) || "");
+setIndustry(data.industry || "");
+setSubIndustry(data.sub_industry || "");
+setConfidence(data.confidence || 0);
+setReasoning(data.justification ? 
+  `Role: ${data.justification.role}\nLevel: ${data.justification.level}\nIndustry: ${data.justification.industry}` 
+  : null);
+```
 
-function calculateSeniorityMatch(
-  userLevel: string | null, 
-  targetLevel: string | null
-): number {
-  if (!userLevel || !targetLevel) return 50; // Unknown
-
-  const userIndex = SENIORITY_ORDER.indexOf(userLevel);
-  const targetIndex = SENIORITY_ORDER.indexOf(targetLevel);
-  
-  if (userIndex === -1 || targetIndex === -1) return 50;
-  
-  const diff = userIndex - targetIndex;
-  
-  if (diff === 0) return 100; // Perfect match
-  if (diff === -1) return 75; // 1 level under
-  if (diff === 1) return 85; // 1 level over
-  if (diff < -1) return Math.max(30, 70 + diff * 15); // Underqualified
-  return Math.max(60, 100 - diff * 10); // Overqualified
+#### 4. Add seniority level mapping helper
+```typescript
+// Map edge function seniority values to UI dropdown values
+function mapSeniorityToUI(edgeLevel: string | null): string {
+  if (!edgeLevel) return "";
+  const mapping: Record<string, string> = {
+    "IC": "Mid-Level",
+    "Senior IC": "Senior",
+    "Manager": "Manager",
+    "Senior Manager": "Lead",
+    "Director": "Director",
+    "Senior Director": "Director",
+    "VP": "VP",
+    "SVP": "VP",
+    "C-Level": "C-Level",
+  };
+  return mapping[edgeLevel] || edgeLevel;
 }
 ```
 
-#### 3. Handle Empty Requirements (ReportPage.tsx)
-
-Show appropriate state when `rb_jd_requirements` is empty:
-
-```tsx
-{stats.totalRequirements > 0 ? (
-  <Progress value={requirementCoverage} className="h-2" />
-) : (
-  <p className="text-xs text-muted-foreground">
-    Run full analysis to see requirement breakdown
-  </p>
-)}
-```
-
----
-
-## Technical Details
-
-### How Each Metric Should Be Calculated
-
-| Metric | Data Source | Calculation |
-|--------|-------------|-------------|
-| **Missing Keywords** | `rb_keyword_decisions` where `decision = 'add'` | Count of keywords to add |
-| **Seniority Alignment** | Compare `project.seniority_level` vs user's level | Ladder-based comparison (0-100) |
-| **Requirement Coverage** | `rb_jd_requirements` vs `rb_evidence` | Requirements matched by evidence |
-| **ATS Compatibility** | `rb_documents.raw_text` | Deterministic text checks (already working) |
-
-### Database State After Fix
-
-For the current project (`dd98b930-c2cb-4e19-8a03-cb31b7c0e803`):
-
-| Before | After |
-|--------|-------|
-| 33 keywords with `decision: 'add'` | 32 with `decision: 'ignore'`, 1 with `decision: 'add'` |
-| Seniority: fake 50% | Seniority: actual comparison |
-| Requirements: 0/0 | Requirements: placeholder or extracted |
-
----
-
-## Verification Checklist
-
-After implementation:
-- [ ] Quick Score import creates correct keyword decisions (matched → ignore, missing → add)
-- [ ] Match Report shows "1 to add" instead of "33 to add"
-- [ ] Seniority Alignment uses actual level comparison
-- [ ] Requirement Coverage shows helpful message when no requirements extracted
-- [ ] ATS Compatibility continues working (no changes needed)
-
----
-
-## Optional Enhancement: Trigger JD Extraction
-
-For a complete solution, add this after project creation in `handleQuickScoreTransition`:
-
+#### 5. Fix database update keys (lines 142-147)
+The update already uses snake_case which is correct, but needs to map seniority back:
 ```typescript
-// Trigger JD requirements extraction in background
-supabase.functions.invoke('rb-extract-jd-requirements', {
-  body: { project_id: project.id, jd_text: state.jobDescription }
-});
+await supabase
+  .from("rb_projects")
+  .update({
+    role_title: data.role_title,
+    seniority_level: data.seniority_level, // Keep original for DB
+    industry: data.industry,
+    sub_industry: data.sub_industry,
+    jd_confidence: data.confidence,
+  })
+  .eq("id", projectId);
 ```
 
-This would populate `rb_jd_requirements` and make the "Requirement Coverage" metric meaningful.
+---
 
+## Verification
+
+After these changes:
+1. Navigate to a project with JD text loaded
+2. The Target Role page should show "Analyzing job description..." spinner
+3. Then auto-populate:
+   - Role Title (e.g., "Technical Sales Consultant")
+   - Seniority Level (mapped to UI-friendly value)
+   - Industry
+   - Sub-Industry
+4. Confidence badge should appear (High/Medium/Low)
+5. "Why we think this" should show the justification text
