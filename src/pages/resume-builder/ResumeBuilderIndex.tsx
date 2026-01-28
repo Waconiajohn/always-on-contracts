@@ -232,25 +232,27 @@ export default function ResumeBuilderIndex() {
           });
       }
 
-      // Store keyword analysis if available (rb_keyword_decisions uses decision without priority)
-      if (state.keywordAnalysis) {
-        const keywordDecisions = [
-          ...state.keywordAnalysis.matched.map((k) => ({
-            project_id: project.id,
-            keyword: k.keyword,
-            decision: "add" as const, // "keep" is not valid, use "add" for matched keywords too
-          })),
-          ...state.keywordAnalysis.missing.map((k) => ({
-            project_id: project.id,
-            keyword: k.keyword,
-            decision: "add" as const,
-          })),
-        ];
+        // Store keyword analysis if available (rb_keyword_decisions uses decision without priority)
+        if (state.keywordAnalysis) {
+          const keywordDecisions = [
+            // Matched keywords: mark as "ignore" (already present in resume)
+            ...state.keywordAnalysis.matched.map((k) => ({
+              project_id: project.id,
+              keyword: k.keyword,
+              decision: "ignore" as const,
+            })),
+            // Missing keywords: mark as "add" (need to be added)
+            ...state.keywordAnalysis.missing.map((k) => ({
+              project_id: project.id,
+              keyword: k.keyword,
+              decision: "add" as const,
+            })),
+          ];
 
-        if (keywordDecisions.length > 0) {
-          await supabase.from("rb_keyword_decisions").insert(keywordDecisions);
+          if (keywordDecisions.length > 0) {
+            await supabase.from("rb_keyword_decisions").insert(keywordDecisions);
+          }
         }
-      }
 
       toast({
         title: "Analysis imported!",
