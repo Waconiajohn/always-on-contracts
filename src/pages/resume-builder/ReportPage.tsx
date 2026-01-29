@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Wrench, Wand2, AlertTriangle, CheckCircle2, Target, TrendingUp, XCircle, AlertCircle, MessageSquare, SplitSquareVertical } from "lucide-react";
+import { Wrench, Wand2, AlertTriangle, CheckCircle2, TrendingUp, XCircle, AlertCircle, SplitSquareVertical } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ResumeBuilderShell } from "@/components/resume-builder/ResumeBuilderShell";
 import { runATSAnalysis, getATSScoreBadge, type ATSAnalysis } from "@/lib/ats-checks";
+import { KeywordComparisonTable, type KeywordRowData } from "@/components/quick-score/KeywordComparisonTable";
 import type { RBProject, RBJDRequirement, RBKeywordDecision } from "@/types/resume-builder";
 
 interface ReportStats {
@@ -67,7 +68,7 @@ export default function ReportPage() {
     userLevel: null,
     targetLevel: null,
   });
-  const [missingKeywordsList, setMissingKeywordsList] = useState<string[]>([]);
+  const [keywordTableData, setKeywordTableData] = useState<KeywordRowData[]>([]);
   const [atsAnalysis, setAtsAnalysis] = useState<ATSAnalysis | null>(null);
 
   const loadData = useCallback(async () => {
@@ -97,27 +98,45 @@ export default function ReportPage() {
       const requirements = (requirementsRes.data as unknown as RBJDRequirement[]) || [];
 
       // Calculate stats based on actual KeywordDecision values: 'add' | 'ignore' | 'not_true' | 'ask_me'
-      // Keywords to add = only those marked as "add" (missing from resume)
-      // Keywords "ignore" = already in resume, no action needed
       const pending = keywords.filter(k => k.decision === 'ask_me');
       const toAdd = keywords.filter(k => k.decision === 'add');
       const ignored = keywords.filter(k => k.decision === 'ignore');
       
+      // Transform keywords into KeywordRowData for the comparison table
+      const tableData: KeywordRowData[] = keywords.map(k => {
+        // Find matching requirement for weight/priority
+        const matchingReq = requirements.find(r => 
+          r.text.toLowerCase().includes(k.keyword.toLowerCase()) ||
+          k.keyword.toLowerCase().includes(r.text.toLowerCase().slice(0, 20))
+        );
+        
+        const weight = matchingReq?.weight ?? 3;
+        let priority: 'critical' | 'high' | 'medium' = 'medium';
+        if (weight >= 4) priority = 'critical';
+        else if (weight >= 3) priority = 'high';
+        
+        return {
+          keyword: k.keyword,
+          priority,
+          isMatched: k.decision === 'ignore', // 'ignore' means already in resume
+          jdContext: matchingReq?.exact_phrases?.slice(0, 2).join(', ') || '',
+          resumeContext: k.decision === 'ignore' ? 'Found in resume' : undefined,
+        };
+      });
+      
+      setKeywordTableData(tableData);
+
       // RBJDRequirement has weight field - higher weight = more important
-      // Consider high-weight requirements as "critical" (weight > 0.8)
       const criticalReqs = requirements.filter(r => r.weight > 0.8);
       const totalReqs = requirements.length;
 
-      // Calculate seniority match using actual level comparison
-      // User level can come from project metadata or be inferred
+      // Calculate seniority match
       const projectData = projectRes.data as unknown as RBProject;
       const targetLevel = projectData.seniority_level || null;
-      // User level should be extracted from resume analysis, not defaulted to target
-      // Check for user_seniority_level field or infer from evidence
       const projectDataAny = projectData as unknown as Record<string, unknown>;
       const userLevel = (projectDataAny.user_seniority_level as string | null)
         || (projectDataAny.detected_level as string | null)
-        || null; // Don't default to target - show 50% if unknown
+        || null;
       const seniorityScore = calculateSeniorityMatch(userLevel, targetLevel);
 
       // Estimate matched requirements based on ignored keywords (already in resume)
@@ -128,7 +147,7 @@ export default function ReportPage() {
         totalKeywords: keywords.length,
         missingKeywords: toAdd.length,
         pendingKeywords: pending.length,
-        approvedKeywords: toAdd.length, // "approved" here means keywords to add
+        approvedKeywords: toAdd.length,
         totalRequirements: totalReqs,
         matchedRequirements: matchedCount,
         criticalGaps: criticalGapsCount,
@@ -136,11 +155,6 @@ export default function ReportPage() {
         userLevel,
         targetLevel,
       });
-
-      // Get top keywords to add for display
-      setMissingKeywordsList(
-        toAdd.slice(0, 6).map(k => k.keyword)
-      );
 
       // Load resume text and run ATS analysis
       const { data: docData } = await supabase
@@ -178,10 +192,14 @@ export default function ReportPage() {
     return { label: "Needs Work", variant: "destructive" as const };
   };
 
+  const handleAddKeyword = useCallback(() => {
+    navigate(`/resume-builder/${projectId}/fix`);
+  }, [navigate, projectId]);
+
   if (loading) {
     return (
       <ResumeBuilderShell>
-        <div className="max-w-3xl mx-auto space-y-8">
+        <div className="max-w-4xl mx-auto space-y-8">
           {/* Header skeleton */}
           <div className="flex items-start justify-between">
             <div className="space-y-2">
@@ -200,22 +218,22 @@ export default function ReportPage() {
               <div className="text-center space-y-3">
                 <Skeleton className="h-16 w-20 mx-auto" />
                 <Skeleton className="h-6 w-28 mx-auto" />
-                <Skeleton className="h-4 w-64 mx-auto" />
               </div>
             </CardContent>
           </Card>
 
-          {/* Category cards skeleton */}
-          <div className="grid gap-4 md:grid-cols-2">
-            {[1, 2, 3, 4].map((i) => (
+          {/* Table skeleton */}
+          <Skeleton className="h-64 w-full" />
+
+          {/* Metrics skeleton */}
+          <div className="grid gap-4 md:grid-cols-3">
+            {[1, 2, 3].map((i) => (
               <Card key={i}>
                 <CardHeader className="pb-2">
                   <Skeleton className="h-5 w-32" />
                 </CardHeader>
                 <CardContent>
-                  <Skeleton className="h-4 w-full mb-3" />
                   <Skeleton className="h-2 w-full mb-2" />
-                  <Skeleton className="h-3 w-3/4" />
                 </CardContent>
               </Card>
             ))}
@@ -247,7 +265,7 @@ export default function ReportPage() {
         { label: "Match Report" },
       ]}
     >
-      <div className="max-w-3xl mx-auto space-y-8">
+      <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
@@ -262,7 +280,7 @@ export default function ReportPage() {
               onClick={() => navigate(`/resume-builder/${projectId}/fix`)}
             >
               <Wrench className="h-4 w-4 mr-2" />
-              Fix Issues First
+              Fix Issues
             </Button>
             <Button onClick={() => navigate(`/resume-builder/${projectId}/studio/summary`)}>
               <Wand2 className="h-4 w-4 mr-2" />
@@ -271,73 +289,40 @@ export default function ReportPage() {
           </div>
         </div>
 
-        {/* Score Card */}
+        {/* Score Card - Prominent at top */}
         <Card>
           <CardContent className="py-8">
             <div className="text-center space-y-3">
-              <div className={`text-6xl font-semibold tabular-nums tracking-tight ${getScoreColor(project.current_score || 0)}`}>
+              <div className={`text-7xl font-light tabular-nums tracking-tight ${getScoreColor(project.current_score || 0)}`}>
                 {project.current_score ?? 0}
               </div>
-              <Badge variant={scoreBadge.variant}>{scoreBadge.label}</Badge>
-              <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                Based on {stats.totalRequirements} job requirements and {stats.totalKeywords} keywords analyzed
+              <Badge variant={scoreBadge.variant} className="text-sm px-3 py-1">
+                {scoreBadge.label}
+              </Badge>
+              <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                Based on {stats.totalRequirements > 0 ? `${stats.totalRequirements} job requirements and ` : ''}{stats.totalKeywords} keywords analyzed
               </p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Category Cards */}
-        <div className="grid gap-4 md:grid-cols-2">
-          {/* Missing Keywords */}
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Target className="h-4 w-4 text-muted-foreground" />
-                  Missing Keywords
-                </CardTitle>
-                {stats.missingKeywords > 0 && (
-                  <Badge variant="secondary" className="text-xs">
-                    {stats.missingKeywords} to add
-                  </Badge>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground mb-3">
-                Keywords from the job description not yet in your resume
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {missingKeywordsList.length > 0 ? (
-                  <>
-                    {missingKeywordsList.map((kw, i) => (
-                      <Badge key={i} variant="outline" className="text-xs bg-accent border-border">
-                        {kw}
-                      </Badge>
-                    ))}
-                    {stats.missingKeywords > 6 && (
-                      <Badge variant="outline" className="text-xs">
-                        +{stats.missingKeywords - 6} more
-                      </Badge>
-                    )}
-                  </>
-                ) : (
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3 text-primary" />
-                    All keywords covered
-                  </span>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+        {/* Keyword Comparison Table - Full width */}
+        {keywordTableData.length > 0 && (
+          <KeywordComparisonTable 
+            keywords={keywordTableData}
+            onAddKeyword={handleAddKeyword}
+          />
+        )}
 
+        {/* Metrics Row - 3 cards */}
+        <div className="grid gap-4 md:grid-cols-3">
           {/* Seniority Alignment */}
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                  Seniority Alignment
+                  Seniority
                 </CardTitle>
                 <Badge 
                   variant={stats.seniorityMatch >= 70 ? "default" : stats.seniorityMatch >= 50 ? "secondary" : "destructive"}
@@ -348,16 +333,13 @@ export default function ReportPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-muted-foreground mb-3">
-                How well your experience matches {project.seniority_level} level
-              </p>
               <Progress value={stats.seniorityMatch} className="h-2" />
               <p className="text-xs text-muted-foreground mt-2">
                 {stats.seniorityMatch >= 70 
-                  ? "Strong alignment with target seniority"
+                  ? "Strong alignment"
                   : stats.seniorityMatch >= 50
-                  ? "Partial alignment - consider highlighting leadership"
-                  : "Gap detected - emphasize relevant achievements"}
+                  ? "Partial alignment"
+                  : "Gap detected"}
               </p>
             </CardContent>
           </Card>
@@ -368,7 +350,7 @@ export default function ReportPage() {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                  Requirement Coverage
+                  Requirements
                 </CardTitle>
                 {stats.totalRequirements > 0 ? (
                   <Badge 
@@ -383,22 +365,19 @@ export default function ReportPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-muted-foreground mb-3">
-                Job requirements matched by your evidence
-              </p>
               {stats.totalRequirements > 0 ? (
                 <>
                   <Progress value={requirementCoverage} className="h-2" />
                   {stats.criticalGaps > 0 && (
                     <p className="text-xs text-destructive mt-2 flex items-center gap-1">
                       <AlertTriangle className="h-3 w-3" />
-                      {stats.criticalGaps} critical requirement{stats.criticalGaps > 1 ? 's' : ''} unmet
+                      {stats.criticalGaps} critical gap{stats.criticalGaps > 1 ? 's' : ''}
                     </p>
                   )}
                 </>
               ) : (
                 <p className="text-xs text-muted-foreground italic">
-                  Run full analysis to see requirement breakdown
+                  Run analysis for breakdown
                 </p>
               )}
             </CardContent>
@@ -410,7 +389,7 @@ export default function ReportPage() {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                  ATS Compatibility
+                  ATS Score
                 </CardTitle>
                 {atsAnalysis && (
                   <Badge variant={getATSScoreBadge(atsAnalysis.score).variant} className="text-xs">
@@ -420,108 +399,58 @@ export default function ReportPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-muted-foreground mb-3">
-                Format checks for applicant tracking systems
-              </p>
-              <div className="space-y-1.5 text-xs">
-                {/* Passed checks */}
-                {atsAnalysis?.passedChecks.slice(0, 3).map((check, i) => (
+              <div className="space-y-1 text-xs">
+                {atsAnalysis?.passedChecks.slice(0, 2).map((check, i) => (
                   <div key={i} className="flex items-center gap-2 text-muted-foreground">
-                    <CheckCircle2 className="h-3 w-3 text-primary" />
-                    {check}
+                    <CheckCircle2 className="h-3 w-3 text-primary flex-shrink-0" />
+                    <span className="truncate">{check}</span>
                   </div>
                 ))}
-                
-                {/* Issues */}
-                {atsAnalysis?.issues.slice(0, 3).map((issue, i) => (
-                  <div key={`issue-${i}`} className="flex items-center gap-2 text-muted-foreground">
+                {atsAnalysis?.issues.slice(0, 1).map((issue, i) => (
+                  <div key={`issue-${i}`} className="flex items-center gap-2">
                     {issue.type === 'error' ? (
-                      <XCircle className="h-3 w-3 text-destructive" />
-                    ) : issue.type === 'warning' ? (
-                      <AlertCircle className="h-3 w-3 text-accent-foreground" />
+                      <XCircle className="h-3 w-3 text-destructive flex-shrink-0" />
                     ) : (
-                      <AlertCircle className="h-3 w-3 text-muted-foreground" />
+                      <AlertCircle className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                     )}
-                    <span className={issue.type === 'error' ? 'text-destructive' : ''}>
+                    <span className={`truncate text-xs ${issue.type === 'error' ? 'text-destructive' : 'text-muted-foreground'}`}>
                       {issue.issue}
                     </span>
                   </div>
                 ))}
-                
-                {/* Fallback for no analysis */}
                 {!atsAnalysis && (
-                  <>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <CheckCircle2 className="h-3 w-3 text-primary" />
-                      Plain text structure detected
-                    </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <CheckCircle2 className="h-3 w-3 text-primary" />
-                      Standard section headers
-                    </div>
-                  </>
-                )}
-
-                {/* Show more link if there are additional issues */}
-                {atsAnalysis && atsAnalysis.issues.length > 3 && (
-                  <Button 
-                    variant="link" 
-                    size="sm" 
-                    className="h-auto p-0 text-xs"
-                    onClick={() => navigate(`/resume-builder/${projectId}/fix`)}
-                  >
-                    +{atsAnalysis.issues.length - 3} more issue(s)
-                  </Button>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <CheckCircle2 className="h-3 w-3 text-primary" />
+                    Standard format
+                  </div>
                 )}
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Additional Tools */}
-        <div className="grid gap-4 md:grid-cols-2">
-          {/* Interview Practice */}
-          <Card
-            className="cursor-pointer hover:border-primary/50 transition-colors"
-            onClick={() => navigate(`/resume-builder/${projectId}/interview`)}
-          >
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                Interview Practice
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground mb-2">
-                Practice interview questions tailored to this job
-              </p>
-              <Button variant="outline" size="sm" className="text-xs">
-                Start Practice →
+        {/* Single Action Card - Compare Resume & JD */}
+        <Card
+          className="cursor-pointer hover:border-primary/50 transition-colors"
+          onClick={() => navigate(`/resume-builder/${projectId}/fix?tab=comparison`)}
+        >
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <SplitSquareVertical className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium">Compare Resume & JD</p>
+                  <p className="text-xs text-muted-foreground">
+                    See your resume side-by-side with job requirements
+                  </p>
+                </div>
+              </div>
+              <Button variant="outline" size="sm">
+                View →
               </Button>
-            </CardContent>
-          </Card>
-
-          {/* Side-by-Side Comparison */}
-          <Card
-            className="cursor-pointer hover:border-primary/50 transition-colors"
-            onClick={() => navigate(`/resume-builder/${projectId}/fix?tab=comparison`)}
-          >
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <SplitSquareVertical className="h-4 w-4 text-muted-foreground" />
-                Compare Resume & JD
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground mb-2">
-                See your resume side-by-side with job requirements
-              </p>
-              <Button variant="outline" size="sm" className="text-xs">
-                View Comparison →
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Navigation */}
         <div className="text-center pt-4">

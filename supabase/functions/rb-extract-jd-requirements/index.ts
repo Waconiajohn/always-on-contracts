@@ -68,11 +68,13 @@ serve(async (req) => {
     }
 
     const systemPrompt = `You are an expert at extracting requirements from job descriptions.
-Extract ALL requirements and categorize them. For each requirement:
+Extract the TOP 20 most important requirements and categorize them. For each requirement:
 - Assign a weight (1-5): 5 = explicitly required/must-have, 3 = preferred/nice-to-have, 1 = implied
-- Extract exact phrases used in the JD
-- Suggest synonyms/variations
+- Extract 1-2 SHORT exact phrases (max 50 characters each)
+- Suggest 2-3 synonyms/variations (single words or short phrases)
 - Indicate which resume section should address it
+
+IMPORTANT: Keep all text fields SHORT (under 50 chars). Do not extract full sentences.
 
 Respond ONLY with valid JSON:
 {
@@ -86,7 +88,7 @@ Respond ONLY with valid JSON:
   "soft_skills": [...]
 }
 
-Be thorough - extract everything that could be matched against a resume.`;
+LIMIT: Extract max 20 total requirements across all categories. Prioritize must-have skills.`;
 
     const userPrompt = `Extract requirements from this ${seniority_level} ${role_title} job description:\n\n${jd_text}`;
 

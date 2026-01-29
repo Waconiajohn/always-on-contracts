@@ -164,7 +164,7 @@ Generate questions that:
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        model: LOVABLE_AI_MODELS.STANDARD,
+        model: LOVABLE_AI_MODELS.DEFAULT,
         response_format: { type: "json_object" },
       },
       "rb-interview-practice",
