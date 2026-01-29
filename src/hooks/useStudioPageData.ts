@@ -1,5 +1,4 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useBlocker } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useSectionContent, useVersionHistory, useRewriteSection } from '@/hooks/useRewriteSection';
 import { calculateResumeScore } from '@/lib/calculate-resume-score';
@@ -209,28 +208,6 @@ export function useStudioPageData({ projectId, sectionName }: UseStudioPageDataO
     claim: e.claim_text,
     source: e.source,
   }));
-
-  // hasChanges is declared earlier in the file (line ~132)
-
-  // Block in-app navigation when there are unsaved changes
-  const blocker = useBlocker(
-    ({ currentLocation, nextLocation }) =>
-      hasChanges && currentLocation.pathname !== nextLocation.pathname
-  );
-
-  // Handle the navigation block
-  useEffect(() => {
-    if (blocker.state === 'blocked') {
-      const shouldNavigate = window.confirm(
-        'You have unsaved changes. Are you sure you want to leave?'
-      );
-      if (shouldNavigate) {
-        blocker.proceed();
-      } else {
-        blocker.reset();
-      }
-    }
-  }, [blocker]);
 
   return {
     // Data
