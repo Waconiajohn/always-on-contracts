@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { ActionSource, RBVersion } from '@/types/resume-builder';
 import { toast } from 'sonner';
+import { extractSectionContent } from '@/lib/resume-section-extractor';
 
 interface RewriteResult {
   rewritten_text: string;
@@ -254,7 +255,7 @@ export function useSectionContent(projectId: string, sectionName: string) {
     
     setIsLoading(true);
     try {
-      // First try to get active version
+      // First try to get active version for this section
       const { data: version, error: versionError } = await supabase
         .from('rb_versions')
         .select('content')
@@ -263,25 +264,36 @@ export function useSectionContent(projectId: string, sectionName: string) {
         .eq('is_active', true)
         .maybeSingle();
 
-      if (!versionError && version) {
+      if (!versionError && version?.content) {
         setContent(version.content);
+        setOriginalContent(version.content);
         setIsLoading(false);
         return;
       }
 
-      // Fall back to original document content
+      // Fall back to extracting section from parsed_json
       const { data: doc, error: docError } = await supabase
         .from('rb_documents')
-        .select('raw_text')
+        .select('raw_text, parsed_json')
         .eq('project_id', projectId)
         .maybeSingle();
 
       if (docError) throw docError;
 
-      // Use raw text as fallback
-      const rawText = doc?.raw_text || '';
-      setContent(rawText);
-      setOriginalContent(rawText);
+      // Try to extract section-specific content from parsed JSON
+      const parsedJson = doc?.parsed_json;
+      const sectionContent = extractSectionContent(parsedJson, sectionName);
+      
+      if (sectionContent) {
+        setContent(sectionContent);
+        setOriginalContent(sectionContent);
+      } else {
+        // Ultimate fallback - use raw text (shouldn't happen with proper parsing)
+        console.warn(`No parsed section found for "${sectionName}", using raw text`);
+        const rawText = doc?.raw_text || '';
+        setContent(rawText);
+        setOriginalContent(rawText);
+      }
     } catch (err) {
       console.error('Failed to load section content:', err);
     } finally {

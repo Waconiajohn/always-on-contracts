@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSectionContent, useVersionHistory, useRewriteSection } from '@/hooks/useRewriteSection';
 import { calculateResumeScore } from '@/lib/calculate-resume-score';
+import { getRelevantCategories, extractSectionContent } from '@/lib/resume-section-extractor';
 import type { RBEvidence, RBProject, ActionSource, RBKeywordDecision, RBJDRequirement } from '@/types/resume-builder';
 import type { SaveStatus } from '@/components/resume-builder/AutoSaveIndicator';
 
@@ -16,6 +17,7 @@ export function useStudioPageData({ projectId, sectionName }: UseStudioPageDataO
   const [showHistory, setShowHistory] = useState(false);
   const [keywordDecisions, setKeywordDecisions] = useState<RBKeywordDecision[]>([]);
   const [jdRequirements, setJdRequirements] = useState<RBJDRequirement[]>([]);
+  const [originalSectionContent, setOriginalSectionContent] = useState<string>('');
 
   const { content, setContent, originalContent, isLoading: loadingContent, loadContent } =
     useSectionContent(projectId, sectionName);
@@ -42,15 +44,41 @@ export function useStudioPageData({ projectId, sectionName }: UseStudioPageDataO
 
   const loadEvidence = useCallback(async () => {
     if (!projectId) return;
-    const { data } = await supabase
+    
+    // Get relevant categories for this section
+    const relevantCategories = getRelevantCategories(sectionName);
+    
+    let query = supabase
       .from('rb_evidence')
       .select('*')
       .eq('project_id', projectId)
-      .eq('is_active', true)
-      .order('confidence', { ascending: false });
+      .eq('is_active', true);
+    
+    // Filter by category if we have relevant categories
+    if (relevantCategories.length > 0) {
+      query = query.in('category', relevantCategories);
+    }
+    
+    const { data } = await query.order('confidence', { ascending: false });
     
     setEvidence((data as unknown as RBEvidence[]) || []);
-  }, [projectId]);
+  }, [projectId, sectionName]);
+
+  // Load original section content from parsed_json
+  const loadOriginalSection = useCallback(async () => {
+    if (!projectId || !sectionName) return;
+    
+    const { data: doc } = await supabase
+      .from('rb_documents')
+      .select('parsed_json')
+      .eq('project_id', projectId)
+      .maybeSingle();
+    
+    if (doc?.parsed_json) {
+      const sectionContent = extractSectionContent(doc.parsed_json, sectionName);
+      setOriginalSectionContent(sectionContent);
+    }
+  }, [projectId, sectionName]);
 
   const loadKeywordDecisions = useCallback(async () => {
     if (!projectId) return;
@@ -79,7 +107,8 @@ export function useStudioPageData({ projectId, sectionName }: UseStudioPageDataO
     loadProject();
     loadKeywordDecisions();
     loadJDRequirements();
-  }, [loadContent, loadVersions, loadEvidence, loadProject, loadKeywordDecisions, loadJDRequirements]);
+    loadOriginalSection();
+  }, [loadContent, loadVersions, loadEvidence, loadProject, loadKeywordDecisions, loadJDRequirements, loadOriginalSection]);
 
   // Auto-save effect
   useEffect(() => {
@@ -216,6 +245,7 @@ export function useStudioPageData({ projectId, sectionName }: UseStudioPageDataO
     evidence,
     project,
     versions,
+    originalSectionContent,
 
     // State
     showHistory,

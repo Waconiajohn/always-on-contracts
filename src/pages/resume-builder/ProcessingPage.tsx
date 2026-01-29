@@ -129,8 +129,8 @@ export default function ProcessingPage() {
       updateStage(0, { status: "running" });
       
       const { error: jdError } = await supabase.functions.invoke(
-        "extract-jd-requirements",
-        { body: { jdText, projectId } }
+        "rb-extract-jd-requirements",
+        { body: { project_id: projectId, jd_text: jdText } }
       );
       
       if (jdError) throw new Error(`JD extraction failed: ${jdError.message}`);
@@ -141,13 +141,13 @@ export default function ProcessingPage() {
       updateStage(1, { status: "running" });
       
       const { error: benchError } = await supabase.functions.invoke(
-        "generate-role-benchmark",
+        "rb-generate-benchmark",
         { 
           body: { 
-            roleTitle: project.role_title,
-            seniorityLevel: project.seniority_level,
+            project_id: projectId,
+            role_title: project.role_title,
+            seniority_level: project.seniority_level,
             industry: project.industry,
-            projectId,
           } 
         }
       );
@@ -160,8 +160,8 @@ export default function ProcessingPage() {
       updateStage(2, { status: "running" });
       
       const { error: claimsError } = await supabase.functions.invoke(
-        "extract-resume-claims",
-        { body: { resumeText, projectId } }
+        "rb-extract-resume-claims",
+        { body: { project_id: projectId } }
       );
       
       if (claimsError) throw new Error(`Claims extraction failed: ${claimsError.message}`);
@@ -172,8 +172,8 @@ export default function ProcessingPage() {
       updateStage(3, { status: "running" });
       
       const { data: gaps, error: gapsError } = await supabase.functions.invoke(
-        "analyze-resume-gaps",
-        { body: { projectId } }
+        "rb-analyze-gaps",
+        { body: { project_id: projectId } }
       );
       
       if (gapsError) throw new Error(`Gap analysis failed: ${gapsError.message}`);
