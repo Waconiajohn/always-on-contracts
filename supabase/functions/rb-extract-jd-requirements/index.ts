@@ -72,13 +72,17 @@ Extract the TOP 20 most important requirements and categorize them. For each req
 - Assign a weight (1-5): 5 = explicitly required/must-have, 3 = preferred/nice-to-have, 1 = implied
 - Extract 1-2 SHORT exact phrases (max 50 characters each)
 - Suggest 2-3 synonyms/variations (single words or short phrases)
-- Indicate which resume section should address it
+- For section_hint, choose EXACTLY ONE value from: "Summary", "Skills", "Experience", "Education"
 
-IMPORTANT: Keep all text fields SHORT (under 50 chars). Do not extract full sentences.
+CRITICAL RULES:
+- Keep all text fields SHORT (under 50 chars). Do not extract full sentences.
+- section_hint MUST be exactly one of: "Summary", "Skills", "Experience", "Education"
+- Do NOT combine values like "Skills|Experience" - pick the BEST single option
+- For certifications, use "Education" as the section_hint
 
 Respond ONLY with valid JSON:
 {
-  "hard_skills": [{ "text": "...", "weight": 1-5, "exact_phrases": [...], "synonyms": [...], "section_hint": "Skills|Experience|Summary|Education" }],
+  "hard_skills": [{ "text": "...", "weight": 1-5, "exact_phrases": [...], "synonyms": [...], "section_hint": "Skills" }],
   "tools_tech": [...],
   "domain_knowledge": [...],
   "responsibilities": [...],
