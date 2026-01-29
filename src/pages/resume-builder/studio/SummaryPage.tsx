@@ -5,26 +5,12 @@ import { StudioLayout } from '@/components/resume-builder/StudioLayout';
 import { ResumeBuilderShell } from '@/components/resume-builder/ResumeBuilderShell';
 import { RewriteControls } from '@/components/resume-builder/RewriteControls';
 import { VersionHistory } from '@/components/resume-builder/VersionHistory';
+import { OriginalAndEvidencePanel } from '@/components/resume-builder/OriginalAndEvidencePanel';
 import { TwoStageGenerationDialog } from '@/components/resume-builder/TwoStageGenerationDialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useStudioPageData } from '@/hooks/useStudioPageData';
 
 const SECTION_NAME = 'summary';
-
-function OriginalContentPanel({ content }: { content: string }) {
-  return (
-    <div className="space-y-3">
-      <h3 className="text-sm font-medium text-muted-foreground">Original Summary</h3>
-      {content ? (
-        <p className="text-sm whitespace-pre-wrap">{content}</p>
-      ) : (
-        <p className="text-sm text-muted-foreground italic">
-          No original summary found
-        </p>
-      )}
-    </div>
-  );
-}
 
 export default function SummaryPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -33,8 +19,10 @@ export default function SummaryPage() {
   const {
     content,
     setContent,
+    evidence,
     project,
     versions,
+    originalSectionContent,
     showHistory,
     setShowHistory,
     hasChanges,
@@ -46,16 +34,11 @@ export default function SummaryPage() {
     lastSaved,
   } = useStudioPageData({ projectId: projectId || '', sectionName: SECTION_NAME });
 
-  // Get original content from first version or empty
-  const originalContent = versions.length > 0 
-    ? versions[versions.length - 1]?.content || '' 
-    : '';
-
   const handleWorldClassContent = (newContent: string) => {
     setContent(newContent);
   };
 
-  // Fix 7: Strengthen validation - show error instead of using fallbacks
+  // Validate before opening World-Class dialog
   const handleWorldClass = () => {
     if (!project?.jd_text) {
       toast.error('Please add a job description first');
@@ -79,7 +62,13 @@ export default function SummaryPage() {
   return (
     <ResumeBuilderShell>
       <StudioLayout
-        leftPanel={<OriginalContentPanel content={originalContent} />}
+        leftPanel={
+          <OriginalAndEvidencePanel
+            originalContent={originalSectionContent}
+            evidence={evidence}
+            sectionName={SECTION_NAME}
+          />
+        }
         score={project?.current_score}
         previousScore={project?.original_score}
         saveStatus={saveStatus}

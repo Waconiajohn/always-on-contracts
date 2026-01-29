@@ -4,7 +4,7 @@ import { StudioLayout } from '@/components/resume-builder/StudioLayout';
 import { ResumeBuilderShell } from '@/components/resume-builder/ResumeBuilderShell';
 import { RewriteControls } from '@/components/resume-builder/RewriteControls';
 import { VersionHistory } from '@/components/resume-builder/VersionHistory';
-import { EvidenceSidebar } from '@/components/resume-builder/EvidenceSidebar';
+import { OriginalAndEvidencePanel } from '@/components/resume-builder/OriginalAndEvidencePanel';
 import { BulletEditor } from '@/components/resume-builder/BulletEditor';
 import { TwoStageGenerationDialog } from '@/components/resume-builder/TwoStageGenerationDialog';
 import { useStudioPageData } from '@/hooks/useStudioPageData';
@@ -21,6 +21,7 @@ export default function ExperiencePage() {
     evidence,
     project,
     versions,
+    originalSectionContent,
     showHistory,
     setShowHistory,
     hasChanges,
@@ -40,7 +41,13 @@ export default function ExperiencePage() {
   return (
     <ResumeBuilderShell>
       <StudioLayout
-        leftPanel={<EvidenceSidebar evidence={evidence} />}
+        leftPanel={
+          <OriginalAndEvidencePanel
+            originalContent={originalSectionContent}
+            evidence={evidence}
+            sectionName={SECTION_NAME}
+          />
+        }
         score={project?.current_score}
         previousScore={project?.original_score}
         saveStatus={saveStatus}

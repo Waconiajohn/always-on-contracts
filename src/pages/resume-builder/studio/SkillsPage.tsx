@@ -4,6 +4,7 @@ import { StudioLayout } from '@/components/resume-builder/StudioLayout';
 import { ResumeBuilderShell } from '@/components/resume-builder/ResumeBuilderShell';
 import { RewriteControls } from '@/components/resume-builder/RewriteControls';
 import { VersionHistory } from '@/components/resume-builder/VersionHistory';
+import { OriginalAndEvidencePanel } from '@/components/resume-builder/OriginalAndEvidencePanel';
 import { TwoStageGenerationDialog } from '@/components/resume-builder/TwoStageGenerationDialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -88,8 +89,10 @@ export default function SkillsPage() {
   const {
     content,
     setContent,
+    evidence,
     project,
     versions,
+    originalSectionContent,
     showHistory,
     setShowHistory,
     hasChanges,
@@ -119,10 +122,24 @@ export default function SkillsPage() {
     setContent(newContent);
   };
 
+  // Skills page shows both keyword status and original content/evidence
+  const leftPanelContent = (
+    <div className="space-y-6">
+      <KeywordStatusPanel keywords={keywords} />
+      <div className="border-t pt-4">
+        <OriginalAndEvidencePanel
+          originalContent={originalSectionContent}
+          evidence={evidence}
+          sectionName={SECTION_NAME}
+        />
+      </div>
+    </div>
+  );
+
   return (
     <ResumeBuilderShell>
       <StudioLayout
-        leftPanel={<KeywordStatusPanel keywords={keywords} />}
+        leftPanel={leftPanelContent}
         score={project?.current_score}
         previousScore={project?.original_score}
         saveStatus={saveStatus}
