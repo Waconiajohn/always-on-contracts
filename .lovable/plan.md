@@ -1,336 +1,318 @@
 
-# Implementation Plan: Technical Fixes + Design Refinements
 
-Based on the user's approval of recommendations 1-3 and the requirement to trigger `rb-extract-jd-requirements` during Quick Score import, here is the complete implementation plan.
-
----
+# Resume Builder Studio - Critical Data Flow Fixes
 
 ## Executive Summary
 
-This plan addresses:
-1. **Seniority vocabulary standardization** (use DB values everywhere, display friendly labels)
-2. **HiringPrioritiesPanel background toning** (reduce colored backgrounds for Apple-simple aesthetic)
-3. **Keep 15-year rule** (no changes needed)
-4. **Technical bug fixes** (6 critical issues found during review)
+The Resume Builder Studio has significant data flow issues causing:
+1. **Empty left panel** - Shows "No evidence extracted yet" instead of original content or evidence
+2. **Entire resume shown in right panel** - Shows full resume text for every section instead of section-specific content
+3. **No evidence extraction running** - Processing pipeline calls non-existent edge functions
 
 ---
 
-## Part 1: Technical Bug Fixes
+## Root Cause Analysis
 
-### Bug #1: Missing `doc_type` Column in `rb_documents`
+### Issue 1: Processing Pipeline Calls Wrong Edge Functions
 
-**Problem**: `ReportPage.tsx` (line 149) and `FixPage.tsx` (line 129-130) query for `doc_type` column, but `rb_documents` table does NOT have this column.
+**Location**: `src/pages/resume-builder/ProcessingPage.tsx` (lines 131-167)
 
-**Current columns in rb_documents**: `id, project_id, file_name, raw_text, parsed_json, span_index, created_at, updated_at`
+The Processing page calls edge functions that **do not exist**:
 
-**Files affected**:
-- `src/pages/resume-builder/ReportPage.tsx` 
-- `src/pages/resume-builder/FixPage.tsx`
+| Called Function | Should Be |
+|-----------------|-----------|
+| `extract-jd-requirements` | `rb-extract-jd-requirements` |
+| `generate-role-benchmark` | `rb-generate-benchmark` |
+| `extract-resume-claims` | `rb-extract-resume-claims` |
 
-**Solution**: Add `doc_type` column to `rb_documents` via migration, then update the Quick Score import to set it properly.
-
-**Migration SQL**:
-```sql
-ALTER TABLE rb_documents ADD COLUMN doc_type text DEFAULT 'resume';
-```
-
-**Code change in ResumeBuilderIndex.tsx** (line ~234):
-```typescript
-await supabase
-  .from("rb_documents")
-  .insert({
-    project_id: project.id,
-    file_name: "quick-score-import.txt",
-    raw_text: state.resumeText,
-    doc_type: "resume",  // ADD THIS
-  });
-```
+This means when users go through the processing step, no evidence gets extracted into `rb_evidence` table, which is why it's empty.
 
 ---
 
-### Bug #2: Wrong Column Name in FixPage Query
+### Issue 2: Section Content Falls Back to Full Resume
 
-**Problem**: `FixPage.tsx` line 106 queries `.order('priority', ...)` but the column is actually `weight`.
+**Location**: `src/hooks/useRewriteSection.ts` (lines 272-284)
 
-**File**: `src/pages/resume-builder/FixPage.tsx`
-
-**Fix**:
 ```typescript
-// Line 106: Change from
-.order('priority', { ascending: false })
-// To
-.order('weight', { ascending: false })
+// Current behavior: Falls back to ENTIRE raw_text
+const { data: doc } = await supabase
+  .from('rb_documents')
+  .select('raw_text')
+  .eq('project_id', projectId)
+  .maybeSingle();
+
+const rawText = doc?.raw_text || '';
+setContent(rawText);  // <-- Sets ENTIRE resume as content
 ```
+
+The hook does not extract section-specific content. It should:
+1. First check for section-specific version in `rb_versions`
+2. If not found, parse `parsed_json` from `rb_documents` to extract only the relevant section
 
 ---
 
-### Bug #3: TargetPage Saves UI Seniority Value Instead of DB Value
+### Issue 3: Left Panel Shows EvidenceSidebar, Not Original Section
 
-**Problem**: `handleConfirm` on line 197 saves `seniorityLevel` (UI value like "Senior") directly to DB, but DB constraint requires values like "Senior IC".
-
-**File**: `src/pages/resume-builder/TargetPage.tsx`
-
-**Solution**: Add `mapSeniorityToDB` function and use it when saving:
+**Location**: `src/pages/resume-builder/studio/ExperiencePage.tsx` (line 43)
 
 ```typescript
-// Add inverse mapping function
-function mapSeniorityToDB(uiLevel: string): string {
-  const mapping: Record<string, string> = {
-    "Entry Level": "IC",
-    "Junior": "IC",
-    "Mid-Level": "IC",
-    "Senior": "Senior IC",
-    "Lead": "Senior IC",
-    "Principal": "Senior IC",
-    "Manager": "Manager",
-    "Director": "Director",
-    "VP": "VP",
-    "C-Level": "C-Level",
-  };
-  return mapping[uiLevel] || uiLevel;
-}
-
-// In handleConfirm (line ~197):
-seniority_level: mapSeniorityToDB(seniorityLevel),
+<StudioLayout
+  leftPanel={<EvidenceSidebar evidence={evidence} />}  // <-- Only shows evidence
 ```
+
+The `SummaryPage.tsx` does it better with `OriginalContentPanel`, but still doesn't extract section-specific content. The left panel should show:
+1. **Original section content** (extracted from resume for this specific section)
+2. **Verified evidence** relevant to this section
 
 ---
 
-### Bug #4: ProjectStatus Type Diverges from DB Constraint
+### Issue 4: Evidence Not Filtered by Section
 
-**Problem**: `src/types/resume-builder.ts` line 8 defines:
+**Location**: `src/hooks/useStudioPageData.ts` (lines 43-52)
+
 ```typescript
-export type ProjectStatus = 'draft' | 'processing' | 'ready' | 'completed' | 'archived';
+const loadEvidence = useCallback(async () => {
+  const { data } = await supabase
+    .from('rb_evidence')
+    .select('*')
+    .eq('project_id', projectId)
+    .eq('is_active', true)  // <-- No section filter!
 ```
 
-But DB constraint allows:
-```
-'upload', 'jd', 'target', 'processing', 'report', 'fix', 'studio', 'review', 'export', 'complete'
-```
+Evidence is loaded for the entire project, not filtered by the current section (summary, skills, experience, education). The evidence table has `span_location` with section info that should be used.
 
-**File**: `src/types/resume-builder.ts`
+---
 
-**Fix**: Update the type to match DB constraint:
+## Technical Solution
+
+### Fix 1: Update ProcessingPage to Call Correct Edge Functions
+
+**File**: `src/pages/resume-builder/ProcessingPage.tsx`
+
 ```typescript
-export type ProjectStatus = 
-  | 'upload' 
-  | 'jd' 
-  | 'target' 
-  | 'processing' 
-  | 'report' 
-  | 'fix' 
-  | 'studio' 
-  | 'review' 
-  | 'export' 
-  | 'complete';
+// Stage 1: Change from "extract-jd-requirements" to:
+const { error: jdError } = await supabase.functions.invoke(
+  "rb-extract-jd-requirements",
+  { body: { project_id: projectId, jd_text: jdText } }
+);
+
+// Stage 2: Change from "generate-role-benchmark" to:
+const { error: benchError } = await supabase.functions.invoke(
+  "rb-generate-benchmark",
+  { body: { project_id: projectId, role_title, seniority_level, industry } }
+);
+
+// Stage 3: Change from "extract-resume-claims" to:
+const { error: claimsError } = await supabase.functions.invoke(
+  "rb-extract-resume-claims",
+  { body: { project_id: projectId } }
+);
 ```
 
 ---
 
-### Bug #5: Seniority Alignment Shows 50% When Unknown
+### Fix 2: Add Section Content Extraction Logic
 
-**Problem**: `ReportPage.tsx` shows 50% seniority alignment when `userLevel` is unknown, but doesn't clearly communicate this to the user.
+**File**: `src/hooks/useRewriteSection.ts` - Update `useSectionContent`
 
-**File**: `src/pages/resume-builder/ReportPage.tsx`
-
-**Enhancement**: Add clarifying text when levels are unknown:
-```typescript
-// Around line 355-360, update the description
-{!stats.userLevel && (
-  <p className="text-xs text-muted-foreground mt-2 italic">
-    Unable to detect your current level from resume
-  </p>
-)}
-```
-
----
-
-### Bug #6: Trigger `rb-extract-jd-requirements` During Quick Score Import
-
-**Problem**: The `rb_jd_requirements` table stays empty after Quick Score import because the extraction edge function is never called.
-
-**File**: `src/pages/resume-builder/ResumeBuilderIndex.tsx`
-
-**Solution**: Add call to `rb-extract-jd-requirements` after project creation in `handleQuickScoreTransition`:
+Create a new utility to extract section-specific content from parsed resume:
 
 ```typescript
-// After line 259 (after keyword decisions insert), add:
-
-// Trigger JD requirements extraction in background
-if (state.jobDescription) {
-  supabase.functions.invoke('rb-extract-jd-requirements', {
-    body: { 
-      project_id: project.id, 
-      jd_text: state.jobDescription,
-      role_title: state.jobTitle || state.scoreResult?.detected?.role || 'Unknown',
-      seniority_level: mappedSeniority || 'IC',
-    }
-  }).then((result) => {
-    if (result.error) {
-      console.error('Failed to extract JD requirements:', result.error);
-    } else {
-      console.log('JD requirements extracted:', result.data?.requirements_count);
-    }
-  });
-}
-```
-
----
-
-## Part 2: Design Refinements
-
-### Refinement #1: Tone Down HiringPrioritiesPanel Backgrounds
-
-**File**: `src/components/quick-score/HiringPrioritiesPanel.tsx`
-
-**Current** (lines 26-47):
-```typescript
-const statusConfig = {
-  strong: {
-    bgColor: 'bg-primary/10',
-    borderColor: 'border-primary/30'
-  },
-  partial: {
-    bgColor: 'bg-amber-500/10',
-    borderColor: 'border-amber-500/30'
-  },
-  missing: {
-    bgColor: 'bg-destructive/10',
-    borderColor: 'border-destructive/30'
-  }
-};
-```
-
-**Change to**: Remove colored backgrounds, use subtle borders only:
-```typescript
-const statusConfig = {
-  strong: {
-    icon: CheckCircle2,
-    label: 'Strong Match',
-    color: 'text-primary',
-    bgColor: 'bg-card',           // Changed from bg-primary/10
-    borderColor: 'border-border'  // Subtle neutral border
-  },
-  partial: {
-    icon: AlertCircle,
-    label: 'Partial Match',
-    color: 'text-amber-500',
-    bgColor: 'bg-card',
-    borderColor: 'border-border'
-  },
-  missing: {
-    icon: XCircle,
-    label: 'Not Shown',
-    color: 'text-destructive',
-    bgColor: 'bg-card',
-    borderColor: 'border-border'
-  }
-};
-```
-
-The status is still communicated via the **badge and icon color** - the background doesn't need to reinforce it.
-
----
-
-## Part 3: Centralized Seniority Mapping Utility
-
-To reduce duplication and ensure consistency, create a shared utility:
-
-**New file**: `src/lib/seniority-utils.ts`
-
-```typescript
-// Database-valid seniority levels
-export const DB_SENIORITY_LEVELS = [
-  'IC', 'Senior IC', 'Manager', 'Senior Manager', 
-  'Director', 'Senior Director', 'VP', 'SVP', 'C-Level'
-] as const;
-
-export type DBSeniorityLevel = typeof DB_SENIORITY_LEVELS[number];
-
-// UI-friendly labels for display
-export const UI_SENIORITY_OPTIONS = [
-  { value: 'IC', label: 'Entry Level / Junior' },
-  { value: 'IC', label: 'Mid-Level' },
-  { value: 'Senior IC', label: 'Senior' },
-  { value: 'Senior IC', label: 'Lead / Principal' },
-  { value: 'Manager', label: 'Manager' },
-  { value: 'Senior Manager', label: 'Senior Manager' },
-  { value: 'Director', label: 'Director' },
-  { value: 'Senior Director', label: 'Senior Director' },
-  { value: 'VP', label: 'VP' },
-  { value: 'SVP', label: 'SVP' },
-  { value: 'C-Level', label: 'C-Level / Executive' },
-];
-
-// Map Quick Score / AI detected level to DB value
-export function mapDetectedLevelToDB(detected: string | null): DBSeniorityLevel | null {
-  if (!detected) return null;
-  const normalized = detected.toLowerCase().trim();
+function extractSectionContent(parsedJson: ParsedResume | null, sectionName: string): string {
+  if (!parsedJson) return '';
   
-  const mapping: Record<string, DBSeniorityLevel> = {
-    'entry': 'IC',
-    'junior': 'IC',
-    'mid': 'IC',
-    'mid-level': 'IC',
-    'senior': 'Senior IC',
-    'lead': 'Senior IC',
-    'staff': 'Senior IC',
-    'principal': 'Senior IC',
-    'manager': 'Manager',
-    'senior manager': 'Senior Manager',
-    'director': 'Director',
-    'senior director': 'Senior Director',
-    'vp': 'VP',
-    'vice president': 'VP',
-    'svp': 'SVP',
-    'c-level': 'C-Level',
-    'executive': 'Director',
+  switch (sectionName) {
+    case 'summary':
+      return parsedJson.summary || '';
+    case 'skills':
+      // Extract skills as bullet list
+      return (parsedJson.skills || []).map(s => `• ${s}`).join('\n');
+    case 'experience':
+      // Extract work experience bullets
+      return (parsedJson.experience || []).map(exp => {
+        const header = `${exp.title} at ${exp.company} (${exp.dates})`;
+        const bullets = (exp.bullets || []).map(b => `• ${b}`).join('\n');
+        return `${header}\n${bullets}`;
+      }).join('\n\n');
+    case 'education':
+      return (parsedJson.education || []).map(edu => 
+        `${edu.degree} - ${edu.institution} (${edu.year})`
+      ).join('\n');
+    default:
+      return '';
+  }
+}
+```
+
+Then update `loadContent`:
+
+```typescript
+const loadContent = useCallback(async () => {
+  // First try active version (existing code)
+  const { data: version } = await supabase
+    .from('rb_versions')
+    .select('content')
+    .eq('project_id', projectId)
+    .eq('section_name', sectionName)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (version?.content) {
+    setContent(version.content);
+    return;
+  }
+
+  // Fall back to extracting from parsed_json
+  const { data: doc } = await supabase
+    .from('rb_documents')
+    .select('raw_text, parsed_json')
+    .eq('project_id', projectId)
+    .maybeSingle();
+
+  const parsedJson = doc?.parsed_json as ParsedResume | null;
+  const sectionContent = extractSectionContent(parsedJson, sectionName);
+  
+  if (sectionContent) {
+    setContent(sectionContent);
+    setOriginalContent(sectionContent);
+  } else {
+    // Ultimate fallback - shouldn't happen with proper parsing
+    console.warn('No parsed section found, using raw text excerpt');
+    setContent(doc?.raw_text || '');
+    setOriginalContent(doc?.raw_text || '');
+  }
+}, [projectId, sectionName]);
+```
+
+---
+
+### Fix 3: Create Combined Left Panel Component
+
+**New File**: `src/components/resume-builder/OriginalAndEvidencePanel.tsx`
+
+```typescript
+interface OriginalAndEvidencePanelProps {
+  originalContent: string;
+  evidence: RBEvidence[];
+  sectionName: string;
+}
+
+export function OriginalAndEvidencePanel({ 
+  originalContent, 
+  evidence, 
+  sectionName 
+}: OriginalAndEvidencePanelProps) {
+  return (
+    <div className="space-y-6">
+      {/* Original Section Content */}
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium flex items-center gap-2">
+          <FileText className="h-4 w-4" />
+          Original {sectionName}
+        </h3>
+        {originalContent ? (
+          <div className="text-sm whitespace-pre-wrap bg-muted/50 rounded p-3 max-h-[200px] overflow-y-auto">
+            {originalContent}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground italic">
+            No original content found for this section
+          </p>
+        )}
+      </div>
+
+      {/* Evidence for this section */}
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium flex items-center gap-2">
+          <ShieldCheck className="h-4 w-4" />
+          Verified Evidence
+        </h3>
+        <EvidenceSidebar evidence={evidence} maxItems={5} readOnly />
+      </div>
+    </div>
+  );
+}
+```
+
+---
+
+### Fix 4: Filter Evidence by Section
+
+**File**: `src/hooks/useStudioPageData.ts`
+
+Update `loadEvidence` to filter by section:
+
+```typescript
+const loadEvidence = useCallback(async () => {
+  if (!projectId) return;
+  
+  // Map section name to evidence categories
+  const sectionCategories = {
+    summary: ['skill', 'domain', 'leadership'],
+    skills: ['skill', 'tool', 'domain'],
+    experience: ['responsibility', 'metric', 'leadership'],
+    education: ['domain', 'skill'],
   };
   
-  return mapping[normalized] || null;
-}
+  const relevantCategories = sectionCategories[sectionName as keyof typeof sectionCategories] || [];
+  
+  const { data } = await supabase
+    .from('rb_evidence')
+    .select('*')
+    .eq('project_id', projectId)
+    .eq('is_active', true)
+    .in('category', relevantCategories)  // Filter by relevant categories
+    .order('confidence', { ascending: false });
+  
+  setEvidence((data as RBEvidence[]) || []);
+}, [projectId, sectionName]);
+```
 
-// For display in UI
-export function getSeniorityLabel(dbValue: DBSeniorityLevel): string {
-  const labels: Record<DBSeniorityLevel, string> = {
-    'IC': 'Individual Contributor',
-    'Senior IC': 'Senior',
-    'Manager': 'Manager',
-    'Senior Manager': 'Senior Manager',
-    'Director': 'Director',
-    'Senior Director': 'Senior Director',
-    'VP': 'VP',
-    'SVP': 'SVP',
-    'C-Level': 'C-Level',
-  };
-  return labels[dbValue] || dbValue;
+---
+
+### Fix 5: Update Studio Pages to Use New Panel
+
+**Files**: All studio pages (ExperiencePage, SkillsPage, EducationPage)
+
+```typescript
+// Change from:
+leftPanel={<EvidenceSidebar evidence={evidence} />}
+
+// To:
+leftPanel={
+  <OriginalAndEvidencePanel
+    originalContent={originalSectionContent}
+    evidence={evidence}
+    sectionName={SECTION_NAME}
+  />
 }
 ```
+
+Add `originalSectionContent` to `useStudioPageData` return values.
 
 ---
 
 ## Summary of Changes
 
-| File | Type | Description |
-|------|------|-------------|
-| **Database migration** | Schema | Add `doc_type` column to `rb_documents` |
-| `src/types/resume-builder.ts` | Fix | Update `ProjectStatus` type to match DB constraint |
-| `src/pages/resume-builder/ResumeBuilderIndex.tsx` | Fix + Feature | Add `doc_type: "resume"` to insert, trigger `rb-extract-jd-requirements` |
-| `src/pages/resume-builder/TargetPage.tsx` | Fix | Add `mapSeniorityToDB()` and use it when saving |
-| `src/pages/resume-builder/FixPage.tsx` | Fix | Change `.order('priority')` to `.order('weight')` |
-| `src/pages/resume-builder/ReportPage.tsx` | Enhancement | Add messaging when seniority level is unknown |
-| `src/components/quick-score/HiringPrioritiesPanel.tsx` | Design | Tone down background colors to subtle borders |
-| `src/lib/seniority-utils.ts` | New | Centralized seniority mapping utility |
+| File | Change Type | Description |
+|------|-------------|-------------|
+| `src/pages/resume-builder/ProcessingPage.tsx` | Fix | Correct edge function names (3 changes) |
+| `src/hooks/useRewriteSection.ts` | Enhance | Add section content extraction from `parsed_json` |
+| `src/hooks/useStudioPageData.ts` | Enhance | Filter evidence by section, expose original content |
+| `src/components/resume-builder/OriginalAndEvidencePanel.tsx` | New | Combined panel showing original + evidence |
+| `src/pages/resume-builder/studio/ExperiencePage.tsx` | Update | Use new combined panel |
+| `src/pages/resume-builder/studio/SkillsPage.tsx` | Update | Use new combined panel |
+| `src/pages/resume-builder/studio/EducationPage.tsx` | Update | Use new combined panel |
 
 ---
 
 ## Verification Checklist
 
 After implementation:
-- [ ] Quick Score import sets `doc_type: "resume"` on documents
-- [ ] FixPage loads requirements sorted by `weight` (not `priority`)
-- [ ] TargetPage saves DB-valid seniority levels
-- [ ] ProjectStatus type matches DB constraint
-- [ ] `rb_jd_requirements` is populated during Quick Score import
-- [ ] HiringPrioritiesPanel uses subtle borders instead of colored backgrounds
-- [ ] Seniority alignment shows helpful message when user level is unknown
+- [ ] Processing pipeline calls `rb-*` edge functions correctly
+- [ ] `rb_evidence` table populates after processing
+- [ ] Each studio page shows only section-specific content (not full resume)
+- [ ] Left panel shows original section content
+- [ ] Left panel shows evidence filtered to relevant categories
+- [ ] Editing experience doesn't show skills content and vice versa
+
