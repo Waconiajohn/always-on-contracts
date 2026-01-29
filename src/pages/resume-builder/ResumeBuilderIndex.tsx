@@ -227,16 +227,31 @@ export default function ResumeBuilderIndex() {
 
       if (error) throw error;
 
-      // Store the resume text as a document with doc_type
+      // Store the resume text as a document and trigger AI parsing
       if (state.resumeText) {
-        await supabase
+        const { data: docData, error: docError } = await supabase
           .from("rb_documents")
           .insert({
             project_id: project.id,
             file_name: "quick-score-import.txt",
             raw_text: state.resumeText,
             doc_type: "resume",
+          })
+          .select()
+          .single();
+
+        // Trigger AI-powered structure parsing in background
+        if (docData && !docError) {
+          supabase.functions.invoke('rb-parse-resume-structure', {
+            body: { project_id: project.id }
+          }).then((result) => {
+            if (result.error) {
+              console.error('Failed to parse resume structure:', result.error);
+            } else {
+              console.log('Resume structure parsed:', result.data?.sections);
+            }
           });
+        }
       }
 
         // Store keyword analysis if available (rb_keyword_decisions uses decision without priority)

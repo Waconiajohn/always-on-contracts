@@ -419,3 +419,6 @@ verify_jwt = false
 
 [functions.check-cost-alerts]
 verify_jwt = true
+
+[functions.rb-parse-resume-structure]
+verify_jwt = true
