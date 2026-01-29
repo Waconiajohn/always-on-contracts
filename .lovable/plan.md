@@ -1,129 +1,150 @@
 
-# Match Report Page - Complete Redesign
+# Production-Grade Fix: Complete the Resume Parsing Pipeline
 
-## Problems Identified
+## Problem Summary
 
-### 1. Edge Function Failures
-The `rb-extract-jd-requirements` function is failing with JSON truncation errors ("Unterminated string in JSON"). The AI is returning responses that exceed output limits and get cut off.
+Resumes entering the system have **raw text** but no **structured JSON**. This breaks the Fix page's "Compare" tab because `JDComparisonView` requires structured sections (summary, skills, experience, education).
 
-### 2. Missing Keywords Display is Messy
-Currently shows awkward long phrases as tiny badge pills:
-- "acquisition, development and exploitation of onshore North American properties" 
-- These get truncated and look unprofessional
+**This affects ALL entry points:**
+- Quick Score imports → saves `raw_text` only
+- Regular file uploads → saves `raw_text` only (the `parse-resume` function never returns `parsed`)
 
-### 3. Irrelevant Interview Card
-The "Interview Practice" card is premature - users haven't even fixed their resume yet. This is confusing and clutters the page.
+## Root Cause
 
-### 4. No Proper Keyword Table
-The Quick Score has a professional `KeywordComparisonTable` with:
-- Two columns (JD vs Resume)
-- Priority groupings (Critical/High/Medium)
-- Context quotes showing where keywords appear
-- Check/X icons for match status
+The `parse-resume` edge function extracts text from PDF/DOCX files but does NOT parse it into structured sections. It returns:
+```json
+{ "success": true, "text": "..." }
+```
 
-But the Match Report uses crude badge pills with no context.
+But `UploadPage.tsx` expects:
+```json
+{ "success": true, "text": "...", "parsed": { "summary": "...", "skills": [...], "experience": [...] } }
+```
 
-### 5. Visual Hierarchy Issues
-The page is a flat grid of 4 cards with equal weight. There's no clear priority or flow.
+## Production-Grade Solution
+
+**Enhance the existing `parse-resume` function** to include AI-powered structure parsing. This ensures ALL resumes entering the system get proper structured JSON.
+
+### Changes to `supabase/functions/parse-resume/index.ts`
+
+1. **Add AI parsing step** after text extraction
+2. **Return structured `parsed` object** alongside raw text
+3. **Use existing Lovable AI infrastructure**
+
+```text
+Before:
+  File → Text Extraction → Return { text }
+
+After:
+  File → Text Extraction → AI Structure Parsing → Return { text, parsed, spanIndex }
+```
+
+### AI Parsing Logic
+
+The function will call Lovable AI to extract:
+- `header`: { fullName, headline, contactLine }
+- `summary`: string
+- `skills`: string[]
+- `experience`: [{ title, company, dates, bullets }]
+- `education`: [{ degree, school, year }]
+
+### Example AI Prompt
+
+```
+Parse this resume into structured sections:
+
+{resume_text}
+
+Return JSON with:
+- header: { fullName, headline, contactLine }
+- summary: The professional summary paragraph
+- skills: Array of skill strings
+- experience: Array of { title, company, dates, bullets: string[] }
+- education: Array of { degree, school, year }
+```
 
 ---
 
-## Solution
+## Secondary Changes
 
-### Fix 1: Improve Edge Function Reliability
-Update `rb-extract-jd-requirements` to:
-- Reduce the number of requirements extracted (limit to top 20)
-- Shorten the context quotes to prevent truncation
-- Add retry logic with fallback to simpler prompts
+### 1. Quick Score Import (`ResumeBuilderIndex.tsx`)
 
-### Fix 2: Replace Badge Pills with Keyword Table
-Import and use `KeywordComparisonTable` from Quick Score:
-- Show keywords grouped by priority
-- Display check/X for matched vs missing
-- Show JD context where keywords appear
-- Remove the ugly small badges
+After saving `raw_text`, trigger the structure parsing:
 
-### Fix 3: Remove Interview Card
-Remove the "Interview Practice" card - it's premature and confusing. Keep only:
-- Score card
-- Missing Keywords (as proper table)
-- Seniority Alignment
-- Requirement Coverage
-- ATS Compatibility
-- "Compare Resume & JD" action
+```typescript
+// After inserting document with raw_text
+if (state.resumeText) {
+  await supabase
+    .from("rb_documents")
+    .insert({ project_id: project.id, raw_text: state.resumeText, doc_type: "resume" });
 
-### Fix 4: Improve Visual Layout
-Restructure the page:
-- Large score at top with clear status
-- Full-width Keyword Table below
-- Three metric cards in a row (Seniority, Requirements, ATS)
-- Single action button to proceed
+  // Trigger AI parsing in background
+  supabase.functions.invoke('rb-parse-resume-structure', {
+    body: { project_id: project.id }
+  });
+}
+```
+
+### 2. Processing Page (`ProcessingPage.tsx`)
+
+Add a parsing check before the pipeline runs:
+
+```typescript
+// Check if parsed_json exists, if not trigger parsing first
+const { data: doc } = await supabase
+  .from('rb_documents')
+  .select('parsed_json')
+  .eq('project_id', projectId)
+  .maybeSingle();
+
+if (doc && !doc.parsed_json) {
+  await supabase.functions.invoke('rb-parse-resume-structure', {
+    body: { project_id: projectId }
+  });
+}
+```
 
 ---
 
-## Technical Changes
+## New Edge Function: `rb-parse-resume-structure`
 
-### File: `src/pages/resume-builder/ReportPage.tsx`
+A focused function that:
+1. Loads `raw_text` from `rb_documents`
+2. Calls AI to parse into structured JSON
+3. Updates `rb_documents.parsed_json`
 
-1. Import KeywordComparisonTable:
-```typescript
-import { KeywordComparisonTable, KeywordRowData } from '@/components/quick-score/KeywordComparisonTable';
-```
-
-2. Load full keyword data with decision info:
-```typescript
-const keywords: KeywordRowData[] = keywordsRes.data.map(k => ({
-  keyword: k.keyword,
-  priority: 'high' as const, // Can enhance with JD requirement weight
-  isMatched: k.decision === 'ignore', // 'ignore' means already in resume
-  jdContext: '', // Could be enhanced later
-  resumeContext: k.decision === 'ignore' ? 'Found in resume' : undefined,
-}));
-```
-
-3. Replace Missing Keywords card with full-width KeywordComparisonTable:
-```typescript
-{/* Full-width Keyword Analysis */}
-<KeywordComparisonTable 
-  keywords={keywordTableData}
-  onAddKeyword={(kw) => navigate(`/resume-builder/${projectId}/fix`)}
-/>
-```
-
-4. Remove Interview Practice card (lines 483-502)
-
-5. Reorganize metric cards into single row:
-```typescript
-<div className="grid gap-4 md:grid-cols-3">
-  {/* Seniority Alignment */}
-  {/* Requirement Coverage */}
-  {/* ATS Compatibility */}
-</div>
-```
-
-### File: `supabase/functions/rb-extract-jd-requirements/index.ts`
-
-1. Reduce `max_requirements` from 50 to 20
-2. Add instruction to limit context quotes to 50 chars
-3. Add retry with simplified prompt on JSON parse failure
+This can be called:
+- During Quick Score import
+- During Processing if `parsed_json` is missing
+- As a standalone repair operation
 
 ---
 
-## Summary of Changes
+## Technical Summary
 
-| File | Change |
-|------|--------|
-| `src/pages/resume-builder/ReportPage.tsx` | Replace badge pills with KeywordComparisonTable, remove Interview card, reorganize layout |
-| `supabase/functions/rb-extract-jd-requirements/index.ts` | Reduce output size to prevent truncation |
-| `src/components/quick-score/KeywordComparisonTable.tsx` | No changes - already well-designed |
+| Component | Change | Purpose |
+|-----------|--------|---------|
+| `supabase/functions/rb-parse-resume-structure/index.ts` | **New** | AI-powered parsing of raw text to structured JSON |
+| `src/pages/resume-builder/ResumeBuilderIndex.tsx` | Update | Trigger parsing after Quick Score import |
+| `src/pages/resume-builder/ProcessingPage.tsx` | Update | Ensure `parsed_json` exists before pipeline runs |
 
 ---
 
-## Result
+## Why This is Production-Grade
 
-After these changes:
-- Keywords displayed in clean two-column table with priority groups
-- No more messy badge pills with long phrases
-- No confusing "Interview Practice" card
-- Better visual hierarchy with score at top, table in middle, metrics at bottom
-- Edge function more reliable with smaller outputs
+1. **Single source of truth** - One function handles all structure parsing
+2. **Works for all entry points** - Quick Score, uploads, future integrations
+3. **No UI fallbacks needed** - Data is correct at the source
+4. **Idempotent** - Can safely re-run without duplicates
+5. **Background processing** - Doesn't block user workflow
+
+---
+
+## Verification Checklist
+
+After implementation:
+- [ ] Quick Score import → `parsed_json` is populated
+- [ ] Regular file upload → `parsed_json` is populated
+- [ ] Fix page Compare tab → Shows structured resume sections
+- [ ] 15-year experience check → Works with `experience` array
+- [ ] Keyword highlighting → Works in all sections
