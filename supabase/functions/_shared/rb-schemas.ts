@@ -316,7 +316,24 @@ export function parseAndValidate<T extends z.ZodType>(
   context: string
 ): z.infer<T> {
   try {
-    const parsed = JSON.parse(jsonString);
+    // Strip markdown code blocks if present (e.g., ```json ... ```)
+    let cleanedJson = jsonString.trim();
+    
+    // Remove ```json or ``` prefix
+    if (cleanedJson.startsWith('```json')) {
+      cleanedJson = cleanedJson.slice(7);
+    } else if (cleanedJson.startsWith('```')) {
+      cleanedJson = cleanedJson.slice(3);
+    }
+    
+    // Remove trailing ```
+    if (cleanedJson.endsWith('```')) {
+      cleanedJson = cleanedJson.slice(0, -3);
+    }
+    
+    cleanedJson = cleanedJson.trim();
+    
+    const parsed = JSON.parse(cleanedJson);
     const result = schema.safeParse(parsed);
     if (!result.success) {
       console.error(`[${context}] Validation errors:`, result.error.issues);
