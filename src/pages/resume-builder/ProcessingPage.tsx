@@ -115,13 +115,29 @@ export default function ProcessingPage() {
       if (projectError) throw projectError;
 
       const jdText = project.jd_text;
-      const resumeText = project.rb_documents?.[0]?.raw_text;
+      const resumeDoc = project.rb_documents?.find((d: any) => d.doc_type === 'resume');
+      const resumeText = resumeDoc?.raw_text;
 
       if (!jdText) {
         throw new Error("No job description found");
       }
       if (!resumeText) {
         throw new Error("No resume found");
+      }
+
+      // Ensure resume has parsed_json before proceeding
+      if (resumeDoc && !resumeDoc.parsed_json) {
+        console.log('[ProcessingPage] Resume missing parsed_json, triggering parse...');
+        const { error: parseError } = await supabase.functions.invoke(
+          'rb-parse-resume-structure',
+          { body: { project_id: projectId } }
+        );
+        if (parseError) {
+          console.error('[ProcessingPage] Resume parsing failed:', parseError);
+          // Continue anyway - the pipeline may work with raw_text
+        } else {
+          console.log('[ProcessingPage] Resume structure parsed successfully');
+        }
       }
 
       // Stage 1: Extract JD Requirements
