@@ -310,6 +310,67 @@ export function safeParseWithLog<T extends z.ZodType>(
 // ============================================================================
 // Helper: Parse JSON and Validate
 // ============================================================================
+/**
+ * Normalizes section_hint values to valid enum options.
+ * Handles combined values like "Skills|Experience" and invalid values like "Certifications".
+ */
+function normalizeSectionHint(value: unknown): string {
+  if (typeof value !== 'string') return 'Experience';
+  
+  const validOptions = ['Summary', 'Skills', 'Experience', 'Education'];
+  
+  // Check if it's already valid
+  if (validOptions.includes(value)) return value;
+  
+  // Handle combined values like "Skills|Experience" - take the first valid one
+  if (value.includes('|')) {
+    const parts = value.split('|');
+    for (const part of parts) {
+      const trimmed = part.trim();
+      if (validOptions.includes(trimmed)) return trimmed;
+    }
+  }
+  
+  // Map common invalid values to valid ones
+  const mappings: Record<string, string> = {
+    'Certifications': 'Education',
+    'Certification': 'Education',
+    'Certs': 'Education',
+    'Work Experience': 'Experience',
+    'Professional Experience': 'Experience',
+    'Technical Skills': 'Skills',
+    'Core Competencies': 'Skills',
+    'Professional Summary': 'Summary',
+    'Objective': 'Summary',
+  };
+  
+  if (mappings[value]) return mappings[value];
+  
+  // Default fallback
+  return 'Experience';
+}
+
+/**
+ * Recursively normalizes section_hint fields in parsed data
+ */
+function normalizeRequirementsData(data: Record<string, unknown>): Record<string, unknown> {
+  const categories = [
+    'hard_skills', 'tools_tech', 'domain_knowledge', 'responsibilities',
+    'outcomes_metrics', 'education_certs', 'titles_seniority', 'soft_skills'
+  ];
+  
+  for (const category of categories) {
+    if (Array.isArray(data[category])) {
+      data[category] = (data[category] as Record<string, unknown>[]).map(item => ({
+        ...item,
+        section_hint: normalizeSectionHint(item.section_hint)
+      }));
+    }
+  }
+  
+  return data;
+}
+
 export function parseAndValidate<T extends z.ZodType>(
   schema: T,
   jsonString: string,
@@ -333,7 +394,13 @@ export function parseAndValidate<T extends z.ZodType>(
     
     cleanedJson = cleanedJson.trim();
     
-    const parsed = JSON.parse(cleanedJson);
+    let parsed = JSON.parse(cleanedJson);
+    
+    // Normalize section_hint values for requirements extraction
+    if (context.includes('rb-extract-jd-requirements') && typeof parsed === 'object') {
+      parsed = normalizeRequirementsData(parsed as Record<string, unknown>);
+    }
+    
     const result = schema.safeParse(parsed);
     if (!result.success) {
       console.error(`[${context}] Validation errors:`, result.error.issues);
